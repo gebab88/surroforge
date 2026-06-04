@@ -1,0 +1,106 @@
+# generated: 2026-06-04
+# last_updated: 2026-06-04
+# project: SurroForge
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# BROWNFIELD NOTE:
+# ================
+# Phase 1 is already implemented and tested (121 passing tests). Statuses below
+# reflect REALITY rather than the default file-based detection: stories whose
+# behaviour is built and tested are 'done' (an acceptance baseline), 6-4 is
+# 'in-progress' (gates + CI scaffold done; full CI activation pending a git remote),
+# and the remaining Phase-1 / Phase-2 work is 'backlog'. The open backlog is the
+# real worklist: 4-4, 5-3, 5-4, 5-5, 6-5 (plus finishing 6-4).
+
+generated: 2026-06-04
+last_updated: 2026-06-04
+project: SurroForge
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1 — Project & Dataset Foundation (complete)
+  epic-1: done
+  1-1-initialize-a-project: done
+  1-2-register-a-dataset-with-validation-and-hashing: done
+  1-3-list-registered-datasets: done
+  epic-1-retrospective: optional
+
+  # Epic 2 — Train & Validate Surrogates (complete)
+  epic-2: done
+  2-1-define-a-run-in-a-single-yaml-config: done
+  2-2-train-a-surrogate-from-config: done
+  2-3-cross-validate-and-compute-standard-metrics: done
+  2-4-persist-every-run-with-complete-lineage: done
+  2-5-show-a-runs-validation-metrics: done
+  epic-2-retrospective: optional
+
+  # Epic 3 — Compare, Predict, Export & Report (complete)
+  epic-3: done
+  3-1-compare-runs-and-identify-the-best: done
+  3-2-predict-on-new-inputs: done
+  3-3-export-a-model-to-onnx-or-pickle: done
+  3-4-generate-a-markdown-report: done
+  epic-3-retrospective: optional
+
+  # Epic 4 — Reproducibility & Run Lineage (in-progress: 4-4 open)
+  epic-4: in-progress
+  4-1-list-all-runs-in-a-project: done
+  4-2-inspect-a-runs-details: done
+  4-3-reproduce-a-run-with-a-trustworthy-verdict: done
+  4-4-warn-when-loading-a-non-local-model-artifact: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5 — Python API & Extensibility (in-progress: 5-3/5-4/5-5 open)
+  epic-5: in-progress
+  5-1-drive-the-full-workflow-from-the-python-api: done
+  5-2-register-a-custom-method-via-entry-points: done
+  5-3-self-verify-a-plugin-against-a-shipped-conformance-suite: backlog
+  5-4-declare-a-methods-reproducibility-and-export-capabilities: backlog
+  5-5-reserve-the-core-commercial-plugin-seam: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6 — CLI Ergonomics, Quality Gates & Distribution (in-progress: 6-4 partial, 6-5 open)
+  epic-6: in-progress
+  6-1-consistent-global-cli-options: done
+  6-2-errors-as-a-feature: done
+  # done: install-hint behavior implemented & verified in source, but NOT covered by
+  # an automated test (dev env has all extras, so the missing-backend path never runs).
+  # Follow-up: a test that monkeypatches the backend import to raise ImportError and
+  # asserts an actionable install hint (not a traceback).
+  6-3-graceful-degradation-without-optional-backends: done
+  6-4-enforced-architectural-and-quality-gates: in-progress
+  6-5-documentation-site: backlog
+  epic-6-retrospective: optional

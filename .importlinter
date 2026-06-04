@@ -1,0 +1,52 @@
+# Architectural boundary contracts for SurroForge (run: `lint-imports`).
+# These encode the dependency-direction invariants verified in the architecture
+# doc. Forbidden contracts (not a strict layered contract) are used deliberately:
+# `engine` and `core` legitimately import sibling leaf packages, so a linear
+# layering would raise false positives. What MUST hold is the upward prohibition.
+
+[importlinter]
+root_package = surroforge
+
+[importlinter:contract:no-upward-imports-from-core-engine-services]
+name = core/engine/services must never import the adapters (cli/api)
+type = forbidden
+source_modules =
+    surroforge.core
+    surroforge.engine
+    surroforge.services
+forbidden_modules =
+    surroforge.cli
+    surroforge.api
+# Direct-import enforcement. The package __init__.py eagerly re-exports the public
+# API (api.highlevel, core.project), so importing ANY submodule runs __init__ and
+# transitively pulls in `api`. That import-time cycle is a benign artifact of the
+# public-API re-export; the meaningful invariant is that no module's SOURCE
+# references the adapters — a direct `from surroforge.api import ...` is still caught.
+allow_indirect_imports = true
+
+[importlinter:contract:engine-has-no-back-edge-to-services]
+name = engine must never import services (orchestration is one-directional)
+type = forbidden
+source_modules =
+    surroforge.engine
+forbidden_modules =
+    surroforge.services
+
+[importlinter:contract:errors-is-a-leaf]
+name = errors imports nothing internal (pure leaf)
+type = forbidden
+source_modules =
+    surroforge.errors
+forbidden_modules =
+    surroforge.cli
+    surroforge.api
+    surroforge.services
+    surroforge.engine
+    surroforge.core
+    surroforge.data
+    surroforge.trainers
+    surroforge.validators
+    surroforge.exporters
+    surroforge.reporters
+    surroforge.persistence
+    surroforge.plugins

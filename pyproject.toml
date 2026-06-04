@@ -1,0 +1,89 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "surroforge"
+version = "0.1.0"
+description = "Command-line tool for building, validating and managing surrogate models for FEM/CFD simulation data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "SurroForge Contributors" }]
+keywords = ["surrogate", "kriging", "cae", "fem", "cfd", "machine-learning", "engineering"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "pyyaml>=6.0",
+    "pydantic>=2.5",
+    "typer>=0.12",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+# Backend for Kriging / RBF surrogate methods (PRD 4.6).
+smt = ["smt>=2.0"]
+# ONNX model export (PRD 4.4).
+onnx = ["skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17"]
+# Additional tabular input formats (PRD 4.4).
+formats = ["pyarrow>=14.0", "h5py>=3.10"]
+# Everything an MVP user might want.
+all = ["smt>=2.0", "skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17", "pyarrow>=14.0", "h5py>=3.10"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "import-linter>=2.0"]
+
+[project.scripts]
+surroforge = "surroforge.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/gebab88/surroforge"
+Documentation = "https://gebab88.github.io/surroforge"
+
+# Built-in trainers are registered through the same entry-point mechanism that
+# third-party plugins use (PRD 4.11), so the core has no special-case path.
+[project.entry-points."surroforge.trainers"]
+polynomial = "surroforge.trainers.polynomial:PolynomialTrainer"
+kriging = "surroforge.trainers.kriging:KrigingTrainer"
+rbf = "surroforge.trainers.rbf:RBFTrainer"
+
+[project.entry-points."surroforge.exporters"]
+pickle = "surroforge.exporters.pickle_exporter:PickleExporter"
+onnx = "surroforge.exporters.onnx_exporter:ONNXExporter"
+
+[project.entry-points."surroforge.reporters"]
+markdown = "surroforge.reporters.markdown:MarkdownReporter"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/surroforge"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer's API requires typer.Option/Argument calls in parameter defaults.
+"src/surroforge/cli/main.py" = ["B008"]
+# Long lines live inside a Jinja template literal; wrapping them would change output.
+"src/surroforge/reporters/markdown.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
