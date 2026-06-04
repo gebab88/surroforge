@@ -38,11 +38,10 @@
 # ================
 # Phase 1 is already implemented and tested (121 passing tests). Statuses below
 # reflect REALITY rather than the default file-based detection: stories whose
-# behaviour is built and tested are 'done' (an acceptance baseline), 6-4 is
-# 'in-progress' (gates + CI workflow done and now pushed to a GitHub remote;
-# remaining: confirm a green CI run on GitHub Actions), and the remaining
-# Phase-1 / Phase-2 work is 'backlog'. The open backlog is the real worklist:
-# 4-4, 5-3, 5-4, 5-5, 6-5 (plus finishing 6-4).
+# behaviour is built and tested are 'done' (an acceptance baseline). 6-4 is now
+# 'done' (gates enforced + CI confirmed green across the full OS/Python matrix on
+# GitHub Actions, 2026-06-04). The remaining Phase-1 / Phase-2 work is 'backlog'.
+# The open backlog is the real worklist: 4-4, 5-3, 5-4, 5-5, 6-5.
 
 generated: 2026-06-04
 last_updated: 2026-06-04
@@ -93,7 +92,7 @@ development_status:
   5-5-reserve-the-core-commercial-plugin-seam: backlog
   epic-5-retrospective: optional
 
-  # Epic 6 — CLI Ergonomics, Quality Gates & Distribution (in-progress: 6-4 partial, 6-5 open)
+  # Epic 6 — CLI Ergonomics, Quality Gates & Distribution (in-progress: 6-5 open)
   epic-6: in-progress
   6-1-consistent-global-cli-options: done
   6-2-errors-as-a-feature: done
@@ -102,11 +101,14 @@ development_status:
   # Follow-up: a test that monkeypatches the backend import to raise ImportError and
   # asserts an actionable install hint (not a traceback).
   6-3-graceful-degradation-without-optional-backends: done
-  # in-progress: gates implemented & enforced locally (ruff, mypy, lint-imports,
-  # tests/test_architecture.py); CI workflow pushed to github.com/gebab88/surroforge
-  # on 2026-06-04 (git-remote blocker cleared). Remaining for 'done': confirm a green
-  # run on GitHub Actions (note: license job's Pages/visibility assumptions, and the
-  # thread-pinned repro test deferred in deferred-work.md, ride along here).
-  6-4-enforced-architectural-and-quality-gates: in-progress
+  # done: gates implemented & enforced locally (ruff, mypy, lint-imports,
+  # tests/test_architecture.py) AND confirmed green on GitHub Actions — full
+  # matrix (ubuntu/macos/windows x py3.10-3.12) + reproducibility + license jobs
+  # all passing on commit d1b0f9b (2026-06-04). The cross-OS matrix already paid
+  # off: it caught a Windows path-separator bug (str(Path) -> backslash) now fixed
+  # via Path.as_posix(). Accepted deferral: the thread-pinned @pytest.mark.slow
+  # repro test in deferred-work.md remains out of scope (the CI repro job runs
+  # test_reproduce.py under pinned BLAS threads, which covers the core invariant).
+  6-4-enforced-architectural-and-quality-gates: done
   6-5-documentation-site: backlog
   epic-6-retrospective: optional
