@@ -6,6 +6,8 @@ leave a half-written ``lineage.json`` or project file behind.
 
 from __future__ import annotations
 
+import getpass
+import hashlib
 import json
 import os
 import platform
@@ -81,13 +83,41 @@ def capture_dependencies() -> list[str]:
     return pins
 
 
+def machine_id() -> str:
+    """Opaque, stable identifier for the current machine + user.
+
+    A short hash of hostname + username — NOT the raw values — so a run's
+    lineage records *where it was produced* well enough to flag a foreign
+    pickle (Story 4.4 / AR12) without leaking PII into a shareable run dir
+    (NFR5). It only needs to be stable per machine and to differ across
+    machines; it is never reversed or sent anywhere.
+    """
+    try:
+        user = getpass.getuser()
+    except Exception:  # pragma: no cover - getuser can fail in odd environments
+        user = ""
+    raw = f"{platform.node()}\x00{user}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def is_locally_produced(lineage: dict[str, Any]) -> bool:
+    """Whether a run's recorded ``machine_id`` matches this machine.
+
+    A missing id (a legacy run from before provenance capture) returns False:
+    provenance cannot be confirmed, so callers should treat it as foreign.
+    """
+    recorded = lineage.get("machine_id")
+    return bool(recorded) and recorded == machine_id()
+
+
 def capture_environment() -> dict[str, Any]:
-    """Python/SurroForge versions and dependency pins for a run's lineage."""
+    """Python/SurroForge versions, dependency pins, and provenance for a run."""
     from surroforge import __version__
 
     return {
         "python_version": platform.python_version(),
         "surroforge_version": __version__,
         "platform": platform.platform(),
+        "machine_id": machine_id(),
         "dependencies": capture_dependencies(),
     }

@@ -74,7 +74,7 @@ NFR9: Error UX — helpful, tested error messages with concrete fix suggestions;
 - ✅ **AR9 — Edition-agnostic registry (Spike 2):** built-ins register via the same entry points third-party/commercial plugins use; Core runs standalone with graceful degradation (lazy optional-backend imports).
 - ⏳ **AR10 — Plugin conformance suite:** a shippable `src/surroforge/conformance/` parametrised contract suite so third-party/commercial plugins can self-verify (Tier-A; not built).
 - ⏳ **AR11 — Trainer reproducibility-characteristics declaration** (deterministic vs. tolerance) and **queried exporter-capability** (replacing the binary `supports_onnx`) on `BaseTrainer` (Tier-A; not built).
-- ⏳ **AR12 — Pickle provenance warning** on loading non-locally-produced artifacts; **MkDocs docs site** (PRD §13).
+- **AR12 — ✅ Pickle provenance warning** on loading non-locally-produced artifacts (Story 4.4); **⏳ MkDocs docs site** (PRD §13, Story 6.5).
 - ⏸ **AR13 — Core↔commercial seam, shape-only:** `api_version` check at registration, name-collision/precedence policy, post-resolution no-op `gate.check` hook; edition catalog + composed `--help` with upgrade hints. Frozen before the first external plugin binds (Phase-2 precondition).
 
 ### UX Design Requirements
@@ -404,7 +404,7 @@ So that I am aware of the arbitrary-code-execution risk of shared artifacts.
 **Then** a clear, one-time warning is emitted naming the risk, and loading proceeds
 **And** locally-produced artifacts load silently.
 
-**Status:** ⏳ not yet built (AR12)
+**Status:** ✅ implemented (AR12 provenance warning). A one-time `UserWarning` fires at the unpickle choke point (`Run.load_model`), covering predict + export. `reproduce` re-trains from the config snapshot and never unpickles the model, so it carries no arbitrary-code-execution risk and stays silent by design. Provenance keys on a privacy-preserving `machine_id` (hash of host+user) recorded in lineage; legacy runs without it are treated as foreign.
 
 ## Epic 5: Python API & Extensibility
 

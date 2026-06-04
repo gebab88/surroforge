@@ -40,8 +40,9 @@
 # reflect REALITY rather than the default file-based detection: stories whose
 # behaviour is built and tested are 'done' (an acceptance baseline). 6-4 is now
 # 'done' (gates enforced + CI confirmed green across the full OS/Python matrix on
-# GitHub Actions, 2026-06-04). The remaining Phase-1 / Phase-2 work is 'backlog'.
-# The open backlog is the real worklist: 4-4, 5-3, 5-4, 5-5, 6-5.
+# GitHub Actions, 2026-06-04). Story 4-4 (pickle provenance warning) is done, so
+# Epic 4 is complete. The remaining Phase-1 / Phase-2 work is 'backlog'. The open
+# backlog is the real worklist: 5-3, 5-4, 5-5, 6-5.
 
 generated: 2026-06-04
 last_updated: 2026-06-04
@@ -75,12 +76,18 @@ development_status:
   3-4-generate-a-markdown-report: done
   epic-3-retrospective: optional
 
-  # Epic 4 — Reproducibility & Run Lineage (in-progress: 4-4 open)
-  epic-4: in-progress
+  # Epic 4 — Reproducibility & Run Lineage (complete)
+  epic-4: done
   4-1-list-all-runs-in-a-project: done
   4-2-inspect-a-runs-details: done
   4-3-reproduce-a-run-with-a-trustworthy-verdict: done
-  4-4-warn-when-loading-a-non-local-model-artifact: backlog
+  # done: one-time UserWarning at the unpickle choke point (Run.load_model ->
+  # predict/export); keys on a privacy-preserving machine_id (hash of host+user)
+  # in lineage; legacy runs without it treated as foreign. reproduce stays silent
+  # by design (re-trains from config, never unpickles the model => no ACE risk).
+  # Tests: tests/test_provenance.py (silent-when-local, warns-when-foreign,
+  # warns-on-legacy, one-time-per-artifact, opaque-id).
+  4-4-warn-when-loading-a-non-local-model-artifact: done
   epic-4-retrospective: optional
 
   # Epic 5 — Python API & Extensibility (in-progress: 5-3/5-4/5-5 open)

@@ -7,13 +7,14 @@ holding them in memory.
 
 from __future__ import annotations
 
+import warnings
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 from surroforge.core.config import ExperimentConfig, parse_config
 from surroforge.errors import RunNotFoundError
-from surroforge.persistence import read_json, read_yaml
+from surroforge.persistence import is_locally_produced, read_json, read_yaml
 
 CONFIG_SNAPSHOT = "config.snapshot.yaml"
 METRICS_FILE = "metrics.json"
@@ -21,6 +22,34 @@ LINEAGE_FILE = "lineage.json"
 MODEL_PICKLE = "model.pkl"
 MODEL_ONNX = "model.onnx"
 LOG_FILE = "log.txt"
+
+# Artifacts we have already warned about this process, so the provenance warning
+# fires once per artifact rather than on every predict/export call (Story 4.4).
+_WARNED_ARTIFACTS: set[str] = set()
+
+
+def _warn_if_foreign_artifact(model_path: Path, lineage: dict[str, Any]) -> None:
+    """Warn once before unpickling a model not produced on this machine.
+
+    Unpickling executes code embedded in the file, so loading a shared
+    ``model.pkl`` is an arbitrary-code-execution risk (Story 4.4 / AR12).
+    Locally-produced artifacts load silently. Emitted via ``warnings`` so it
+    reaches both CLI and library callers and is *not* silenced by ``--quiet``
+    (a security signal); users can still suppress it with ``-W ignore``.
+    """
+    if is_locally_produced(lineage):
+        return
+    key = str(model_path.resolve())
+    if key in _WARNED_ARTIFACTS:
+        return
+    _WARNED_ARTIFACTS.add(key)
+    warnings.warn(
+        f"Model artifact '{model_path}' was not confirmed as produced on this "
+        "machine. Loading a pickle executes code embedded in the file — only "
+        "load model artifacts from sources you trust.",
+        UserWarning,
+        stacklevel=3,
+    )
 
 
 class Run:
@@ -104,4 +133,5 @@ class Run:
         from surroforge.exporters.pickle_exporter import load_pickle
 
         self._require()
+        _warn_if_foreign_artifact(self.model_path, self.lineage)
         return load_pickle(self.model_path)

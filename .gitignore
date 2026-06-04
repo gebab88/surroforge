@@ -21,3 +21,7 @@ htmlcov/
 
 # SurroForge scratch projects used during development
 /scratch/
+
+# BMAD agent framework / tooling (local dev only, not part of the shipped project)
+/.claude/
+/_bmad/
