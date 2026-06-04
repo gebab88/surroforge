@@ -23,6 +23,15 @@ MODEL_PICKLE = "model.pkl"
 MODEL_ONNX = "model.onnx"
 LOG_FILE = "log.txt"
 
+class ProvenanceWarning(UserWarning):
+    """Loading a model artifact not confirmed as produced on this machine.
+
+    A subclass (rather than a bare ``UserWarning``) so adapters can render it in
+    their own style — the CLI prints a sober ``Warning:`` line — while library
+    callers still filter it with the standard ``warnings`` machinery.
+    """
+
+
 # Artifacts we have already warned about this process, so the provenance warning
 # fires once per artifact rather than on every predict/export call (Story 4.4).
 _WARNED_ARTIFACTS: set[str] = set()
@@ -47,7 +56,7 @@ def _warn_if_foreign_artifact(model_path: Path, lineage: dict[str, Any]) -> None
         f"Model artifact '{model_path}' was not confirmed as produced on this "
         "machine. Loading a pickle executes code embedded in the file — only "
         "load model artifacts from sources you trust.",
-        UserWarning,
+        ProvenanceWarning,
         stacklevel=3,
     )
 

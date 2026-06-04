@@ -8,6 +8,7 @@ are caught by the :func:`_guard` decorator on each command and rendered as a cle
 from __future__ import annotations
 
 import functools
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,7 +17,7 @@ import typer
 from surroforge import __version__, services
 from surroforge.core.config import load_config
 from surroforge.core.project import Project
-from surroforge.core.run import Run
+from surroforge.core.run import ProvenanceWarning, Run
 from surroforge.engine import run_training
 from surroforge.errors import DataError, SurroForgeError
 
@@ -325,8 +326,29 @@ def version() -> None:
     _info(f"surroforge {__version__}")
 
 
+def _render_warnings() -> None:
+    """Render SurroForge security warnings as sober ``Warning:`` lines.
+
+    Without this the core's ``warnings.warn`` reaches the terminal in raw Python
+    form (``.../run.py:NN: ProvenanceWarning: ...`` plus the echoed source line),
+    which leaks internals and clashes with the CLI's output tone (NFR9). We only
+    reformat our own ``ProvenanceWarning``; every other warning falls through to
+    Python's default handler untouched.
+    """
+    default_showwarning = warnings.showwarning
+
+    def show(message, category, filename, lineno, file=None, line=None):
+        if issubclass(category, ProvenanceWarning):
+            typer.secho(f"Warning: {message}", fg=typer.colors.YELLOW, err=True)
+        else:
+            default_showwarning(message, category, filename, lineno, file, line)
+
+    warnings.showwarning = show
+
+
 def main() -> None:
     """Console-script entry point with friendly error rendering."""
+    _render_warnings()
     try:
         app()
     except SurroForgeError as exc:

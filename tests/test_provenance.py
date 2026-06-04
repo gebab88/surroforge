@@ -13,7 +13,7 @@ import warnings
 
 import pytest
 
-from surroforge.core.run import Run
+from surroforge.core.run import ProvenanceWarning, Run
 from surroforge.persistence import is_locally_produced, machine_id
 
 _FOREIGN_ID = "0" * 16
@@ -77,3 +77,43 @@ def test_foreign_warning_fires_once_per_artifact(trained_run, monkeypatch):
         trained_run.load_model()
     user_warnings = [w for w in caught if issubclass(w.category, UserWarning)]
     assert len(user_warnings) == 1
+
+
+def test_cli_renders_provenance_warning_soberly(capsys, monkeypatch):
+    # The CLI presentation layer turns the raw Python warning into a sober
+    # "Warning: ..." line on stderr — no leaked source path, lineno, or category
+    # name (NFR9). We exercise the installed handler directly.
+    from surroforge.cli.main import _render_warnings
+
+    # Register the attribute so monkeypatch restores the original on teardown,
+    # even though _render_warnings reassigns warnings.showwarning itself.
+    monkeypatch.setattr(warnings, "showwarning", warnings.showwarning)
+    _render_warnings()
+    warnings.showwarning(
+        "artifact X was not confirmed as produced on this machine",
+        ProvenanceWarning,
+        "/abs/path/surroforge/core/run.py",
+        42,
+    )
+    err = capsys.readouterr().err
+    assert "Warning: artifact X was not confirmed as produced on this machine" in err
+    assert "ProvenanceWarning" not in err  # no raw category name
+    assert "run.py" not in err  # no leaked source location
+
+
+def test_cli_passes_other_warnings_through(capsys, monkeypatch):
+    # Only our ProvenanceWarning is reformatted; unrelated warnings (e.g. a
+    # dependency DeprecationWarning) fall through to Python's default handler.
+    from surroforge.cli.main import _render_warnings
+
+    delegated: list[tuple] = []
+    monkeypatch.setattr(warnings, "showwarning", lambda *a, **k: delegated.append(a))
+    _render_warnings()  # wraps the spy above as the "default"
+
+    warnings.showwarning("a dep warning", DeprecationWarning, "dep.py", 1)
+    assert len(delegated) == 1  # delegated to the default handler
+
+    delegated.clear()
+    warnings.showwarning("a provenance warning", ProvenanceWarning, "run.py", 1)
+    assert delegated == []  # handled by us, not delegated
+    assert "Warning: a provenance warning" in capsys.readouterr().err
