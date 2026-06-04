@@ -39,9 +39,10 @@
 # Phase 1 is already implemented and tested (121 passing tests). Statuses below
 # reflect REALITY rather than the default file-based detection: stories whose
 # behaviour is built and tested are 'done' (an acceptance baseline), 6-4 is
-# 'in-progress' (gates + CI scaffold done; full CI activation pending a git remote),
-# and the remaining Phase-1 / Phase-2 work is 'backlog'. The open backlog is the
-# real worklist: 4-4, 5-3, 5-4, 5-5, 6-5 (plus finishing 6-4).
+# 'in-progress' (gates + CI workflow done and now pushed to a GitHub remote;
+# remaining: confirm a green CI run on GitHub Actions), and the remaining
+# Phase-1 / Phase-2 work is 'backlog'. The open backlog is the real worklist:
+# 4-4, 5-3, 5-4, 5-5, 6-5 (plus finishing 6-4).
 
 generated: 2026-06-04
 last_updated: 2026-06-04
@@ -101,6 +102,11 @@ development_status:
   # Follow-up: a test that monkeypatches the backend import to raise ImportError and
   # asserts an actionable install hint (not a traceback).
   6-3-graceful-degradation-without-optional-backends: done
+  # in-progress: gates implemented & enforced locally (ruff, mypy, lint-imports,
+  # tests/test_architecture.py); CI workflow pushed to github.com/gebab88/surroforge
+  # on 2026-06-04 (git-remote blocker cleared). Remaining for 'done': confirm a green
+  # run on GitHub Actions (note: license job's Pages/visibility assumptions, and the
+  # thread-pinned repro test deferred in deferred-work.md, ride along here).
   6-4-enforced-architectural-and-quality-gates: in-progress
   6-5-documentation-site: backlog
   epic-6-retrospective: optional
