@@ -54,7 +54,7 @@ class Run:
 
     @cached_property
     def config(self) -> ExperimentConfig:
-        return parse_config(self.config_dict, origin=str(self.run_dir / CONFIG_SNAPSHOT))
+        return parse_config(self.config_dict, origin=(self.run_dir / CONFIG_SNAPSHOT).as_posix())
 
     # Convenience accessors over lineage --------------------------------------
 

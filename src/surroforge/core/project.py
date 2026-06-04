@@ -138,7 +138,10 @@ class Project:
 
         dataset = Dataset(
             name=name,
-            path=str(dest.relative_to(self.root)),
+            # Store as POSIX (forward slashes) so the manifest is portable across
+            # OSes — str() would emit backslashes on Windows. pathlib reads it back
+            # fine on any platform (self.root / "data/ext.csv" works everywhere).
+            path=dest.relative_to(self.root).as_posix(),
             hash=hash_dataframe(frame),
             n_rows=int(frame.shape[0]),
             n_cols=int(frame.shape[1]),
