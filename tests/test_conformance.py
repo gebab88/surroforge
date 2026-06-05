@@ -42,6 +42,7 @@ EXPECTED_CHECKS = {
     "fingerprint_participation",
     "surroforge_error_only",
     "invalid_hyperparameter_error_only",
+    "declares_capabilities",
 }
 
 
@@ -135,6 +136,36 @@ class _BareHyperErrorTrainer(BaseTrainer):
         return self._as_2d(np.zeros(self._as_2d(x).shape[0]))
 
 
+class _NoPickleTrainer(BaseTrainer):
+    """Fails to declare the universal 'pickle' export capability (Story 5.4)."""
+
+    name = "bad-no-pickle"
+    export_formats = frozenset()  # must always include "pickle"
+
+    def fit(self, x, y):
+        self._fitted = True
+
+    def predict(self, x):
+        if not getattr(self, "_fitted", False):
+            raise TrainerError("not fitted")
+        return self._as_2d(np.zeros(self._as_2d(x).shape[0]))
+
+
+class _NegativeToleranceTrainer(BaseTrainer):
+    """Declares an invalid (negative) reproduction tolerance (Story 5.4)."""
+
+    name = "bad-tolerance"
+    reproduction_tolerance = -1.0
+
+    def fit(self, x, y):
+        self._fitted = True
+
+    def predict(self, x):
+        if not getattr(self, "_fitted", False):
+            raise TrainerError("not fitted")
+        return self._as_2d(np.zeros(self._as_2d(x).shape[0]))
+
+
 def test_suite_flags_non_2d_predict():
     report = check_trainer(_OneDimTrainer)
     assert "predict_returns_2d" in {r.name for r in report.failures}
@@ -177,3 +208,13 @@ def test_check_trainer_does_not_crash_on_non_class(bad):
     report = check_trainer(bad)
     assert not report.passed
     assert "subclass_of_base_trainer" in {r.name for r in report.failures}
+
+
+def test_suite_flags_undeclared_pickle_export():
+    report = check_trainer(_NoPickleTrainer)
+    assert "declares_capabilities" in {r.name for r in report.failures}
+
+
+def test_suite_flags_invalid_reproduction_tolerance():
+    report = check_trainer(_NegativeToleranceTrainer)
+    assert "declares_capabilities" in {r.name for r in report.failures}

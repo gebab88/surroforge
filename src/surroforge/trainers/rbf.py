@@ -25,7 +25,9 @@ class RBFTrainer(BaseTrainer):
     """
 
     name = "rbf"
-    supports_onnx = False
+    # Like kriging: an SMT-backed method that reproduces within a tolerance and has
+    # no ONNX path, so it keeps the default pickle-only export set (Story 5.4).
+    reproduction_tolerance = 1e-9
 
     def __init__(self, **hyperparameters: Any) -> None:
         unknown = set(hyperparameters) - _SUPPORTED

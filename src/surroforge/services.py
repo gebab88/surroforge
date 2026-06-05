@@ -17,7 +17,7 @@ from surroforge.core.project import Project
 from surroforge.core.run import Run
 from surroforge.data.loader import load_table
 from surroforge.engine import run_training
-from surroforge.errors import DataError, ReproducibilityError
+from surroforge.errors import DataError, ExportError, ReproducibilityError
 from surroforge.plugins import get_exporter, get_reporter
 
 # --- Reproduce ---------------------------------------------------------------
@@ -36,6 +36,8 @@ class ReproduceResult:
     max_abs_diff: float
     data_hash_match: bool
     verdict: str
+    #: The tolerance the run declared (Story 5.4); the verdict was judged against it.
+    tolerance: float = REPRODUCTION_TOLERANCE
 
 
 def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceResult:
@@ -62,35 +64,49 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
     comparable = parent_fp.size > 0 and repro_fp.size > 0 and parent_fp.shape == repro_fp.shape
     max_abs_diff = float(np.max(np.abs(parent_fp - repro_fp))) if comparable else float("inf")
 
+    # Judge against the tolerance the method declared at train time (Story 5.4);
+    # legacy runs recorded before this field fall back to the global default.
+    tolerance = float(parent.lineage.get("reproduction_tolerance", REPRODUCTION_TOLERANCE))
+
     return ReproduceResult(
         parent=parent,
         reproduction=reproduction,
         bit_identical=bit_identical,
         max_abs_diff=max_abs_diff,
         data_hash_match=data_hash_match,
-        verdict=_verdict(data_hash_match, bit_identical, comparable, max_abs_diff),
+        tolerance=tolerance,
+        verdict=_verdict(data_hash_match, bit_identical, comparable, max_abs_diff, tolerance),
     )
 
 
 def _verdict(
-    data_hash_match: bool, bit_identical: bool, comparable: bool, max_abs_diff: float
+    data_hash_match: bool,
+    bit_identical: bool,
+    comparable: bool,
+    max_abs_diff: float,
+    tolerance: float = REPRODUCTION_TOLERANCE,
 ) -> str:
-    """Classify a reproduction outcome (PRD 4.5)."""
+    """Classify a reproduction outcome against the method's tolerance (PRD 4.5, Story 5.4)."""
     if not data_hash_match:
         return "data_changed"
     if not comparable:
         return "unverifiable"
     if bit_identical:
         return "reproduced"
-    if max_abs_diff <= REPRODUCTION_TOLERANCE:
+    if max_abs_diff <= tolerance:
         return "reproduced_within_tolerance"
     return "diverged"
 
 
 def assert_reproducible(
-    result: ReproduceResult, *, tolerance: float = REPRODUCTION_TOLERANCE
+    result: ReproduceResult, *, tolerance: float | None = None
 ) -> None:
-    """Raise if a reproduction did not verifiably reproduce (used in CI/tests)."""
+    """Raise if a reproduction did not verifiably reproduce (used in CI/tests).
+
+    Judges against the tolerance the run declared (``result.tolerance``, Story 5.4)
+    unless an explicit ``tolerance`` override is supplied.
+    """
+    tol = result.tolerance if tolerance is None else tolerance
     if not result.data_hash_match:
         raise ReproducibilityError(
             "Underlying data changed since the original run (data hash mismatch)."
@@ -100,10 +116,10 @@ def assert_reproducible(
             "Cannot verify reproduction: the original run predates the holdout "
             "fingerprint (or its sample shape changed). Re-train to enable checking."
         )
-    if result.max_abs_diff > tolerance:
+    if result.max_abs_diff > tol:
         raise ReproducibilityError(
             f"Reproduction diverged: max abs prediction diff "
-            f"{result.max_abs_diff:.3e} > tolerance {tolerance:.1e}."
+            f"{result.max_abs_diff:.3e} > tolerance {tol:.1e}."
         )
 
 
@@ -182,6 +198,14 @@ def export_model(run: Run, fmt: str, output: str | Path | None = None) -> Path:
     """Export a run's model to ``fmt`` (pickle, onnx, or a plugin format) (PRD 4.4)."""
     exporter = get_exporter(fmt)()
     model = run.load_model()
+    # Declaration-driven gate: the method itself says which formats it supports,
+    # so an unsupported method/format pair fails clearly here (Story 5.4) rather
+    # than deep inside an exporter or, worse, producing a broken artifact.
+    if not model.supports_export(fmt):
+        raise ExportError(
+            f"Method '{model.name}' does not support export format '{fmt}'. "
+            f"Supported: {', '.join(sorted(model.export_formats))}."
+        )
     n_features = int(run.metrics.get("n_inputs", len(run.config.data.inputs)))
     if output is None:
         output = run.run_dir / f"model{exporter.extension}"

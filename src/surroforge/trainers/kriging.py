@@ -28,7 +28,10 @@ class KrigingTrainer(BaseTrainer):
     """
 
     name = "kriging"
-    supports_onnx = False
+    # SMT's optimiser converges to within a small numerical band, not bit-for-bit,
+    # so kriging declares a tolerance rather than determinism (Story 5.4). It has
+    # no ONNX path, so it keeps the default pickle-only export set.
+    reproduction_tolerance = 1e-9
 
     def __init__(self, **hyperparameters: Any) -> None:
         unknown = set(hyperparameters) - _SUPPORTED

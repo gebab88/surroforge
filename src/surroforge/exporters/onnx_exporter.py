@@ -18,7 +18,7 @@ class ONNXExporter(BaseExporter):
     extension = ".onnx"
 
     def export(self, trainer: BaseTrainer, destination: Path, *, n_features: int) -> Path:
-        if not trainer.supports_onnx:
+        if not trainer.supports_export("onnx"):
             raise ExportError(
                 f"Method '{trainer.name}' cannot be exported to ONNX. "
                 "Use --format pickle instead."

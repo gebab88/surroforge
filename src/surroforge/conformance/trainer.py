@@ -199,10 +199,17 @@ def check_trainer(
         pb = np.ascontiguousarray(b.predict(x_test), dtype=np.float64)
         if pa.shape != pb.shape:
             raise AssertionError("two independent fits produced different prediction shapes")
+        # Honour the method's declared reproduction_tolerance (Story 5.4): a method
+        # that legitimately reproduces only within a band must not be failed for it.
+        # Never tighten below the suite's own floor.
+        declared = getattr(trainer_cls, "reproduction_tolerance", tolerance)
+        tol = tolerance
+        if isinstance(declared, (int, float)) and not isinstance(declared, bool):
+            tol = max(tolerance, float(declared))
         diff = float(np.max(np.abs(pa - pb)))
-        if diff > tolerance:
+        if diff > tol:
             raise AssertionError(
-                f"two independent fits diverged by {diff:.2e} (> tolerance {tolerance:.0e})"
+                f"two independent fits diverged by {diff:.2e} (> tolerance {tol:.0e})"
             )
         return "bit-identical" if diff == 0.0 else f"reproducible within {diff:.2e}"
 
@@ -262,6 +269,32 @@ def check_trainer(
             ) from None
         return "ignores unknown hyperparameters (no validation — acceptable)"
 
+    def _declares_capabilities() -> str:
+        # Story 5.4: a trainer declares its reproduction tolerance and export
+        # capability, which the engine, reproduce(), and export now rely on.
+        tol = getattr(trainer_cls, "reproduction_tolerance", None)
+        if isinstance(tol, bool) or not isinstance(tol, (int, float)):
+            raise AssertionError("reproduction_tolerance must be a number")
+        if tol < 0 or not np.isfinite(tol):
+            raise AssertionError(
+                f"reproduction_tolerance must be finite and >= 0 (got {tol!r})"
+            )
+        fmts = getattr(trainer_cls, "export_formats", None)
+        try:
+            fmt_list = list(fmts)  # type: ignore[arg-type]
+        except TypeError:
+            raise AssertionError(
+                "export_formats must be an iterable of format strings"
+            ) from None
+        if not all(isinstance(f, str) for f in fmt_list):
+            raise AssertionError("export_formats must contain only strings")
+        if "pickle" not in fmt_list:
+            raise AssertionError(
+                "every trainer must declare 'pickle' export (all trainers are picklable)"
+            )
+        kind = "deterministic" if tol == 0 else f"tolerant@{float(tol):.0e}"
+        return f"{kind}, exports {sorted(fmt_list)}"
+
     record("subclass_of_base_trainer", _subclass)
     record("constructs_from_hyperparameters", _construct)
     record("fit_returns_none", _fit)
@@ -271,4 +304,5 @@ def check_trainer(
     record("fingerprint_participation", _fingerprint_participation)
     record("surroforge_error_only", _surroforge_error_only)
     record("invalid_hyperparameter_error_only", _invalid_hyperparameter_error_only)
+    record("declares_capabilities", _declares_capabilities)
     return report

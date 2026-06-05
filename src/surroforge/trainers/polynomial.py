@@ -24,7 +24,10 @@ class PolynomialTrainer(BaseTrainer):
     """
 
     name = "polynomial"
-    supports_onnx = True
+    # Closed-form OLS on polynomial features: deterministic, so it must reproduce
+    # bit-for-bit, and it is the one built-in with ONNX export (Story 5.4).
+    export_formats = frozenset({"pickle", "onnx"})
+    reproduction_tolerance = 0.0
 
     def __init__(
         self,

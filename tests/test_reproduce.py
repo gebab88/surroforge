@@ -113,3 +113,42 @@ def test_assert_reproducible_raises_on_numeric_divergence():
     )
     with pytest.raises(ReproducibilityError):
         assert_reproducible(result)
+
+
+# --- Story 5.4: per-method declared reproduction tolerance -------------------
+
+
+def test_run_records_declared_reproduction_tolerance(project):
+    # The deterministic polynomial method declares a 0.0 tolerance; the run records
+    # it and reproduce() surfaces it on the result.
+    cfg = parse_config(poly_config("polynomial"))
+    run = run_training(project, cfg)
+    assert run.lineage["reproduction_tolerance"] == 0.0
+    result = reproduce(project, run.run_id)
+    assert result.tolerance == 0.0
+
+
+def test_verdict_uses_declared_tolerance():
+    from surroforge.services import _verdict
+
+    # Identical divergence, different declared tolerance -> different verdict.
+    assert _verdict(True, False, True, 5e-4, tolerance=1e-3) == "reproduced_within_tolerance"
+    assert _verdict(True, False, True, 5e-4, tolerance=1e-9) == "diverged"
+    assert _verdict(True, False, True, 5e-4, tolerance=0.0) == "diverged"
+
+
+def test_assert_reproducible_honours_declared_tolerance():
+    within = ReproduceResult(
+        parent=None, reproduction=None, bit_identical=False,
+        max_abs_diff=5e-4, data_hash_match=True,
+        verdict="reproduced_within_tolerance", tolerance=1e-3,
+    )
+    assert_reproducible(within)  # within the declared band -> must not raise
+
+    over = ReproduceResult(
+        parent=None, reproduction=None, bit_identical=False,
+        max_abs_diff=5e-4, data_hash_match=True,
+        verdict="diverged", tolerance=0.0,
+    )
+    with pytest.raises(ReproducibilityError):
+        assert_reproducible(over)

@@ -148,7 +148,7 @@ def run_training(
     PickleExporter().export(final_model, run_dir / MODEL_PICKLE, n_features=n_features)
 
     onnx_exported = False
-    if final_model.supports_onnx:
+    if final_model.supports_export("onnx"):
         try:
             ONNXExporter().export(final_model, run_dir / MODEL_ONNX, n_features=n_features)
             onnx_exported = True
@@ -168,6 +168,9 @@ def run_training(
         "seed": split.seed,
         "prediction_hash": prediction_hash,
         "holdout_fingerprint": holdout_fingerprint.tolist(),
+        # Recorded so reproduce() judges this run against the tolerance the method
+        # declared at train time, surviving later changes to the trainer (Story 5.4).
+        "reproduction_tolerance": float(final_model.reproduction_tolerance),
         "onnx_exported": onnx_exported,
         "parent_run": parent_run,
         **capture_environment(),

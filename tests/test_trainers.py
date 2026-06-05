@@ -84,12 +84,21 @@ def test_smt_methods_reject_unknown_hyperparameter(cls):
 
 
 def test_kriging_does_not_support_onnx():
-    x, y = _line()
+    # Export capability is a static declaration (Story 5.4) — no fit/SMT needed.
     model = KrigingTrainer()
-    model.fit(x, y)
-    assert model.supports_onnx is False
+    assert model.supports_export("onnx") is False
+    assert model.supports_export("pickle") is True
     with pytest.raises(ExportError):
         model.to_onnx(n_features=1)
+
+
+def test_polynomial_declares_export_and_determinism():
+    model = PolynomialTrainer()
+    assert model.supports_export("pickle") is True
+    assert model.supports_export("onnx") is True
+    assert model.supports_export("nonsense") is False
+    # Closed-form OLS is declared deterministic.
+    assert model.reproduction_tolerance == 0.0
 
 
 # --- Base contract -----------------------------------------------------------

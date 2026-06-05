@@ -73,7 +73,7 @@ NFR9: Error UX — helpful, tested error messages with concrete fix suggestions;
 - ✅ **AR8 — CI boundary/quality gates:** GitHub Actions scaffold (OS×Python matrix, ruff, mypy, import-linter, pinned-threading reproducibility, GPL/LGPL license scan); import-linter + AST guard already gate the suite.
 - ✅ **AR9 — Edition-agnostic registry (Spike 2):** built-ins register via the same entry points third-party/commercial plugins use; Core runs standalone with graceful degradation (lazy optional-backend imports).
 - ✅ **AR10 — Plugin conformance suite:** a shippable `src/surroforge/conformance/` parametrised contract suite so third-party/commercial plugins can self-verify (Tier-A; built — Story 5.3). `check_trainer()` returns a `ConformanceReport` over the full `BaseTrainer` contract; Core runs it against the three built-ins and deliberately-broken trainers in `tests/test_conformance.py`.
-- ⏳ **AR11 — Trainer reproducibility-characteristics declaration** (deterministic vs. tolerance) and **queried exporter-capability** (replacing the binary `supports_onnx`) on `BaseTrainer` (Tier-A; not built).
+- ✅ **AR11 — Trainer reproducibility-characteristics declaration** (deterministic vs. tolerance via `reproduction_tolerance`, recorded in lineage and honoured by `reproduce()`/`_verdict`) and **queried exporter-capability** (`export_formats` + `supports_export()`, replacing the binary `supports_onnx`; `export` gives a declaration-driven `ExportError` for unsupported method/format pairs) on `BaseTrainer` (Tier-A; built — Story 5.4). The conformance suite validates the declarations and honours the declared tolerance in its determinism check.
 - **AR12 — ✅ Pickle provenance warning** on loading non-locally-produced artifacts (Story 4.4); **⏳ MkDocs docs site** (PRD §13, Story 6.5).
 - ⏸ **AR13 — Core↔commercial seam, shape-only:** `api_version` check at registration, name-collision/precedence policy, post-resolution no-op `gate.check` hook; edition catalog + composed `--help` with upgrade hints. Frozen before the first external plugin binds (Phase-2 precondition).
 
@@ -467,7 +467,7 @@ So that Core's verdict logic and exporter dispatch handle my method without Core
 **When** it declares reproducibility characteristics (deterministic vs. tolerance) and a queried exporter capability (replacing the binary `supports_onnx`)
 **Then** `reproduce()` picks the correct comparison and `export` gives a clear error for unsupported method/format pairs — driven by the declaration, not a hard-coded list.
 
-**Status:** ⏳ not yet built (AR11)
+**Status:** ✅ done (AR11). `BaseTrainer` gains `reproduction_tolerance` (0.0 = deterministic; recorded in `lineage.json` and read by `reproduce()`/`_verdict`/`assert_reproducible`, so the verdict follows the method's own declaration and survives later trainer changes) and `export_formats` + `supports_export()` (replacing `supports_onnx`; the engine, ONNX exporter, and `export_model` all query it, and `export_model` raises a clear `ExportError` for unsupported method/format pairs). Built-ins: polynomial → deterministic + `{pickle, onnx}`; kriging/rbf → tolerant (1e-9) + `{pickle}`. The conformance suite gained a `declares_capabilities` check and now honours the declared tolerance in its determinism probe.
 
 ### Story 5.5: Reserve the Core↔commercial plugin seam
 
