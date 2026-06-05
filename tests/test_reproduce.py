@@ -40,6 +40,7 @@ def test_two_independent_runs_share_prediction_hash(project):
 
 
 def test_kriging_reproducible(project):
+    pytest.importorskip("smt")
     cfg = parse_config(poly_config("kriging"))
     original = run_training(project, cfg)
     result = reproduce(project, original.run_id)
@@ -78,6 +79,7 @@ def test_fingerprint_is_out_of_sample(project):
     # interpolating Kriging near-exact, which is precisely why fingerprinting them
     # was the original defect. This test fails if the fingerprint is ever reverted
     # to the final model on in-sample points.
+    pytest.importorskip("smt")
     cfg = parse_config(poly_config("kriging"))
     run = run_training(project, cfg)
     stored = np.asarray(run.holdout_fingerprint, dtype=float)

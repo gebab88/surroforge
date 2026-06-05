@@ -55,6 +55,7 @@ def test_predict_before_fit_raises():
 # --- Kriging / RBF (SMT) -----------------------------------------------------
 
 def test_kriging_fits_and_predicts():
+    pytest.importorskip("smt")
     x, y = _line()
     model = KrigingTrainer()
     model.fit(x, y)
@@ -62,6 +63,7 @@ def test_kriging_fits_and_predicts():
 
 
 def test_rbf_fits_and_predicts():
+    pytest.importorskip("smt")
     x, y = _line()
     model = RBFTrainer(d0=1.0)
     model.fit(x, y)

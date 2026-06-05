@@ -6,6 +6,8 @@ a method comparison, and a reproduction.
 
 from __future__ import annotations
 
+import pytest
+
 from surroforge import Project, Trainer
 from surroforge.services import (
     assert_reproducible,
@@ -46,6 +48,7 @@ def test_scenario_greenfield(tmp_path):
 
 def test_scenario_method_comparison(tmp_path):
     """Train three methods on the same data and pick the best."""
+    pytest.importorskip("smt")  # the comparison includes Kriging/RBF (SMT backend)
     csv = tmp_path / "samples.csv"
     make_samples().to_csv(csv, index=False)
     project = Project.init(tmp_path / "study", name="compare")

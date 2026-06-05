@@ -31,6 +31,7 @@ def test_pickle_roundtrip_preserves_predictions(tmp_path):
 
 
 def test_onnx_export_and_runtime_parity(tmp_path):
+    pytest.importorskip("onnxruntime")
     model, x = _fitted_polynomial()
     path = ONNXExporter().export(model, tmp_path / "m.onnx", n_features=3)
     assert path.is_file()
@@ -44,6 +45,7 @@ def test_onnx_export_and_runtime_parity(tmp_path):
 
 
 def test_onnx_export_rejects_unsupported_method(tmp_path):
+    pytest.importorskip("smt")
     rng = np.random.default_rng(0)
     x = rng.uniform(0, 1, (30, 1))
     model = KrigingTrainer()
@@ -60,6 +62,7 @@ def test_export_model_service_default_path(trained_run):
 
 
 def test_export_model_service_onnx_for_kriging_errors(project):
+    pytest.importorskip("smt")
     from surroforge.core.config import parse_config
     from surroforge.engine import run_training
     from tests.conftest import poly_config
