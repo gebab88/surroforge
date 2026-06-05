@@ -72,7 +72,7 @@ NFR9: Error UX — helpful, tested error messages with concrete fix suggestions;
 - ✅ **AR7 — Walking skeleton (Spike 5):** end-to-end `init → data add → train → report` path exists; run-id sequential `run-001`; atomic persistence (temp + `os.replace`).
 - ✅ **AR8 — CI boundary/quality gates:** GitHub Actions scaffold (OS×Python matrix, ruff, mypy, import-linter, pinned-threading reproducibility, GPL/LGPL license scan); import-linter + AST guard already gate the suite.
 - ✅ **AR9 — Edition-agnostic registry (Spike 2):** built-ins register via the same entry points third-party/commercial plugins use; Core runs standalone with graceful degradation (lazy optional-backend imports).
-- ⏳ **AR10 — Plugin conformance suite:** a shippable `src/surroforge/conformance/` parametrised contract suite so third-party/commercial plugins can self-verify (Tier-A; not built).
+- ✅ **AR10 — Plugin conformance suite:** a shippable `src/surroforge/conformance/` parametrised contract suite so third-party/commercial plugins can self-verify (Tier-A; built — Story 5.3). `check_trainer()` returns a `ConformanceReport` over the full `BaseTrainer` contract; Core runs it against the three built-ins and deliberately-broken trainers in `tests/test_conformance.py`.
 - ⏳ **AR11 — Trainer reproducibility-characteristics declaration** (deterministic vs. tolerance) and **queried exporter-capability** (replacing the binary `supports_onnx`) on `BaseTrainer` (Tier-A; not built).
 - **AR12 — ✅ Pickle provenance warning** on loading non-locally-produced artifacts (Story 4.4); **⏳ MkDocs docs site** (PRD §13, Story 6.5).
 - ⏸ **AR13 — Core↔commercial seam, shape-only:** `api_version` check at registration, name-collision/precedence policy, post-resolution no-op `gate.check` hook; edition catalog + composed `--help` with upgrade hints. Frozen before the first external plugin binds (Phase-2 precondition).
@@ -453,7 +453,7 @@ So that I can confirm it honours the Core contract (including reproducibility) b
 **Then** it asserts the `BaseTrainer` contract (signatures, picklability, 2-D `predict` shape), determinism, fingerprint participation, and `SurroForgeError`-only failures
 **And** Core's own `tests/` run the same suite against the three built-ins.
 
-**Status:** ⏳ not yet built (AR10)
+**Status:** ✅ done (AR10) — `src/surroforge/conformance/` + `tests/test_conformance.py`. The suite asserts subclassing, hyperparameter construction, `fit→None`, 2-D `predict` (including output-column arity), picklability, determinism, fingerprint participation, and `SurroForgeError`-only failures (predict-before-fit and invalid hyperparameters). Built-ins (Kriging/RBF exercised in CI) and deliberately-broken trainers verify the suite has teeth.
 
 ### Story 5.4: Declare a method's reproducibility and export capabilities
 

@@ -42,7 +42,7 @@
 # 'done' (gates enforced + CI confirmed green across the full OS/Python matrix on
 # GitHub Actions, 2026-06-04). Story 4-4 (pickle provenance warning) is done, so
 # Epic 4 is complete. The remaining Phase-1 / Phase-2 work is 'backlog'. The open
-# backlog is the real worklist: 5-3, 5-4, 5-5, 6-5.
+# backlog is the real worklist: 5-4, 5-5, 6-5. (5-3 conformance suite: done.)
 
 generated: 2026-06-04
 last_updated: 2026-06-04
@@ -90,11 +90,19 @@ development_status:
   4-4-warn-when-loading-a-non-local-model-artifact: done
   epic-4-retrospective: optional
 
-  # Epic 5 — Python API & Extensibility (in-progress: 5-3/5-4/5-5 open)
+  # Epic 5 — Python API & Extensibility (in-progress: 5-4/5-5 open)
   epic-5: in-progress
   5-1-drive-the-full-workflow-from-the-python-api: done
   5-2-register-a-custom-method-via-entry-points: done
-  5-3-self-verify-a-plugin-against-a-shipped-conformance-suite: backlog
+  # done: shippable framework-agnostic conformance suite (src/surroforge/conformance/).
+  # check_trainer() returns a ConformanceReport asserting the BaseTrainer contract —
+  # subclass, hyperparameters, fit->None, 2-D predict (incl. output-column count),
+  # picklability, determinism, fingerprint participation, SurroForgeError-only, and
+  # invalid-hyperparameter handling. Core runs the same suite against the 3 built-ins
+  # and deliberately-broken trainers (tests/test_conformance.py). Satisfies AR10.
+  # Kriging/RBF are exercised in CI (smt extra); skipped on the local py3.14 venv
+  # (no smt wheels). Hardened against 5 adversarial-review findings.
+  5-3-self-verify-a-plugin-against-a-shipped-conformance-suite: done
   5-4-declare-a-methods-reproducibility-and-export-capabilities: backlog
   5-5-reserve-the-core-commercial-plugin-seam: backlog
   epic-5-retrospective: optional

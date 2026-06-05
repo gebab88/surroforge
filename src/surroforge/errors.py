@@ -42,3 +42,7 @@ class RunNotFoundError(SurroForgeError):
 
 class ReproducibilityError(SurroForgeError):
     """A reproduced run diverged from its parent beyond tolerance."""
+
+
+class ConformanceError(SurroForgeError):
+    """A trainer violated the Core contract checked by the conformance suite."""
