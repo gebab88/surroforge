@@ -106,6 +106,9 @@ jobs:
       # compiled libraries) — fails if a compute-bound hotspot lands in Core.
       - name: Profile run_training across methods (incl. SMT Kriging/RBF)
         run: python scripts/profile_training.py
+
+  licenses:
+    name: license hygiene (no GPL/LGPL in Core — NFR8)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
