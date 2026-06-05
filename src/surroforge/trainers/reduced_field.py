@@ -1,0 +1,169 @@
+"""Reduced-order field surrogate via POD + a per-mode inner surrogate (Story R1.3).
+
+This is the *spine* of Field ROM v1 (brainstorm #36): the modal basis is hidden
+*inside* an ordinary :class:`BaseTrainer`, so the engine, exporters, ``compare``,
+and the conformance suite all see a normal ``(n, n_field_dof)`` trainer and need
+zero ROM-specific changes. A field is "output columns that move together"
+(snapshot-matrix / mesh-free, #19/#53): no coordinates or connectivity are read.
+
+``fit`` reduces the field by POD (energy- or rank-truncated SVD of the centered
+snapshots), then trains one inner surrogate per retained mode (#11) on the modal
+coefficients. ``predict`` runs the inner surrogates to coefficients and
+reconstructs the full field. The inner method is any registered trainer
+(``model.inner.method``), so Kriging/RBF/polynomial work unchanged as the per-mode
+regressor — each mode is a single output, squarely inside the SMT envelope.
+
+Configuration (passed as ordinary hyperparameters; the engine is untouched)::
+
+    model:
+      method: reduced-field
+      reduction: { basis: pod, energy: 0.999 }   # OR rank: 12 / rank: adaptive
+      inner:     { method: kriging, corr: squar_exp }
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+
+from surroforge.errors import TrainerError
+from surroforge.trainers.base import BaseTrainer
+
+DEFAULT_ENERGY = 0.999
+DEFAULT_INNER_METHOD = "polynomial"
+
+
+class ReducedFieldTrainer(BaseTrainer):
+    """POD field reduction with a per-mode inner surrogate, behind the trainer contract."""
+
+    name = "reduced-field"
+    # The artifact is the basis + inner models (all picklable); v1 has no field ONNX.
+    export_formats = frozenset({"pickle"})
+    # POD/SVD and the deterministic built-in inner (polynomial) reproduce within the
+    # standard band; a tolerant inner (SMT) inherits its own looseness at fit time.
+    reproduction_tolerance = 1e-9
+
+    def __init__(
+        self,
+        reduction: dict[str, Any] | None = None,
+        inner: dict[str, Any] | None = None,
+        **extra: Any,
+    ) -> None:
+        if extra:
+            raise TrainerError(
+                f"Unknown hyperparameter(s) for reduced-field: {sorted(extra)}. "
+                "Supported: reduction, inner."
+            )
+        super().__init__(reduction=reduction, inner=inner)
+
+        # --- reduction spec -------------------------------------------------
+        red = dict(reduction or {})
+        basis = red.pop("basis", "pod")
+        if basis != "pod":
+            raise TrainerError(f"reduced-field v1 supports only 'pod' basis, got {basis!r}.")
+        energy = red.pop("energy", None)
+        rank = red.pop("rank", None)
+        if red:
+            raise TrainerError(
+                f"Unknown reduction key(s): {sorted(red)}. Supported: basis, energy, rank."
+            )
+        if energy is not None and rank is not None:
+            raise TrainerError("Specify exactly one of reduction.energy or reduction.rank.")
+        if energy is None and rank is None:
+            energy = DEFAULT_ENERGY
+        if energy is not None and not (0.0 < float(energy) <= 1.0):
+            raise TrainerError(f"reduction.energy must be in (0, 1], got {energy!r}.")
+        if rank is not None and rank != "adaptive":
+            if isinstance(rank, bool) or not isinstance(rank, int) or rank < 1:
+                raise TrainerError(
+                    f"reduction.rank must be a positive int or 'adaptive', got {rank!r}."
+                )
+        self._energy = float(energy) if energy is not None else None
+        self._rank = rank  # int, "adaptive", or None
+
+        # --- inner method spec ---------------------------------------------
+        inner_spec = dict(inner or {})
+        self._inner_method = str(inner_spec.pop("method", DEFAULT_INNER_METHOD))
+        self._inner_hyper = inner_spec  # remaining keys passed to the inner trainer
+
+        # --- fitted state ---------------------------------------------------
+        self._basis: np.ndarray | None = None  # V (n_dof × r), orthonormal columns
+        self._mean: np.ndarray | None = None  # (1 × n_dof) snapshot mean
+        self._models: list[BaseTrainer] = []  # one inner trainer per retained mode
+        self._n_dof: int | None = None
+
+    # -- fitting ------------------------------------------------------------
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        from surroforge.plugins import get_trainer  # lazy: keep __init__/import cheap
+
+        x = self._as_2d(x)
+        field = self._as_2d(y)  # (n_samples, n_dof)
+        self._n_dof = int(field.shape[1])
+
+        # Center, then POD via economy SVD of the fluctuations: rows of Vt are the
+        # spatial modes. Sign-canonicalize so the basis is deterministic (#16).
+        self._mean = field.mean(axis=0, keepdims=True)
+        fluctuations = field - self._mean
+        _u, singular, vt = np.linalg.svd(fluctuations, full_matrices=False)
+        r = self._resolve_rank(singular)
+        basis = _canonicalize_signs(vt[:r].T)  # (n_dof × r)
+        self._basis = basis
+
+        # One inner surrogate per mode, fit on that mode's coefficient column.
+        coefficients = fluctuations @ basis  # (n_samples × r)
+        self._models = []
+        for k in range(r):
+            model = get_trainer(self._inner_method)(**self._inner_hyper)
+            model.fit(x, coefficients[:, k : k + 1])
+            self._models.append(model)
+
+    def _resolve_rank(self, singular: np.ndarray) -> int:
+        available = int(singular.size)
+        if available == 0:
+            return 0
+        if isinstance(self._rank, int) and not isinstance(self._rank, bool):
+            return max(1, min(self._rank, available))
+        # energy threshold (also the path for rank: 'adaptive' and the default)
+        energy = self._energy if self._energy is not None else DEFAULT_ENERGY
+        total = float((singular**2).sum())
+        if total == 0.0:  # constant field: one (zero-energy) mode suffices
+            return 1
+        cumulative = np.cumsum(singular**2) / total
+        return int(np.searchsorted(cumulative, energy) + 1)
+
+    # -- prediction ---------------------------------------------------------
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        if self._basis is None or self._mean is None:
+            raise TrainerError("Model is not fitted.")
+        x = self._as_2d(x)
+        r = self._basis.shape[1]
+        coefficients = np.empty((x.shape[0], r), dtype=float)
+        for k, model in enumerate(self._models):
+            coefficients[:, k] = model.predict(x).reshape(-1)
+        field = coefficients @ self._basis.T + self._mean
+        return self._as_2d(field)
+
+    # -- introspection (feeds `rom inspect`, Story R4.2) --------------------
+
+    @property
+    def rank(self) -> int:
+        """Number of retained modes (0 until fitted)."""
+        return 0 if self._basis is None else int(self._basis.shape[1])
+
+
+def _canonicalize_signs(basis: np.ndarray) -> np.ndarray:
+    """Fix each mode's sign so its max-abs entry is positive (#16).
+
+    SVD leaves a per-mode sign gauge; pinning it makes the basis deterministic
+    run-to-run and is the foundation the field-primary fingerprint builds on
+    (spec-field-rom-fingerprint.md). Returns a fresh array.
+    """
+    basis = np.array(basis, dtype=float, copy=True)
+    for k in range(basis.shape[1]):
+        peak = int(np.argmax(np.abs(basis[:, k])))
+        if basis[peak, k] < 0:
+            basis[:, k] *= -1.0
+    return basis

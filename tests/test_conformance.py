@@ -17,6 +17,7 @@ from surroforge.trainers.base import BaseTrainer
 from surroforge.trainers.kriging import KrigingTrainer
 from surroforge.trainers.polynomial import PolynomialTrainer
 from surroforge.trainers.rbf import RBFTrainer
+from surroforge.trainers.reduced_field import ReducedFieldTrainer
 
 # Kriging and RBF need the SMT backend; skip them where it is not installed
 # (the conformance suite itself stays backend-agnostic, and CI ships SMT).
@@ -29,6 +30,8 @@ BUILTINS = [
     pytest.param(PolynomialTrainer, id="polynomial"),
     pytest.param(KrigingTrainer, id="kriging", marks=_needs_smt),
     pytest.param(RBFTrainer, id="rbf", marks=_needs_smt),
+    # Default inner is polynomial, so reduced-field is conformant without SMT.
+    pytest.param(ReducedFieldTrainer, id="reduced-field"),
 ]
 
 # The full set of contract checks the suite is expected to run.

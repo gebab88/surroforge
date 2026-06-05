@@ -140,7 +140,7 @@ So that I reuse the entire existing trainer stack on a low-dimensional target.
 **And** the trainer exposes the unchanged `BaseTrainer` contract: `predict(x)` returns a 2-D array and downstream (export/compare/registry) treats it as an ordinary `(n, n_dof)` trainer
 **And** `export_formats = {pickle}` for v1 (field ONNX deferred), and `reproduction_tolerance` is field-energy-relative.
 
-**Status:** 📋 planned (FR-R3, AR-R1; #36, #11, #2/#7)
+**Status:** ✅ delivered (FR-R3, AR-R1; #36, #11, #2/#7) — `src/surroforge/trainers/reduced_field.py` (POD energy/rank + sign-canonicalized basis + per-mode inner surrogate), a **pure plugin**: registered via the `surroforge.trainers` entry point + `_BUILTIN` fallback, **zero engine/config/services changes**. Passes the existing conformance suite (added to `tests/test_conformance.py` BUILTINS) and runs end-to-end through the unchanged engine (`tests/test_reduced_field.py`, incl. a field e2e: R²>0.95 on a rank-3 field). Honest-basis CV (R3.3) falls out for free via the per-fold fresh-factory. Partially covers R1.1 (field = output column-group; glob expansion still planned) and R1.2 (reduction/inner parsed+validated as hyperparameters; the `rank: adaptive` snapshot write-back still planned).
 
 ### Story R1.4: Built-in methods work as inner surrogates and pass conformance unmodified
 

@@ -31,6 +31,7 @@ _BUILTIN: dict[str, dict[str, str]] = {
         "polynomial": "surroforge.trainers.polynomial:PolynomialTrainer",
         "kriging": "surroforge.trainers.kriging:KrigingTrainer",
         "rbf": "surroforge.trainers.rbf:RBFTrainer",
+        "reduced-field": "surroforge.trainers.reduced_field:ReducedFieldTrainer",
     },
     EXPORTER_GROUP: {
         "pickle": "surroforge.exporters.pickle_exporter:PickleExporter",
