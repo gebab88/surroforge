@@ -85,8 +85,27 @@ jobs:
       - name: Build the documentation site
         run: mkdocs build --strict
 
-  licenses:
-    name: license hygiene (no GPL/LGPL in Core — NFR8)
+  profile:
+    name: profiling (CPU time is in compiled libs, not Core)
+    runs-on: ubuntu-latest
+    # Pin BLAS/OpenMP threads so the Kriging/RBF linear algebra is single-threaded
+    # and the per-package tottime attribution is stable run-to-run.
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      # [all] brings smt, so the expensive O(n³) Kriging/RBF paths are profiled too.
+      - run: pip install -e ".[all,dev]"
+      # Asserts SurroForge's own code stays a small fraction of CPU time (the rest is
+      # compiled libraries) — fails if a compute-bound hotspot lands in Core.
+      - name: Profile run_training across methods (incl. SMT Kriging/RBF)
+        run: python scripts/profile_training.py
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
