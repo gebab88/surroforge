@@ -42,8 +42,10 @@
 # 'done' (gates enforced + CI confirmed green across the full OS/Python matrix on
 # GitHub Actions, 2026-06-04). Story 4-4 (pickle provenance warning) is done, so
 # Epic 4 is complete. The remaining Phase-1 / Phase-2 work is 'backlog'. The open
-# backlog is the real worklist: 6-5 only. (Epic 5 complete: 5-3 conformance suite,
-# 5-4 capability declarations, 5-5 commercial-seam reservation all done.)
+# worklist EMPTY — all Phase-1 stories are done. Final stretch landed: 5-3 conformance
+# suite, 5-4 capability declarations, 5-5 commercial-seam reservation, 6-5 docs site.
+# Every epic (1-6) is now 'done'; Phase-1 MVP is feature-complete. (Phase-2 features
+# layered on the reserved seam — edition catalog + composed --help — remain future work.)
 
 generated: 2026-06-04
 last_updated: 2026-06-04
@@ -124,8 +126,8 @@ development_status:
   5-5-reserve-the-core-commercial-plugin-seam: done
   epic-5-retrospective: optional
 
-  # Epic 6 — CLI Ergonomics, Quality Gates & Distribution (in-progress: 6-5 open)
-  epic-6: in-progress
+  # Epic 6 — CLI Ergonomics, Quality Gates & Distribution (complete)
+  epic-6: done
   6-1-consistent-global-cli-options: done
   6-2-errors-as-a-feature: done
   # done: install-hint behavior implemented & verified in source, but NOT covered by
@@ -142,5 +144,11 @@ development_status:
   # repro test in deferred-work.md remains out of scope (the CI repro job runs
   # test_reproduce.py under pinned BLAS threads, which covers the core invariant).
   6-4-enforced-architectural-and-quality-gates: done
-  6-5-documentation-site: backlog
+  # done: MkDocs Material site under docs/ + mkdocs.yml (Home, Install, Quickstart,
+  # Scenarios {greenfield, method-comparison, reproduction}, Reference {CLI, config,
+  # Python API}). docs extra in pyproject; a `mkdocs build --strict` job in ci.yml
+  # validates the build on every change. No public site is deployed (project is not a
+  # website) — read locally with `mkdocs serve`. Built clean locally (exit 0).
+  # Satisfies AR12 + NFR7 (greenfield page sustains a first-time user end to end).
+  6-5-documentation-site: done
   epic-6-retrospective: optional

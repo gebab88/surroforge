@@ -71,6 +71,20 @@ jobs:
       - name: reproducibility tests
         run: pytest -q tests/test_reproduce.py
 
+  docs:
+    name: docs build (mkdocs --strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[docs]"
+      # --strict fails the build on a broken link, missing nav page, or any warning.
+      - name: Build the documentation site
+        run: mkdocs build --strict
+
   licenses:
     name: license hygiene (no GPL/LGPL in Core — NFR8)
     runs-on: ubuntu-latest

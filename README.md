@@ -11,6 +11,10 @@ years later.
 This repository contains the **Core** (Apache 2.0) edition: the open-source kernel
 described in the [PRD](PRD.md), Phase 1 (MVP).
 
+📖 **Documentation** lives in [`docs/`](docs/) (a MkDocs Material site): install,
+quickstart, the three scenarios, and the CLI / configuration / Python API reference.
+Read it locally with `pip install -e ".[docs]" && mkdocs serve`.
+
 ## Install
 
 ```bash

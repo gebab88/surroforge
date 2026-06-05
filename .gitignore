@@ -25,3 +25,6 @@ htmlcov/
 # BMAD agent framework / tooling (local dev only, not part of the shipped project)
 /.claude/
 /_bmad/
+
+# MkDocs build output (Story 6.5)
+/site/

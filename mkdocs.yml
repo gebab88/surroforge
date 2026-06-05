@@ -1,0 +1,64 @@
+site_name: SurroForge
+site_description: >-
+  Surrogate models for FEM/CFD simulation data — scriptable, versionable, reproducible.
+repo_url: https://github.com/gebab88/surroforge
+repo_name: gebab88/surroforge
+copyright: Apache License 2.0
+docs_dir: docs
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Quickstart: quickstart.md
+  - Scenarios:
+      - Greenfield: scenarios/greenfield.md
+      - Method comparison: scenarios/method-comparison.md
+      - Reproduction: scenarios/reproduction.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Configuration: reference/configuration.md
+      - Python API: reference/python-api.md
