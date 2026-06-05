@@ -61,8 +61,16 @@ def run_training(
     dataset: Dataset | None = None,
     parent_run: str | None = None,
     echo: Any = None,
+    export_onnx: bool = False,
 ) -> Run:
-    """Execute one training run end-to-end and persist it. Returns the new :class:`Run`."""
+    """Execute one training run end-to-end and persist it. Returns the new :class:`Run`.
+
+    ``export_onnx`` is opt-in (default ``False``): converting to ONNX pulls in and
+    runs ``skl2onnx`` on every train, which dominates the cost of a cheap method
+    while many runs never use the ONNX artifact. The pickle is always written, and
+    ONNX can be produced on demand later via ``surroforge export`` / ``export_model``
+    (both reconstruct it from the saved model), so nothing is lost by deferring it.
+    """
     log = _Log(echo=echo)
 
     # 1. Resolve and validate data ------------------------------------------------
@@ -148,7 +156,7 @@ def run_training(
     PickleExporter().export(final_model, run_dir / MODEL_PICKLE, n_features=n_features)
 
     onnx_exported = False
-    if final_model.supports_export("onnx"):
+    if export_onnx and final_model.supports_export("onnx"):
         try:
             ONNXExporter().export(final_model, run_dir / MODEL_ONNX, n_features=n_features)
             onnx_exported = True

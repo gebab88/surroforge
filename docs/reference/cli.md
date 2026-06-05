@@ -30,9 +30,13 @@ List registered datasets with row/column counts and paths.
 
 ## Train & inspect
 
-### `surroforge train -c <config.yaml>`
+### `surroforge train -c <config.yaml> [--onnx]`
 Train a surrogate from a YAML [configuration](configuration.md). Prints the new run
-id and a train/test/CV metrics summary. `--config/-c` is required.
+id and a train/test/CV metrics summary. `--config/-c` is required. The model is
+always saved as a pickle; ONNX export is **opt-in** with `--onnx` (it pulls in and
+runs `skl2onnx`, the dominant cost of a cheap method) — otherwise produce it later
+on demand with `surroforge export <run> --format onnx`, which rebuilds it from the
+saved model.
 
 ### `surroforge list`
 List all runs in the project (id, method, created-at, test RMSE).

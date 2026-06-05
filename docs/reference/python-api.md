@@ -57,7 +57,7 @@ A training configuration bound to its method, ready to fit.
 |---|---|
 | `Trainer.from_config(path)` | Build from a YAML config file. |
 | `Trainer.from_dict(data)` | Build from an already-parsed mapping. |
-| `fit(target)` | Train and persist a run. `target` is a `Project` (data taken from the config) or a `Dataset` from `project.dataset(name)` (overrides `data.source`). Returns a `Run`. |
+| `fit(target, *, export_onnx=False)` | Train and persist a run. `target` is a `Project` (data taken from the config) or a `Dataset` from `project.dataset(name)` (overrides `data.source`). ONNX export is opt-in (`export_onnx=True`); otherwise produce it later from the saved model via `export_model`. Returns a `Run`. |
 
 ## `Run`
 
@@ -75,7 +75,7 @@ directory and its `lineage.json`:
 | `parent_run` | The id this run reproduces, if any. |
 | `lineage` | The full lineage mapping. |
 | `load_model()` | Unpickle the fitted trainer (emits a one-time `ProvenanceWarning` for non-local artifacts). |
-| `has_onnx()` | Whether an ONNX artifact was exported alongside the run. |
+| `has_onnx()` | Whether an ONNX artifact exists for the run (written by `fit(export_onnx=True)` or a later `export`). |
 
 ## `surroforge.services`
 

@@ -35,3 +35,16 @@ def test_exporters_and_reporters_registered():
     assert "markdown" in available_reporters()
     assert get_exporter("pickle").name == "pickle"
     assert get_reporter("markdown").name == "markdown"
+
+
+def test_entry_point_scan_is_memoised():
+    # The distribution scan is the dominant fixed cost of resolution; it must be
+    # cached for the process (entry points cannot change at runtime).
+    from surroforge.plugins import registry
+
+    registry._scan_entry_points.cache_clear()
+    first = registry._scan_entry_points(registry.TRAINER_GROUP)
+    second = registry._scan_entry_points(registry.TRAINER_GROUP)
+    assert first is second  # identical object => no re-scan
+    registry._scan_entry_points.cache_clear()
+    assert registry._scan_entry_points(registry.TRAINER_GROUP) is not first

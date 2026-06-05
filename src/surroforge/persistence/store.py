@@ -6,6 +6,7 @@ leave a half-written ``lineage.json`` or project file behind.
 
 from __future__ import annotations
 
+import functools
 import getpass
 import hashlib
 import json
@@ -72,15 +73,27 @@ def _atomic_write(path: str | Path, text: str) -> None:
         raise
 
 
+@functools.cache
+def _package_version(name: str) -> str | None:
+    """Installed version of ``name``, or ``None`` if absent (memoised).
+
+    ``md.version`` parses the distribution's METADATA file on each call; the
+    installed version is fixed for the process, so caching it removes a repeated
+    metadata parse from every run's environment capture.
+    """
+    try:
+        return md.version(name)
+    except md.PackageNotFoundError:
+        return None
+
+
 def capture_dependencies() -> list[str]:
     """Pinned versions of reproducibility-critical libraries (PRD 7.2)."""
-    pins: list[str] = []
-    for name in _TRACKED_PACKAGES:
-        try:
-            pins.append(f"{name}=={md.version(name)}")
-        except md.PackageNotFoundError:
-            continue
-    return pins
+    return [
+        f"{name}=={version}"
+        for name in _TRACKED_PACKAGES
+        if (version := _package_version(name)) is not None
+    ]
 
 
 def machine_id() -> str:

@@ -9,6 +9,7 @@ entry-point metadata), which is exactly the situation during development.
 
 from __future__ import annotations
 
+import functools
 import importlib
 import importlib.metadata as md
 from typing import Any
@@ -47,16 +48,30 @@ def _load_ref(ref: str) -> Any:
     return getattr(module, attr)
 
 
+@functools.cache
+def _scan_entry_points(group: str) -> tuple[md.EntryPoint, ...]:
+    """All entry points declared in ``group`` (memoised for the process).
+
+    ``md.entry_points(group=...)`` walks every installed distribution's metadata,
+    which profiling showed to be the single largest fixed cost of a training run.
+    Installed entry points cannot change while the process runs, so the scan is
+    cached. An immutable tuple is returned so the shared cached value is safe;
+    grouping happens fresh in :func:`_entry_points_grouped`. (Tests inject fakes by
+    replacing ``_entry_points_grouped`` itself, so they bypass this cache cleanly;
+    use ``_scan_entry_points.cache_clear()`` if a process ever needs a re-scan.)
+    """
+    return tuple(md.entry_points(group=group))
+
+
 def _entry_points_grouped(group: str) -> dict[str, list[md.EntryPoint]]:
     """Entry points in ``group``, grouped by name and de-duplicated by ref.
 
-    entry_points(group=...) is available on Python 3.10+ (our minimum). Grouping
-    (rather than the old ``{ep.name: ep}`` comprehension) surfaces a genuine
-    name collision instead of silently keeping whichever provider happened to be
-    iterated last — which made resolution depend on installation order.
+    Grouping (rather than the old ``{ep.name: ep}`` comprehension) surfaces a
+    genuine name collision instead of silently keeping whichever provider happened
+    to be iterated last — which made resolution depend on installation order.
     """
     grouped: dict[str, dict[str, md.EntryPoint]] = {}
-    for ep in md.entry_points(group=group):
+    for ep in _scan_entry_points(group):
         grouped.setdefault(ep.name, {})[ep.value] = ep
     return {name: list(by_ref.values()) for name, by_ref in grouped.items()}
 

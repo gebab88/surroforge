@@ -37,15 +37,18 @@ class Trainer:
     def from_dict(cls, data: dict[str, Any]) -> Trainer:
         return cls(parse_config(data))
 
-    def fit(self, target: Project | Dataset) -> Run:
+    def fit(self, target: Project | Dataset, *, export_onnx: bool = False) -> Run:
         """Train and persist a run.
 
         ``target`` may be a :class:`Project` (the data source is taken from the
         config) or a :class:`Dataset` obtained from ``project.dataset(name)``,
         which overrides the config's ``data.source``.
+
+        ``export_onnx`` is opt-in (default ``False``); ONNX can also be produced
+        afterwards from the saved model via ``export_model`` / ``surroforge export``.
         """
         if isinstance(target, Project):
-            return run_training(target, self.config)
+            return run_training(target, self.config, export_onnx=export_onnx)
         if isinstance(target, Dataset):
             project = getattr(target, "project", None)
             if project is None:
@@ -53,7 +56,7 @@ class Trainer:
                     "Dataset is not bound to a project. Obtain it via "
                     "project.dataset(name) so the run can be persisted."
                 )
-            return run_training(project, self.config, dataset=target)
+            return run_training(project, self.config, dataset=target, export_onnx=export_onnx)
         raise TypeError(
             f"Trainer.fit expects a Project or Dataset, got {type(target).__name__}."
         )

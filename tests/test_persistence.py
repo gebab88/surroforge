@@ -66,3 +66,20 @@ def test_capture_environment_fields():
     assert set(env) >= {"python_version", "surroforge_version", "platform", "dependencies"}
     assert isinstance(env["dependencies"], list)
     assert env["surroforge_version"]
+
+
+def test_package_version_is_memoised():
+    # md.version parses METADATA on each call; the installed version is fixed for
+    # the process, so the lookup is cached (removes a parse from every run).
+    from surroforge.persistence.store import _package_version
+
+    _package_version.cache_clear()
+    first = _package_version("numpy")
+    assert first is _package_version("numpy")  # same cached object
+    assert _package_version("definitely-not-an-installed-package") is None
+
+
+def test_capture_dependencies_returns_fresh_list():
+    # Caching is on the per-package lookup, not the list, so callers can safely
+    # treat the returned list as their own.
+    assert capture_dependencies() is not capture_dependencies()

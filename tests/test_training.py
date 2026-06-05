@@ -79,3 +79,19 @@ def test_file_source_without_registration(project, tmp_path):
     cfg = parse_config(raw)
     run = run_training(project, cfg)
     assert run.metrics["test"]["r2"] > 0.95
+
+
+def test_onnx_export_is_opt_in_by_default(project):
+    # ONNX conversion is the dominant fixed cost of a cheap method, so a plain
+    # train no longer auto-exports it; the pickle artifact is still written.
+    run = run_training(project, parse_config(poly_config("polynomial")))
+    assert run.model_path.is_file()
+    assert not run.has_onnx()
+    assert run.lineage["onnx_exported"] is False
+
+
+def test_onnx_exported_when_requested(project):
+    pytest.importorskip("skl2onnx")  # needs the 'onnx' extra
+    run = run_training(project, parse_config(poly_config("polynomial")), export_onnx=True)
+    assert run.has_onnx()
+    assert run.lineage["onnx_exported"] is True
