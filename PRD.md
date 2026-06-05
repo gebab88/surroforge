@@ -10,7 +10,7 @@
 
 ### 1.1 Produkt
 
-**SurroForge** ist ein Command-Line-Werkzeug zur Erstellung, Validierung und Verwaltung von Surrogate-Modellen für FEM- und CFD-Simulationsdaten im Maschinenbau-Engineering.
+**SurroForge** ist ein Command-Line-Werkzeug zur Erstellung, Validierung und Verwaltung von Surrogate-Modellen für FEM- und CFD-Simulationsdaten im Maschinenbau, in der Luftfahrt- und Raumfahrt, der Fahrzeugtechnik und anderen Bereichen.
 
 ### 1.2 Vision
 
@@ -22,7 +22,7 @@ Wir bauen ein Open-Core-Werkzeug, mit dem Engineering-Teams aus Simulationsdaten
 
 ### 1.4 Kernversprechen
 
-Vom Solver-Output zum validierten Surrogate-Modell in unter 30 Minuten — mit allen Daten, Konfigurationen und Modellen sauber versioniert und nach Monaten oder Jahren reproduzierbar.
+Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde — mit allen Daten, Konfigurationen und Modellen sauber versioniert und nach Monaten oder Jahren reproduzierbar.
 
 ### 1.5 MVP-Ansatz
 
@@ -56,7 +56,7 @@ Vom Solver-Output zum validierten Surrogate-Modell in unter 30 Minuten — mit a
 
 ### 2.3 Käuferpersona
 
-**CAE-Leitung** mittelständischer Unternehmen. Entscheidet über die Beschaffung der kommerziellen Editionen. Nutzt das Tool nicht selbst, sieht aber Reports und Audit-Outputs.
+**Leitung von Simulationsabteilung** Ingenieurbüro oder KMU oder Konzern. Entscheidet über die Beschaffung der kommerziellen Editionen. Nutzt das Tool nicht selbst, sieht aber Reports und Audit-Outputs.
 
 ---
 
