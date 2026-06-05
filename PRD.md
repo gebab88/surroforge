@@ -455,7 +455,7 @@ Inhalte:
 
 ### 10.2 Übergreifend
 
-- Time-to-first-trained-model unter 30 Minuten von Installation
+- Time-to-first-trained-model unter einer Stunde von Installation
 - Reproduktions-Erfolg in über 95 % der Fälle (gemessen in CI gegen frühere Releases)
 - Dokumentation hält über 80 % der Erstnutzer ohne externe Unterstützung
 

@@ -55,7 +55,7 @@ NFR3: Platform support — Linux, macOS, Windows; Python 3.10+; distributed via 
 NFR4: Stability & versioning — Semantic Versioning from 1.0; CLI/API contracts backward-compatible within a major version; deprecation notices one minor ahead. [PRD 5.4]
 NFR5: Security & privacy — no outbound network in Core (except an opt-in update check); no telemetry without opt-in. [PRD 5.5]
 NFR6: Language — CLI/API output and documentation primarily English. [PRD 5.6]
-NFR7: Adoption metrics — time-to-first-trained-model under 30 min from install; reproduction success > 95 % (measured in CI); docs sustain > 80 % of first-time users unaided. [PRD 10.2]
+NFR7: Adoption metrics — time-to-first-trained-model under 1 hour from install; reproduction success > 95 % (measured in CI); docs sustain > 80 % of first-time users unaided. [PRD 10.2]
 NFR8: Licensing of dependencies — Core depends only on permissively licensed packages (Apache/MIT/BSD); no GPL/LGPL. [PRD 6.3]
 NFR9: Error UX — helpful, tested error messages with concrete fix suggestions; no tracebacks for domain errors; precise, sober tone; no emojis or marketing in output. [UX 5, 7]
 
@@ -552,7 +552,7 @@ So that the codebase stays correct and trustworthy as it evolves.
 
 As a first-time user,
 I want tutorials and an API reference,
-So that I can reach a trained model unaided in under 30 minutes.
+So that I can reach a trained model unaided in under an hour.
 
 **Acceptance Criteria:**
 
