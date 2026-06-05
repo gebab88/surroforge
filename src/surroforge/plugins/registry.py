@@ -14,6 +14,12 @@ import importlib.metadata as md
 from typing import Any
 
 from surroforge.errors import PluginError
+from surroforge.plugins import gate
+from surroforge.plugins.seam import (
+    PluginMetadata,
+    check_api_version,
+    resolve_api_version,
+)
 
 TRAINER_GROUP = "surroforge.trainers"
 EXPORTER_GROUP = "surroforge.exporters"
@@ -41,26 +47,57 @@ def _load_ref(ref: str) -> Any:
     return getattr(module, attr)
 
 
-def _entry_points(group: str) -> dict[str, md.EntryPoint]:
-    # entry_points(group=...) is available on Python 3.10+ (our minimum).
-    return {ep.name: ep for ep in md.entry_points(group=group)}
+def _entry_points_grouped(group: str) -> dict[str, list[md.EntryPoint]]:
+    """Entry points in ``group``, grouped by name and de-duplicated by ref.
+
+    entry_points(group=...) is available on Python 3.10+ (our minimum). Grouping
+    (rather than the old ``{ep.name: ep}`` comprehension) surfaces a genuine
+    name collision instead of silently keeping whichever provider happened to be
+    iterated last — which made resolution depend on installation order.
+    """
+    grouped: dict[str, dict[str, md.EntryPoint]] = {}
+    for ep in md.entry_points(group=group):
+        grouped.setdefault(ep.name, {})[ep.value] = ep
+    return {name: list(by_ref.values()) for name, by_ref in grouped.items()}
 
 
 def _resolve(group: str, name: str, kind: str) -> Any:
-    # Installed entry points take precedence so third parties can extend or
-    # override; the built-in table is the fallback for source checkouts.
-    eps = _entry_points(group)
-    if name in eps:
-        return eps[name].load()
-    if name in _BUILTIN[group]:
-        return _load_ref(_BUILTIN[group][name])
-    raise PluginError(
-        f"Unknown {kind} '{name}'. Available: {sorted(_names(group))}"
+    # Precedence policy (Story 5.5 / AR13): a single external entry point
+    # overrides the built-in fallback; the built-in table is only consulted for
+    # source checkouts that were never pip-installed. Two external providers for
+    # the same name is an ambiguous collision we refuse to guess about.
+    candidates = _entry_points_grouped(group).get(name, [])
+    if len(candidates) > 1:
+        raise PluginError(
+            f"Ambiguous {kind} '{name}': it is registered by multiple plugins "
+            f"({', '.join(sorted(ep.value for ep in candidates))}). Uninstall or "
+            "rename one — SurroForge will not pick a provider for you."
+        )
+    if candidates:
+        ep = candidates[0]
+        cls, source, ref = ep.load(), "entry_point", ep.value
+    elif name in _BUILTIN[group]:
+        ref = _BUILTIN[group][name]
+        cls, source = _load_ref(ref), "builtin"
+    else:
+        raise PluginError(f"Unknown {kind} '{name}'. Available: {sorted(_names(group))}")
+
+    # Reserve the commercial seam: validate the declared plugin API version, then
+    # run the authorisation gate (a documented Phase-1 no-op) after resolution.
+    metadata = PluginMetadata(
+        name=name,
+        group=group,
+        api_version=resolve_api_version(cls),
+        source=source,
+        ref=ref,
     )
+    check_api_version(metadata)
+    gate.check(metadata)
+    return cls
 
 
 def _names(group: str) -> set[str]:
-    return set(_BUILTIN[group]) | set(_entry_points(group))
+    return set(_BUILTIN[group]) | set(_entry_points_grouped(group))
 
 
 def get_trainer(name: str) -> type:

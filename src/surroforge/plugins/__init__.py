@@ -1,5 +1,6 @@
 """Plugin discovery for trainers, exporters, and reporters."""
 
+from surroforge.plugins import gate
 from surroforge.plugins.registry import (
     available_exporters,
     available_reporters,
@@ -8,11 +9,20 @@ from surroforge.plugins.registry import (
     get_reporter,
     get_trainer,
 )
+from surroforge.plugins.seam import (
+    PLUGIN_API_VERSION,
+    SUPPORTED_API_VERSIONS,
+    PluginMetadata,
+)
 
 __all__ = [
+    "PLUGIN_API_VERSION",
+    "SUPPORTED_API_VERSIONS",
+    "PluginMetadata",
     "available_exporters",
     "available_reporters",
     "available_trainers",
+    "gate",
     "get_exporter",
     "get_reporter",
     "get_trainer",

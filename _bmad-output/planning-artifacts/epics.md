@@ -75,7 +75,7 @@ NFR9: Error UX — helpful, tested error messages with concrete fix suggestions;
 - ✅ **AR10 — Plugin conformance suite:** a shippable `src/surroforge/conformance/` parametrised contract suite so third-party/commercial plugins can self-verify (Tier-A; built — Story 5.3). `check_trainer()` returns a `ConformanceReport` over the full `BaseTrainer` contract; Core runs it against the three built-ins and deliberately-broken trainers in `tests/test_conformance.py`.
 - ✅ **AR11 — Trainer reproducibility-characteristics declaration** (deterministic vs. tolerance via `reproduction_tolerance`, recorded in lineage and honoured by `reproduce()`/`_verdict`) and **queried exporter-capability** (`export_formats` + `supports_export()`, replacing the binary `supports_onnx`; `export` gives a declaration-driven `ExportError` for unsupported method/format pairs) on `BaseTrainer` (Tier-A; built — Story 5.4). The conformance suite validates the declarations and honours the declared tolerance in its determinism check.
 - **AR12 — ✅ Pickle provenance warning** on loading non-locally-produced artifacts (Story 4.4); **⏳ MkDocs docs site** (PRD §13, Story 6.5).
-- ⏸ **AR13 — Core↔commercial seam, shape-only:** `api_version` check at registration, name-collision/precedence policy, post-resolution no-op `gate.check` hook; edition catalog + composed `--help` with upgrade hints. Frozen before the first external plugin binds (Phase-2 precondition).
+- ✅ **AR13 — Core↔commercial seam, shape-only (reserved):** plugin `api_version` check at resolution (clean `PluginError` on mismatch; undeclared = current), a deterministic name-collision/precedence policy (single external entry point overrides the built-in fallback; multiple providers for one name → clean ambiguity error, never a silent pick), and a post-resolution no-op `gate.check(PluginMetadata)` hook — all edition-agnostic, in `plugins/seam.py` + `plugins/gate.py` (Story 5.5). ⏸ The Phase-2 *features* layered on this seam (edition catalog + composed `--help` with upgrade hints) remain deferred.
 
 ### UX Design Requirements
 
@@ -482,7 +482,7 @@ So that Phase 2 (Professional/Enterprise) is additive, not a breaking change.
 **Then** a plugin `api_version` is checked at registration (clean error on mismatch), a deterministic name-collision/precedence policy is defined, and a no-op `gate.check(plugin_metadata)` call site exists after resolution
 **And** no edition-named logic enters Core; the gate is a documented Phase-1 no-op.
 
-**Status:** ⏸ Phase-2 reservation (AR13) — freeze before the first external plugin binds.
+**Status:** ✅ done (AR13) — seam reserved in `plugins/seam.py` (`PLUGIN_API_VERSION`, `PluginMetadata`, `check_api_version`) and `plugins/gate.py` (`gate.check`, Phase-1 no-op). `registry._resolve` checks the declared `api_version` and runs `gate.check` after resolution; same-name collisions among external providers raise a clear `PluginError` instead of resolving by install order. No edition-named logic in Core (`tests/test_plugin_seam.py`). The seam contract is frozen so Phase 2 is additive; the edition catalog + composed `--help` remain Phase-2 features.
 
 ## Epic 6: CLI Ergonomics, Quality Gates & Distribution
 
