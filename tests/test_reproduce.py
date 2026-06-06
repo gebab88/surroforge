@@ -16,7 +16,7 @@ from surroforge.services import (
     assert_reproducible,
     reproduce,
 )
-from tests.conftest import make_samples, poly_config
+from tests.conftest import make_samples, poly_config, requires_reproducible_blas
 
 
 def test_reproduce_is_bit_identical(project):
@@ -39,6 +39,7 @@ def test_two_independent_runs_share_prediction_hash(project):
     assert a.config_hash == b.config_hash
 
 
+@requires_reproducible_blas
 def test_kriging_reproducible(project):
     pytest.importorskip("smt")
     cfg = parse_config(poly_config("kriging"))
