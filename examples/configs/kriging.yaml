@@ -1,0 +1,21 @@
+# A scalar surrogate via Kriging — the CLI counterpart of examples/01_quickstart.py.
+#
+#   surroforge init beam-study && cd beam-study
+#   surroforge data add ../samples.csv --name beam      # register a dataset first
+#   surroforge train --config ../examples/configs/kriging.yaml
+#
+# Kriging/RBF need the SMT backend:  pip install 'surroforge[smt]'
+experiment: beam-kriging
+data:
+  source: beam                # a registered dataset name, or a file path
+  inputs: [length, width, load]
+  outputs: [max_stress]
+  split:
+    test_fraction: 0.2
+    seed: 42
+model:
+  method: kriging             # kriging | rbf | polynomial
+  corr: squar_exp             # method-specific hyperparameters pass straight through
+validation:
+  cross_validation: 5         # k-fold; or {folds: 5, shuffle: true}
+  metrics: [rmse, r2, mae]

@@ -1,0 +1,29 @@
+# A field surrogate via POD reduction — the CLI counterpart of examples/04_field_rom.py.
+#
+#   surroforge data add snapshots.csv --name snaps
+#   surroforge train --config examples/configs/field-rom.yaml
+#
+# The field is just a column group (f000..f063); reduced-field reduces it with
+# POD and fits one inner surrogate per retained mode. The default inner is
+# polynomial, so no optional backend is required.
+experiment: field-rom
+data:
+  source: snaps
+  inputs: [p0, p1]
+  outputs:                    # the field as an explicit column group
+    [f000, f001, f002, f003, f004, f005, f006, f007,
+     f008, f009, f010, f011, f012, f013, f014, f015]
+  split:
+    test_fraction: 0.25
+    seed: 1
+model:
+  method: reduced-field
+  reduction:
+    basis: pod                # POD/SVD basis from the training snapshots
+    energy: 0.999             # keep 99.9% of the snapshot energy (or use `rank: <int>`)
+  inner:
+    method: polynomial        # one inner surrogate per retained POD mode
+    degree: 2
+validation:
+  cross_validation: 3
+  metrics: [rmse, r2, mae]

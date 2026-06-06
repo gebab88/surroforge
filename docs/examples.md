@@ -1,0 +1,37 @@
+# Examples
+
+Runnable, self-contained scripts live in the [`examples/`](https://github.com/gebab88/surroforge/tree/main/examples)
+directory of the repository. Each one synthesises its own data in a temporary
+directory and cleans up on exit, so you can run any of them straight from a
+checkout:
+
+```bash
+pip install -e .          # Core; add [smt] for Kriging/RBF, [onnx] for ONNX export
+python examples/01_quickstart.py
+```
+
+| Script | Shows | Needs |
+| --- | --- | --- |
+| [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → export → report → reproduce | Core only |
+| [`02_method_comparison.py`](https://github.com/gebab88/surroforge/blob/main/examples/02_method_comparison.py) | Train several methods, tabulate metrics, pick the best with `compare_runs` | Core (Kriging/RBF added if `smt` present) |
+| [`03_reproduction.py`](https://github.com/gebab88/surroforge/blob/main/examples/03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Core only |
+| [`04_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |
+
+The Python scripts are the API twin of the shell workflows in the
+[Quickstart](quickstart.md) and the [Scenarios](scenarios/greenfield.md). They
+are smoke-tested in CI, so they stay in step with the API.
+
+## Command-line configs
+
+[`examples/configs/`](https://github.com/gebab88/surroforge/tree/main/examples/configs)
+holds YAML training configs for the CLI flow — register a dataset, then point
+`train` at a config:
+
+```bash
+surroforge init study && cd study
+surroforge data add ../samples.csv --name beam
+surroforge train --config ../examples/configs/kriging.yaml
+```
+
+- [`configs/kriging.yaml`](https://github.com/gebab88/surroforge/blob/main/examples/configs/kriging.yaml) — a scalar Kriging surrogate (needs `[smt]`).
+- [`configs/field-rom.yaml`](https://github.com/gebab88/surroforge/blob/main/examples/configs/field-rom.yaml) — a POD field surrogate (Core only).
