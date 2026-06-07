@@ -26,5 +26,8 @@ htmlcov/
 /.claude/
 /_bmad/
 
+# Claude Code local project memory (machine-specific, not part of the shipped project)
+/CLAUDE.md
+
 # MkDocs build output (Story 6.5)
 /site/
