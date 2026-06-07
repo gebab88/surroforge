@@ -1,5 +1,5 @@
 # generated: 2026-06-04
-# last_updated: 2026-06-04
+# last_updated: 2026-06-07
 # project: SurroForge
 # project_key: NOKEY
 # tracking_system: file-system
@@ -46,9 +46,21 @@
 # suite, 5-4 capability declarations, 5-5 commercial-seam reservation, 6-5 docs site.
 # Every epic (1-6) is now 'done'; Phase-1 MVP is feature-complete. (Phase-2 features
 # layered on the reserved seam — edition catalog + composed --help — remain future work.)
+#
+# FIELD ROM v1 NOTE (added 2026-06-07):
+# =====================================
+# Sprint planning now also tracks the Field ROM v1 epics (R1-R4) from
+# epics-field-rom-v1.md. Two items ran ahead of formal tracking and are 'done'
+# (built + tested, like the brownfield baseline above): r1-3 (ReducedFieldTrainer —
+# src/surroforge/trainers/reduced_field.py, conformant + engine e2e) and r2-1
+# (fingerprint spike — spikes/field_fingerprint_spike.py, all 3 claims pass; froze
+# the reproduce() contract in spec-field-rom-fingerprint.md). Epics R1 and R2 are
+# therefore 'in-progress'; R3/R4 are 'backlog'. Critical path next: r2-2 -> r2-3 ->
+# r2-4 (the field-primary verdict in reproduce()). r1-1/r1-2 are partially covered
+# by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-04
+last_updated: 2026-06-07
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -152,3 +164,52 @@ development_status:
   # Satisfies AR12 + NFR7 (greenfield page sustains a first-time user end to end).
   6-5-documentation-site: done
   epic-6-retrospective: optional
+
+  # ==========================================================================
+  # FIELD ROM v1 (epics-field-rom-v1.md) — planning done; implementation begun.
+  # ==========================================================================
+
+  # Epic R1 — Reduction Engine & Trainer (in-progress: r1-3 delivered)
+  epic-r1: in-progress
+  r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free: backlog
+  r1-2-configure-reduction-in-a-model-reduction-block: backlog
+  # done (ad hoc, ahead of tracking): src/surroforge/trainers/reduced_field.py — POD
+  # energy/rank + sign-canonicalized basis + per-mode inner surrogate; a pure plugin
+  # (entry point + _BUILTIN fallback, zero engine/config/services changes). Passes the
+  # conformance suite (tests/test_conformance.py BUILTINS) and runs end-to-end through
+  # the unchanged engine (tests/test_reduced_field.py). Partially covers r1-1 (field =
+  # output column-group; glob expansion still planned) and r1-2 (reduction/inner parsed
+  # + validated; the `rank: adaptive` snapshot write-back still planned).
+  r1-3-reducedfieldtrainer-pod-basis-per-mode-inner-surrogate: done
+  r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified: backlog
+  epic-r1-retrospective: optional
+
+  # Epic R2 — Field Reproducibility (Fingerprint) — critical path (in-progress: r2-1 spike done)
+  epic-r2: in-progress
+  # done (spike): spikes/field_fingerprint_spike.py — all 3 claims pass (field verdict ≡
+  # canonical-coeff fast-path; sign/order gauge reproduces; degenerate-mode rotation makes
+  # per-mode canon false-diverge but field + principal-angle subspace reproduce). Output:
+  # contract proposal in _bmad-output/implementation-artifacts/spec-field-rom-fingerprint.md
+  # (basis hash demoted to diagnostic, not a gate; adjusts ADR-ROM-001).
+  r2-1-fingerprint-spike-prove-the-field-primary-verdict-de-risk: done
+  r2-2-sign-order-canonicalization-with-degeneracy-handling: ready-for-dev
+  r2-3-field-primary-verdict-in-reproduce: backlog
+  r2-4-scalar-path-stays-byte-identical-regression-guard: backlog
+  r2-5-record-probe-coverage-prefer-a-global-energy-norm: backlog
+  epic-r2-retrospective: optional
+
+  # Epic R3 — Field Validation & Report (backlog)
+  epic-r3: backlog
+  r3-1-field-metrics-as-registered-callables: backlog
+  r3-2-two-source-error-split-in-the-report: backlog
+  # r3-3 honest-basis CV falls out partly for free from r1-3's per-fold fresh factory.
+  r3-3-honest-basis-cross-validation: backlog
+  epic-r3-retrospective: optional
+
+  # Epic R4 — Ingestion, Query, Conformance & Packaging (backlog)
+  epic-r4: backlog
+  r4-1-predict-coefficients-by-default-reconstruct-on-field: backlog
+  r4-2-surroforge-rom-inspect: backlog
+  r4-3-reconstruction-round-trip-no-mesh-conformance-probe: backlog
+  r4-4-surroforge-rom-packaging-extra: backlog
+  epic-r4-retrospective: optional
