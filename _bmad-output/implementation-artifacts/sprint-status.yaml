@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-10  # Epic R2 retrospective done; next: complete R1 before R3
+last_updated: 2026-06-10  # R1.1 done (reviewed)
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -171,7 +171,7 @@ development_status:
 
   # Epic R1 — Reduction Engine & Trainer (in-progress: r1-3 delivered)
   epic-r1: in-progress
-  r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free: backlog
+  r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free: done
   r1-2-configure-reduction-in-a-model-reduction-block: backlog
   # done (ad hoc, ahead of tracking): src/surroforge/trainers/reduced_field.py — POD
   # energy/rank + sign-canonicalized basis + per-mode inner surrogate; a pure plugin

@@ -6,6 +6,7 @@ The loader keeps the optional dependencies lazy so the core installs lean.
 
 from __future__ import annotations
 
+import fnmatch
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,10 @@ import pandas as pd
 from surroforge.errors import DataError
 
 SUPPORTED_SUFFIXES = {".csv", ".parquet", ".pq", ".h5", ".hdf5"}
+
+# Glob metacharacters that turn a ``data.outputs`` entry into a field pattern; an entry
+# with none of these is a literal column name (full back-compat). (Story R1.1, #19/#53.)
+_GLOB_CHARS = "*?["
 
 
 def load_table(path: str | Path) -> pd.DataFrame:
@@ -61,13 +66,75 @@ def infer_schema(frame: pd.DataFrame) -> dict[str, str]:
     return {str(col): str(dtype) for col, dtype in frame.dtypes.items()}
 
 
+def expand_field_columns(frame: pd.DataFrame, outputs: list[str]) -> list[str]:
+    """Resolve ``data.outputs`` entries into concrete column names (Story R1.1).
+
+    An entry that exactly equals an existing column name is always a **literal** (so a
+    bracketed-index DOF like ``disp[0]`` / ``stress[xx]`` is not misread as a ``[…]``
+    character class). Otherwise, an entry containing a glob metacharacter (``*``, ``?``,
+    ``[``) is a **field pattern** matched against the frame's columns with
+    :func:`fnmatch.fnmatchcase` (case-sensitive, deterministic); a remaining plain entry is
+    a literal kept verbatim (and caught downstream if absent). This is how a field is
+    expressed as a column-group — a wide ``(n_samples × n_dof)`` snapshot matrix,
+    **mesh-free**: only column *names* are read, never coordinates or connectivity (#19/#53).
+
+    Ordering: literals keep the order the user wrote them (back-compat with an explicit
+    list); a pattern expands to its matching columns **in the frame's column order** — the
+    snapshot matrix's native DOF order, which the author controls via the file layout. (We
+    deliberately do not sort by a parsed numeric suffix: that would assume ``<stem><int>``
+    naming and silently reorder fields like ``stress_xx/_yy/_zz``.)
+
+    Raises :class:`DataError` naming the offenders when a pattern matches **no** columns, or
+    when a column is reached by **more than one** entry (overlapping/duplicate DOF). A
+    literal that does not exist in the frame is left in place and caught by the
+    missing-columns guard in :func:`select_columns`.
+    """
+    columns = list(frame.columns)
+    column_names = {str(col) for col in columns}
+    resolved: list[str] = []
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for entry in outputs:
+        if entry in column_names:
+            # An exact column name is always a literal — even if it contains a glob
+            # metacharacter. Scientific fields commonly index DOF as ``disp[0]`` /
+            # ``stress[xx]``; treating those as a literal (not a ``[…]`` character class)
+            # is what the user means, and avoids a spurious "matched no columns".
+            members = [entry]
+        elif any(ch in entry for ch in _GLOB_CHARS):
+            matches = [str(col) for col in columns if fnmatch.fnmatchcase(str(col), entry)]
+            if not matches:
+                raise DataError(
+                    f"Output field pattern '{entry}' matched no columns. "
+                    f"Available: {[str(c) for c in columns]}"
+                )
+            members = matches
+        else:
+            members = [entry]
+        for col in members:
+            if col in seen:
+                duplicates.append(col)
+            else:
+                seen.add(col)
+                resolved.append(col)
+    if duplicates:
+        raise DataError(
+            "Output columns matched by more than one outputs entry "
+            f"(overlapping/duplicate field DOF): {sorted(set(duplicates))}."
+        )
+    return resolved
+
+
 def select_columns(
     frame: pd.DataFrame, inputs: list[str], outputs: list[str]
 ) -> tuple[np.ndarray, np.ndarray]:
     """Extract input/output matrices, validating that all columns exist and are numeric.
 
-    Returns ``X`` of shape ``(n, n_inputs)`` and ``y`` of shape ``(n, n_outputs)``.
+    ``outputs`` may contain field patterns (e.g. ``temp_*``); they are resolved to concrete
+    columns first (:func:`expand_field_columns`, Story R1.1). Returns ``X`` of shape
+    ``(n, n_inputs)`` and ``y`` of shape ``(n, n_outputs)``.
     """
+    outputs = expand_field_columns(frame, outputs)
     missing = [c for c in (*inputs, *outputs) if c not in frame.columns]
     if missing:
         raise DataError(

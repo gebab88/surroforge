@@ -2,6 +2,24 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free (2026-06-10)
+
+- **`expand_field_columns` non-string column labels.** Pattern matches are returned as
+  `str(col)` (data/loader.py); a frame whose `.columns` are non-string (e.g. a headerless
+  read with integer `RangeIndex` labels, or numeric-only headers) would then mis-resolve
+  against the original-dtype `frame.columns` in `select_columns` (`c not in frame.columns`
+  / `frame[resolved]`), yielding a false "Columns not found". **Latent — not reachable on
+  any current path:** `load_table` reads CSV *with* a header (`pd.read_csv`), Parquet, and
+  HDF5, all of which yield string column labels, and the dataset schema is keyed on
+  `{str(col): …}`. Harden (return the original column label for pattern matches; `str()`
+  only for messages) if a headerless / numeric-label reader is ever added.
+- **Glob run field-column naming in `predict`.** A run trained with a glob `data.outputs`
+  stores the pattern verbatim, so `predict_with_run` (services.py:346-349) falls to generic
+  `output_0…` names (the field still predicts at `(n, n_dof)`). Field-aware naming /
+  reconstruction is **Story R4.1**; this is the R1.1 scope boundary working as intended,
+  recorded here only so the R4.1 author re-expands the stored pattern against the loaded
+  frame (or a recorded resolved-column list) when naming reconstructed-field columns.
+
 ## Deferred from: code review of r2-5-record-probe-coverage-prefer-a-global-energy-norm (2026-06-09)
 
 - **Engine ROM-hook `probe_coverage_energy` direct index.** `engine.run_training` reads
