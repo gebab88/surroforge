@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-09  # R2.5 done (reviewed); Epic R2 complete
+last_updated: 2026-06-10  # Epic R2 retrospective done; next: complete R1 before R3
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -196,7 +196,7 @@ development_status:
   r2-3-field-primary-verdict-in-reproduce: done
   r2-4-scalar-path-stays-byte-identical-regression-guard: done
   r2-5-record-probe-coverage-prefer-a-global-energy-norm: done
-  epic-r2-retrospective: optional
+  epic-r2-retrospective: done
 
   # Epic R3 — Field Validation & Report (backlog)
   epic-r3: backlog
