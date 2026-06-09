@@ -154,6 +154,10 @@ def run_training(
             "basis_hash": diag["basis_hash"],
             "holdout_coefficients": coeffs.tolist(),
             "reduction": diag["reduction"],
+            # Fraction of field energy the verdict verifies (Story R2.5). An SVD-derived
+            # float, so — like energy_captured — it stays OUT of the spec hash. Field runs
+            # only; a scalar trainer has no hook, so scalar lineage is unchanged (R2.4).
+            "probe_coverage_energy": float(diag["probe_coverage_energy"]),
         }
 
     metrics_doc = {

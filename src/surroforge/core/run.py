@@ -32,6 +32,17 @@ class ProvenanceWarning(UserWarning):
     """
 
 
+class FieldCoverageWarning(UserWarning):
+    """A field run whose reproduce verdict verifies only a low fraction of the field.
+
+    The field-energy-relative verdict checks the reconstructed field, which represents
+    ``probe_coverage_energy`` of the true field; the truncated tail modes are
+    unverifiable. Advisory, **never** a verdict gate (Story R2.5) — like
+    :class:`ProvenanceWarning`, the CLI renders it as a sober ``Warning:`` line while
+    library callers filter it with the standard ``warnings`` machinery.
+    """
+
+
 # Artifacts we have already warned about this process, so the provenance warning
 # fires once per artifact rather than on every predict/export call (Story 4.4).
 _WARNED_ARTIFACTS: set[str] = set()
@@ -150,6 +161,20 @@ class Run:
     def spec_hash(self) -> str:
         """Hashed spec (config + reduction + field tolerance); widening tolerance re-hashes."""
         return self.lineage.get("spec_hash", "")
+
+    @property
+    def probe_coverage_energy(self) -> float:
+        """Fraction of field energy the reproduce verdict verifies (Story R2.5).
+
+        Field runs only: the retained-mode POD energy share of the **holdout model** (the
+        same out-of-sample model the fingerprint keys on, not the final all-data artifact);
+        out-of-probe energy (``1 - this``) is the truncation floor the verdict cannot see.
+        A constant / zero-energy field has no modal energy to truncate, so it reads ``1.0``.
+        A scalar / non-reduced run has no reduction, so it covers its own field by identity
+        and the key is absent — the accessor returns ``1.0`` (also the legacy/pre-R2.5
+        default).
+        """
+        return float(self.lineage.get("probe_coverage_energy", 1.0))
 
     # Artifacts ----------------------------------------------------------------
 

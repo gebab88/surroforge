@@ -2,6 +2,18 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r2-5-record-probe-coverage-prefer-a-global-energy-norm (2026-06-09)
+
+- **Engine ROM-hook `probe_coverage_energy` direct index.** `engine.run_training` reads
+  `float(diag["probe_coverage_energy"])` (engine.py) by direct index; a third-party ROM
+  trainer whose `reproducibility_diagnostics` hook omits the key would raise `KeyError` and
+  abort the run. This is consistent with the existing R2.3 contract — the sibling keys
+  (`basis_hash`/`holdout_coefficients`/`reduction`) are all direct-indexed — and folds into
+  the **already-recorded R2.3 deferral "Engine ROM-hook input validation for external
+  plugins"** (above). The built-in `ReducedFieldTrainer` always returns the key, so it
+  cannot fire in v1. Harden (validate keys / fail-soft to full coverage 1.0) together with
+  that R2.3 item when the first external ROM plugin binds.
+
 ## Deferred from: code review of r2-2-sign-order-canonicalization-with-degeneracy-handling (2026-06-07)
 
 - **`degenerate_clusters` single-linkage chaining.** Each candidate mode is compared to
@@ -53,3 +65,19 @@ Findings surfaced during reviews but intentionally out of scope for the triggeri
   marked slow. The project-context reproducibility discipline calls for this, but it
   is flagged `(planned)` and belongs with the CI story (it needs a CI matrix to be
   meaningful). Pick up when standing up CI.
+
+## From: code review of r2-4-scalar-path-stays-byte-identical (2026-06-09)
+
+- **Over-tolerance scalar verdict not pinned end-to-end through `reproduce()`.** AC1 names
+  "verdict"; R2.4 pins the happy-path `reproduced` end-to-end and the divergent verdict via
+  a hand-built `ReproduceResult`, but no real scalar run is driven to over-tolerance
+  `diverged` through `reproduce()`. Well-backstopped (`_verdict` is unit-tested across
+  tolerance bands in test_reproduce.py:134–140; `data_changed` end-to-end at
+  test_reproduce.py:51–66) and a real polynomial run reproduces bit-identically by design,
+  so a genuine over-tolerance scalar run is awkward to construct. Pick up if a future
+  scalar method has a non-zero tolerance worth exercising end-to-end.
+- **`metrics.json` / config-snapshot byte-shape not asserted by the R2.4 guard.** Not an AC
+  requirement (AC1 enumerates lineage + fingerprint + `ReproduceResult` only); the broader
+  run-dir shape is backstopped by `test_reproduce.py` and the full suite. If "byte-identical
+  to pre-ROM" is ever read to include the whole run dir, add a metrics/config-snapshot
+  shape pin to the scalar-identity guard.

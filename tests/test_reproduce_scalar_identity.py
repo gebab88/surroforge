@@ -35,7 +35,14 @@ from tests.conftest import poly_config
 
 # Lineage keys the field-primary fingerprint adds for a *field* run only; a scalar run
 # must carry NONE of them (the field code path is inert without a reducing trainer).
-_FIELD_LINEAGE_KEYS = ("basis_hash", "holdout_coefficients", "reduction", "spec_hash")
+# ``probe_coverage_energy`` (Story R2.5) is field-gated too, so it belongs in this guard.
+_FIELD_LINEAGE_KEYS = (
+    "basis_hash",
+    "holdout_coefficients",
+    "reduction",
+    "spec_hash",
+    "probe_coverage_energy",
+)
 # The pre-ROM scalar lineage keys that the reproducibility verdict depends on.
 _SCALAR_LINEAGE_KEYS = (
     "prediction_hash",

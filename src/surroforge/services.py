@@ -6,6 +6,7 @@ user actually runs: reproduce, compare, predict, export, report.
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,7 @@ import pandas as pd
 
 from surroforge.core.canonicalize import degenerate_clusters, max_principal_angle
 from surroforge.core.project import Project
-from surroforge.core.run import Run
+from surroforge.core.run import FieldCoverageWarning, Run
 from surroforge.data.loader import load_table
 from surroforge.engine import run_training
 from surroforge.errors import DataError, ExportError, ReproducibilityError
@@ -31,6 +32,12 @@ REPRODUCTION_TOLERANCE = 1e-9
 # Floor for the field-energy-relative denominator, so a (near-)zero parent field does
 # not divide by zero; far below any meaningful field energy (Story R2.3).
 FIELD_ENERGY_FLOOR = 1e-300
+
+# Below this fraction of field energy verified by the verdict, reproduce() emits a
+# FieldCoverageWarning: "reproduced" then covers only part of the field, the truncated
+# tail being unverifiable (Story R2.5). Advisory only — never a verdict gate, exactly like
+# the basis hash. Single source of truth, never inlined per call site.
+PROBE_COVERAGE_WARN_THRESHOLD = 0.99
 
 
 @dataclass
@@ -53,6 +60,9 @@ class ReproduceResult:
     basis_regauged: bool = False
     #: Field runs only: non-gating per-mode / degenerate-subspace coefficient attribution.
     coefficient_diagnostic: dict[str, Any] | None = None
+    #: Field runs only (Story R2.5): fraction of field energy the verdict verifies (the
+    #: retained-mode energy share). ``None`` for a scalar run. Advisory, never a gate.
+    probe_coverage_energy: float | None = None
 
 
 def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceResult:
@@ -97,6 +107,7 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
     basis_hash_match: bool | None = None
     basis_regauged = False
     coefficient_diagnostic: dict[str, Any] | None = None
+    probe_coverage_energy: float | None = None
 
     if is_field:
         # The reconstructed field is gauge-invariant, so this never false-diverges on a
@@ -108,6 +119,7 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
         parent_bh, repro_bh = parent.basis_hash, reproduction.basis_hash
         basis_hash_match = (parent_bh == repro_bh) if (parent_bh and repro_bh) else None
         coefficient_diagnostic = _coefficient_diagnostic(parent, reproduction)
+        probe_coverage_energy = parent.probe_coverage_energy
     else:
         diff_for_verdict = max_abs_diff
 
@@ -118,6 +130,26 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
         # divergence — the field verdict closes that trap by construction. The hash is
         # never gated (spec-field-rom-fingerprint.md, decision #4).
         basis_regauged = _basis_regauged(basis_hash_match, verdict)
+        # The verdict checks the reconstructed field, which represents only
+        # ``probe_coverage_energy`` of the true field; the truncated tail is unverifiable.
+        # Warn — never gate — so "reproduced" cannot masquerade as a full-field guarantee
+        # (Story R2.5). A low coverage does not change the verdict. Only warn when the field
+        # was actually compared: on ``unverifiable`` / ``data_changed`` nothing was checked,
+        # so "verifies only X%" would be contradictory noise.
+        if (
+            probe_coverage_energy is not None
+            and probe_coverage_energy < PROBE_COVERAGE_WARN_THRESHOLD
+            and verdict in {"reproduced", "reproduced_within_tolerance", "diverged"}
+        ):
+            out_of_probe = 1.0 - probe_coverage_energy
+            warnings.warn(
+                f"Field run '{parent.run_id}' verdict verifies only "
+                f"{probe_coverage_energy:.1%} of the field energy; {out_of_probe:.1%} "
+                "lives in truncated modes that reproduce cannot check. Increase "
+                "reduction.energy / rank for a stronger reproducibility guarantee.",
+                FieldCoverageWarning,
+                stacklevel=2,
+            )
 
     return ReproduceResult(
         parent=parent,
@@ -131,6 +163,7 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
         basis_hash_match=basis_hash_match,
         basis_regauged=basis_regauged,
         coefficient_diagnostic=coefficient_diagnostic,
+        probe_coverage_energy=probe_coverage_energy,
     )
 
 

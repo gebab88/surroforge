@@ -164,23 +164,33 @@ class ReducedFieldTrainer(BaseTrainer):
         return 0 if self._basis is None else int(self._basis.shape[1])
 
     def reproducibility_diagnostics(self, x: np.ndarray) -> dict[str, Any]:
-        """Field-primary reproducibility diagnostics for the engine to record (R2.3).
+        """Field-primary reproducibility diagnostics for the engine to record (R2.3, R2.5).
 
         Returns the canonicalized basis hash (a **diagnostic**, never a verdict gate),
         the canonicalized out-of-sample modal coefficients (per-mode "which mode moved"
         attribution — degenerate clusters are compared as a subspace downstream, never
-        per-mode), and the resolved reduction spec. The engine duck-types this hook, so a
-        scalar trainer that does not expose it leaves lineage unchanged (spine theorem
-        #36; spec-field-rom-fingerprint.md).
+        per-mode), the resolved reduction spec, and ``probe_coverage_energy`` — the
+        fraction of field energy the **global-energy-norm verdict verifies** (the
+        retained-mode POD energy share; the remainder is the truncation floor, which the
+        reproduce verdict cannot see). The engine duck-types this hook, so a scalar trainer
+        that does not expose it leaves lineage unchanged (spine theorem #36;
+        spec-field-rom-fingerprint.md).
         """
         if self._basis is None:
             raise TrainerError("Model is not fitted.")
         canon_coeffs, canon_basis = canonicalize(self._coefficients(x), self._basis)
         basis_bytes = np.ascontiguousarray(canon_basis, dtype=np.float64).tobytes()
+        # In v1 "the probes" are the full reconstructed field (the global energy-norm IS
+        # the definition; node subsampling deferred), so coverage = the retained-mode
+        # energy share. A constant / zero-energy field has NO modal energy to truncate —
+        # the reconstruction (the mean) captures it exactly — so its coverage is 1.0, not
+        # 0.0; 0.0 would mis-warn "0% verified" on a run that reproduces perfectly.
+        coverage = float(self._energy_captured) if self._energy_captured else 1.0
         return {
             "basis_hash": hashlib.sha256(basis_bytes).hexdigest(),
             "holdout_coefficients": canon_coeffs,
             "reduction": self._resolved_reduction(),
+            "probe_coverage_energy": coverage,
         }
 
     def _resolved_reduction(self) -> dict[str, Any]:

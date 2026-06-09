@@ -71,6 +71,10 @@ Scenario: `n_dof=200`, `r=6` modes, spectrum `[10,7,5,3,3,1]` (modes 3,4 degener
 
 </frozen-after-approval>
 
+## R2.5 implementation note (supersedes the frozen "probe nodes" wording)
+
+The frozen block above speaks of "energy-weighted probe **nodes** … recorded with their coverage" (decision #1, Boundaries) — a spatial subset of DOF. The shipped implementation (R2.3 verdict + R2.5 coverage) instead uses the **full reconstructed field** as the global energy-norm verdict: there is no node subset in v1, so "the probes" are the whole field. Accordingly `probe_coverage_energy` (R2.5) records the **modal-truncation** coverage — the retained-mode energy share the verdict verifies (out-of-probe energy = the truncation floor) — and `reproduce()` **warns, never gates**, when it is low. This is OQ-3's explicit recommendation ("prefer the global energy-norm as the definition … probes as the fast path") and this story's title. Energy-weighted probe-**node** subsampling (Q-DEIM/QR, ideas #49/#84) and a persisted `basis.npz` remain deferred to Phase 2. (Frozen text left intact; this note records the as-built reconciliation, like the R2.3 deferral notes in `deferred-work.md`.)
+
 ## reproduce() Contract (proposed shape)
 
 **Persisted (lineage.json / run dir), additive to the scalar fields:**

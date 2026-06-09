@@ -17,7 +17,7 @@ import typer
 from surroforge import __version__, services
 from surroforge.core.config import load_config
 from surroforge.core.project import Project
-from surroforge.core.run import ProvenanceWarning, Run
+from surroforge.core.run import FieldCoverageWarning, ProvenanceWarning, Run
 from surroforge.engine import run_training
 from surroforge.errors import DataError, SurroForgeError
 from surroforge.plugins import get_trainer
@@ -344,18 +344,19 @@ def version() -> None:
 
 
 def _render_warnings() -> None:
-    """Render SurroForge security warnings as sober ``Warning:`` lines.
+    """Render SurroForge warnings as sober ``Warning:`` lines.
 
     Without this the core's ``warnings.warn`` reaches the terminal in raw Python
     form (``.../run.py:NN: ProvenanceWarning: ...`` plus the echoed source line),
     which leaks internals and clashes with the CLI's output tone (NFR9). We only
-    reformat our own ``ProvenanceWarning``; every other warning falls through to
-    Python's default handler untouched.
+    reformat our own warning types (``ProvenanceWarning`` security signal,
+    ``FieldCoverageWarning`` reproduce-coverage advisory); every other warning falls
+    through to Python's default handler untouched.
     """
     default_showwarning = warnings.showwarning
 
     def show(message, category, filename, lineno, file=None, line=None):
-        if issubclass(category, ProvenanceWarning):
+        if issubclass(category, (ProvenanceWarning, FieldCoverageWarning)):
             typer.secho(f"Warning: {message}", fg=typer.colors.YELLOW, err=True)
         else:
             default_showwarning(message, category, filename, lineno, file, line)
