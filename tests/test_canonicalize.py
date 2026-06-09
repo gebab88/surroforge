@@ -192,8 +192,11 @@ def test_subspace_reproduces_but_per_mode_canonicalization_diverges():
 
 
 def test_max_principal_angle_zero_for_identical_subspace():
+    # arccos near 1 amplifies the ~1e-16 cosine rounding of Qaᵀ·Qb to a ~1e-8 rad floor
+    # (the noise ANGLE_TOL=1e-6 is designed to clear), so assert against that tolerance —
+    # a <1e-9 bound passed on macOS/OpenBLAS but is unachievable on Windows (saw 2.98e-8).
     _coeffs, basis = make_scenario()
-    assert max_principal_angle(basis[:, [3, 4]], basis[:, [3, 4]]) < 1e-9
+    assert max_principal_angle(basis[:, [3, 4]], basis[:, [3, 4]]) < 1e-6
 
 
 def test_distinct_subspaces_do_not_reproduce():
