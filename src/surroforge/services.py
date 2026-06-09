@@ -13,6 +13,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from surroforge.core.canonicalize import degenerate_clusters, max_principal_angle
 from surroforge.core.project import Project
 from surroforge.core.run import Run
 from surroforge.data.loader import load_table
@@ -27,6 +28,10 @@ from surroforge.plugins import get_exporter, get_reporter
 # counts as reproduced. Anything larger is a divergence.
 REPRODUCTION_TOLERANCE = 1e-9
 
+# Floor for the field-energy-relative denominator, so a (near-)zero parent field does
+# not divide by zero; far below any meaningful field energy (Story R2.3).
+FIELD_ENERGY_FLOOR = 1e-300
+
 
 @dataclass
 class ReproduceResult:
@@ -38,10 +43,27 @@ class ReproduceResult:
     verdict: str
     #: The tolerance the run declared (Story 5.4); the verdict was judged against it.
     tolerance: float = REPRODUCTION_TOLERANCE
+    #: Field runs only (Story R2.3): relative field-energy diff of the reconstructed
+    #: holdout field. ``None`` for a scalar run, which is judged by ``max_abs_diff``.
+    field_relative_diff: float | None = None
+    #: Field runs only: whether the canonicalized basis hashes matched (diagnostic).
+    basis_hash_match: bool | None = None
+    #: Field runs only: the basis bytes changed but the field still reproduced — a benign
+    #: re-gauge. The basis hash is never a verdict gate (spec-field-rom-fingerprint.md).
+    basis_regauged: bool = False
+    #: Field runs only: non-gating per-mode / degenerate-subspace coefficient attribution.
+    coefficient_diagnostic: dict[str, Any] | None = None
 
 
 def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceResult:
-    """Re-run a stored run from its config snapshot and compare to the original (PRD 4.5)."""
+    """Re-run a stored run from its config snapshot and compare to the original (PRD 4.5).
+
+    For a **field run** (one carrying a reduction, Story R2.3) the verdict is the relative
+    field-energy difference between the parent's and the re-run's reconstructed
+    out-of-sample holdout field; the basis hash and canonicalized coefficients are a
+    diagnostic lens, never a gate. A **scalar run** keeps the absolute byte/diff behaviour
+    unchanged (the R2.4 regression guard).
+    """
     parent = project.run(run_id)
     config = parent.config
 
@@ -68,6 +90,35 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
     # legacy runs recorded before this field fall back to the global default.
     tolerance = float(parent.lineage.get("reproduction_tolerance", REPRODUCTION_TOLERANCE))
 
+    # Field run? A reducing trainer records a basis hash; a scalar run never does, so it
+    # stays on the absolute-diff path byte-for-byte (R2.4).
+    is_field = bool(parent.basis_hash)
+    field_relative_diff: float | None = None
+    basis_hash_match: bool | None = None
+    basis_regauged = False
+    coefficient_diagnostic: dict[str, Any] | None = None
+
+    if is_field:
+        # The reconstructed field is gauge-invariant, so this never false-diverges on a
+        # benign re-gauge (the verdict). Basis hash + coefficients are diagnostic only.
+        field_relative_diff = (
+            _field_energy_relative_diff(parent_fp, repro_fp) if comparable else float("inf")
+        )
+        diff_for_verdict = field_relative_diff
+        parent_bh, repro_bh = parent.basis_hash, reproduction.basis_hash
+        basis_hash_match = (parent_bh == repro_bh) if (parent_bh and repro_bh) else None
+        coefficient_diagnostic = _coefficient_diagnostic(parent, reproduction)
+    else:
+        diff_for_verdict = max_abs_diff
+
+    verdict = _verdict(data_hash_match, bit_identical, comparable, diff_for_verdict, tolerance)
+
+    if is_field:
+        # A changed basis hash with a reproduced field is a benign re-gauge, NEVER a
+        # divergence — the field verdict closes that trap by construction. The hash is
+        # never gated (spec-field-rom-fingerprint.md, decision #4).
+        basis_regauged = _basis_regauged(basis_hash_match, verdict)
+
     return ReproduceResult(
         parent=parent,
         reproduction=reproduction,
@@ -75,7 +126,11 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
         max_abs_diff=max_abs_diff,
         data_hash_match=data_hash_match,
         tolerance=tolerance,
-        verdict=_verdict(data_hash_match, bit_identical, comparable, max_abs_diff, tolerance),
+        verdict=verdict,
+        field_relative_diff=field_relative_diff,
+        basis_hash_match=basis_hash_match,
+        basis_regauged=basis_regauged,
+        coefficient_diagnostic=coefficient_diagnostic,
     )
 
 
@@ -98,13 +153,79 @@ def _verdict(
     return "diverged"
 
 
+def _basis_regauged(basis_hash_match: bool | None, verdict: str) -> bool:
+    """Whether the basis re-gauged but the field still reproduced (Story R2.3, AC2).
+
+    ``True`` only when the canonicalized basis hashes **differ** and the field verdict is
+    a reproduce — a benign re-gauge, never a divergence. The basis hash is never a gate
+    (spec-field-rom-fingerprint.md, decision #4); this is a presentation annotation.
+    """
+    return basis_hash_match is False and verdict in {
+        "reproduced",
+        "reproduced_within_tolerance",
+    }
+
+
+def _field_energy_relative_diff(parent_fp: np.ndarray, repro_fp: np.ndarray) -> float:
+    """Relative field-energy difference ``‖Δ‖_F / max(‖parent‖_F, floor)`` (Story R2.3).
+
+    Gauge-invariant by construction — the reconstructed field is invariant under sign
+    flips, mode reorder, and intra-subspace rotation of a degenerate cluster — so it
+    never false-diverges on a benign re-gauge, unlike a per-mode or byte comparison.
+    """
+    denom = float(np.linalg.norm(parent_fp))
+    return float(np.linalg.norm(parent_fp - repro_fp) / max(denom, FIELD_ENERGY_FLOOR))
+
+
+def _coefficient_diagnostic(parent: Run, reproduction: Run) -> dict[str, Any] | None:
+    """Non-gating per-mode "which mode moved" attribution (Story R2.3, diagnostic only).
+
+    Reports a per-mode relative coefficient diff for non-degenerate modes; for a
+    near-degenerate singular-value cluster it reports the principal-angle **subspace**
+    diff instead (R2.2 primitives), because per-mode canonicalization false-diverges on
+    a benign intra-subspace rotation. This never drives the verdict — the field does.
+    Returns ``None`` when the canonical coefficients are absent or shape-mismatched.
+    """
+    # A diagnostic must never break the verdict: a ragged/non-numeric coefficient
+    # lineage makes np.asarray raise, so fail soft to "no diagnostic".
+    try:
+        pc = np.asarray(parent.holdout_coefficients, dtype=float)
+        rc = np.asarray(reproduction.holdout_coefficients, dtype=float)
+    except (ValueError, TypeError):
+        return None
+    if pc.ndim != 2 or pc.size == 0 or pc.shape != rc.shape:
+        return None
+    clusters, _sigma = degenerate_clusters(pc)
+    degenerate_modes = {m for cluster in clusters for m in cluster}
+    denom = float(np.linalg.norm(pc)) or 1.0
+    per_mode = {
+        k: float(np.linalg.norm(pc[:, k] - rc[:, k]) / denom)
+        for k in range(pc.shape[1])
+        if k not in degenerate_modes
+    }
+    # Cluster indices come from `pc` (same shape as `rc`), so the slices are valid. A
+    # cluster wider than the sample count cannot form a column subspace (principal
+    # angles need cols ≤ rows), so skip it — this is a diagnostic, not a gate.
+    subspace_angles = [
+        max_principal_angle(pc[:, cluster], rc[:, cluster])
+        for cluster in clusters
+        if len(cluster) <= pc.shape[0]
+    ]
+    return {
+        "per_mode_relative_diff": per_mode,
+        "degenerate_clusters": clusters,
+        "max_subspace_angle": max(subspace_angles) if subspace_angles else 0.0,
+    }
+
+
 def assert_reproducible(
     result: ReproduceResult, *, tolerance: float | None = None
 ) -> None:
     """Raise if a reproduction did not verifiably reproduce (used in CI/tests).
 
     Judges against the tolerance the run declared (``result.tolerance``, Story 5.4)
-    unless an explicit ``tolerance`` override is supplied.
+    unless an explicit ``tolerance`` override is supplied. Field runs are judged by the
+    relative field-energy diff; scalar runs by the absolute max prediction diff (R2.3).
     """
     tol = result.tolerance if tolerance is None else tolerance
     if not result.data_hash_match:
@@ -116,10 +237,21 @@ def assert_reproducible(
             "Cannot verify reproduction: the original run predates the holdout "
             "fingerprint (or its sample shape changed). Re-train to enable checking."
         )
-    if result.max_abs_diff > tol:
+    diff = (
+        result.field_relative_diff
+        if result.field_relative_diff is not None
+        else result.max_abs_diff
+    )
+    # NaN-safe: ``not (diff <= tol)`` raises on NaN (a non-finite field), matching the
+    # ``diverged`` verdict — a bare ``diff > tol`` would let NaN slip through as a pass.
+    if not (diff <= tol):
+        kind = (
+            "field-energy-relative"
+            if result.field_relative_diff is not None
+            else "max abs prediction"
+        )
         raise ReproducibilityError(
-            f"Reproduction diverged: max abs prediction diff "
-            f"{result.max_abs_diff:.3e} > tolerance {tol:.1e}."
+            f"Reproduction diverged: {kind} diff {diff:.3e} > tolerance {tol:.1e}."
         )
 
 

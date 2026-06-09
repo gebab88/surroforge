@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-07
+last_updated: 2026-06-09
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -192,8 +192,8 @@ development_status:
   # contract proposal in _bmad-output/implementation-artifacts/spec-field-rom-fingerprint.md
   # (basis hash demoted to diagnostic, not a gate; adjusts ADR-ROM-001).
   r2-1-fingerprint-spike-prove-the-field-primary-verdict-de-risk: done
-  r2-2-sign-order-canonicalization-with-degeneracy-handling: ready-for-dev
-  r2-3-field-primary-verdict-in-reproduce: backlog
+  r2-2-sign-order-canonicalization-with-degeneracy-handling: done
+  r2-3-field-primary-verdict-in-reproduce: done
   r2-4-scalar-path-stays-byte-identical-regression-guard: backlog
   r2-5-record-probe-coverage-prefer-a-global-energy-norm: backlog
   epic-r2-retrospective: optional

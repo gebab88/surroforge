@@ -23,10 +23,12 @@ Configuration (passed as ordinary hyperparameters; the engine is untouched)::
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import numpy as np
 
+from surroforge.core.canonicalize import canonicalize, canonicalize_basis_signs
 from surroforge.errors import TrainerError
 from surroforge.trainers.base import BaseTrainer
 
@@ -92,6 +94,7 @@ class ReducedFieldTrainer(BaseTrainer):
         self._mean: np.ndarray | None = None  # (1 × n_dof) snapshot mean
         self._models: list[BaseTrainer] = []  # one inner trainer per retained mode
         self._n_dof: int | None = None
+        self._energy_captured: float | None = None  # σ²-energy share of retained modes
 
     # -- fitting ------------------------------------------------------------
 
@@ -108,6 +111,10 @@ class ReducedFieldTrainer(BaseTrainer):
         fluctuations = field - self._mean
         _u, singular, vt = np.linalg.svd(fluctuations, full_matrices=False)
         r = self._resolve_rank(singular)
+        total = float((singular**2).sum())
+        self._energy_captured = (
+            float(np.cumsum(singular**2)[r - 1] / total) if total > 0.0 and r > 0 else 0.0
+        )
         basis = _canonicalize_signs(vt[:r].T)  # (n_dof × r)
         self._basis = basis
 
@@ -138,20 +145,47 @@ class ReducedFieldTrainer(BaseTrainer):
     def predict(self, x: np.ndarray) -> np.ndarray:
         if self._basis is None or self._mean is None:
             raise TrainerError("Model is not fitted.")
-        x = self._as_2d(x)
-        r = self._basis.shape[1]
-        coefficients = np.empty((x.shape[0], r), dtype=float)
-        for k, model in enumerate(self._models):
-            coefficients[:, k] = model.predict(x).reshape(-1)
-        field = coefficients @ self._basis.T + self._mean
+        field = self._coefficients(x) @ self._basis.T + self._mean
         return self._as_2d(field)
 
-    # -- introspection (feeds `rom inspect`, Story R4.2) --------------------
+    def _coefficients(self, x: np.ndarray) -> np.ndarray:
+        """Inner-surrogate modal coefficients for ``x`` (the pre-reconstruction step)."""
+        x = self._as_2d(x)
+        coefficients = np.empty((x.shape[0], len(self._models)), dtype=float)
+        for k, model in enumerate(self._models):
+            coefficients[:, k] = model.predict(x).reshape(-1)
+        return coefficients
+
+    # -- introspection (feeds `rom inspect`, Story R4.2; reproduce(), R2.3) -
 
     @property
     def rank(self) -> int:
         """Number of retained modes (0 until fitted)."""
         return 0 if self._basis is None else int(self._basis.shape[1])
+
+    def reproducibility_diagnostics(self, x: np.ndarray) -> dict[str, Any]:
+        """Field-primary reproducibility diagnostics for the engine to record (R2.3).
+
+        Returns the canonicalized basis hash (a **diagnostic**, never a verdict gate),
+        the canonicalized out-of-sample modal coefficients (per-mode "which mode moved"
+        attribution — degenerate clusters are compared as a subspace downstream, never
+        per-mode), and the resolved reduction spec. The engine duck-types this hook, so a
+        scalar trainer that does not expose it leaves lineage unchanged (spine theorem
+        #36; spec-field-rom-fingerprint.md).
+        """
+        if self._basis is None:
+            raise TrainerError("Model is not fitted.")
+        canon_coeffs, canon_basis = canonicalize(self._coefficients(x), self._basis)
+        basis_bytes = np.ascontiguousarray(canon_basis, dtype=np.float64).tobytes()
+        return {
+            "basis_hash": hashlib.sha256(basis_bytes).hexdigest(),
+            "holdout_coefficients": canon_coeffs,
+            "reduction": self._resolved_reduction(),
+        }
+
+    def _resolved_reduction(self) -> dict[str, Any]:
+        """The reduction spec actually realized at fit time (recorded in lineage)."""
+        return {"basis": "pod", "rank": self.rank, "energy_captured": self._energy_captured}
 
 
 def _canonicalize_signs(basis: np.ndarray) -> np.ndarray:
@@ -159,11 +193,7 @@ def _canonicalize_signs(basis: np.ndarray) -> np.ndarray:
 
     SVD leaves a per-mode sign gauge; pinning it makes the basis deterministic
     run-to-run and is the foundation the field-primary fingerprint builds on
-    (spec-field-rom-fingerprint.md). Returns a fresh array.
+    (spec-field-rom-fingerprint.md). Delegates to the shared canonicalization
+    primitive (Story R2.2) so there is a single implementation of the sign gauge.
     """
-    basis = np.array(basis, dtype=float, copy=True)
-    for k in range(basis.shape[1]):
-        peak = int(np.argmax(np.abs(basis[:, k])))
-        if basis[peak, k] < 0:
-            basis[:, k] *= -1.0
-    return basis
+    return canonicalize_basis_signs(basis)

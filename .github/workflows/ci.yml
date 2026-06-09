@@ -69,7 +69,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[all,dev]"
       - name: reproducibility tests
-        run: pytest -q tests/test_reproduce.py
+        run: pytest -q tests/test_reproduce.py tests/test_canonicalize.py tests/test_reproduce_field.py
 
   docs:
     name: docs build (mkdocs --strict)

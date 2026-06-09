@@ -300,12 +300,18 @@ def reproduce(run_id: str = typer.Argument(..., help="Run id to reproduce.")) ->
     project = _project()
     result = services.reproduce(project, run_id, echo=_echo_cb())
     new_id = result.reproduction.run_id
+    # A reproduced field run whose basis bytes re-gauged is still reproduced — the basis
+    # hash is diagnostic, never a gate (Story R2.3). Annotate, do not fail.
+    regauged = " (basis re-gauged; field reproduced)" if result.basis_regauged else ""
     if result.verdict == "reproduced":
-        _success(f"Reproduced {run_id} as {new_id} — bit-identical model.")
+        _success(f"Reproduced {run_id} as {new_id} — bit-identical model.{regauged}")
     elif result.verdict == "reproduced_within_tolerance":
+        if result.field_relative_diff is not None:
+            measure = f"field-energy diff {result.field_relative_diff:.2e}"
+        else:
+            measure = f"max diff {result.max_abs_diff:.2e}"
         _success(
-            f"Reproduced {run_id} as {new_id} — numerically identical "
-            f"(max diff {result.max_abs_diff:.2e})."
+            f"Reproduced {run_id} as {new_id} — numerically identical ({measure}).{regauged}"
         )
     else:
         # data_changed or diverged → emit the verdict as a hard failure (exit 1).

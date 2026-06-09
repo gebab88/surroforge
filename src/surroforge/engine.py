@@ -138,6 +138,24 @@ def run_training(
     ]
     prediction_hash = _prediction_fingerprint(holdout_fingerprint)
 
+    # Field-primary reproducibility diagnostics (Story R2.3): a reducing trainer exposes
+    # an optional hook; scalar trainers do not, so their lineage is unchanged and the
+    # engine stays ROM-agnostic (spine theorem #36 — no reduced_field import here). The
+    # diagnostics come from the OUT-OF-SAMPLE holdout model on x_test, matching the field
+    # fingerprint above. The basis hash + canonical coefficients are diagnostic, never a
+    # verdict gate; the field itself is the verdict (spec-field-rom-fingerprint.md).
+    field_extras: dict[str, Any] = {}
+    if hasattr(holdout_model, "reproducibility_diagnostics"):
+        diag = holdout_model.reproducibility_diagnostics(x_test)
+        coeffs = np.ascontiguousarray(diag["holdout_coefficients"], dtype=np.float64)[
+            :_FINGERPRINT_MAX_ROWS
+        ]
+        field_extras = {
+            "basis_hash": diag["basis_hash"],
+            "holdout_coefficients": coeffs.tolist(),
+            "reduction": diag["reduction"],
+        }
+
     metrics_doc = {
         "train": train_metrics,
         "test": test_metrics,
@@ -183,6 +201,11 @@ def run_training(
         "parent_run": parent_run,
         **capture_environment(),
     }
+    if field_extras:
+        lineage.update(field_extras)
+        # D2: fold the field tolerance into a dedicated spec hash so widening it is a
+        # different run, without disturbing config_hash semantics.
+        lineage["spec_hash"] = _spec_hash(config, final_model.reproduction_tolerance)
     write_json(run_dir / LINEAGE_FILE, lineage)
     (run_dir / LOG_FILE).write_text("\n".join(log.lines) + "\n")
 
@@ -191,6 +214,22 @@ def run_training(
 
 def _config_hash(config: ExperimentConfig) -> str:
     return hashlib.sha256(config.canonical_json().encode("utf-8")).hexdigest()
+
+
+def _spec_hash(config: ExperimentConfig, tolerance: float) -> str:
+    """Hash of (config + field tolerance) for a field run (Story R2.3, D2).
+
+    Folds the field-energy-relative tolerance into the spec identity, so *widening the
+    tolerance is a different run* (a fresh spec hash), not a looser compare on the same
+    spec. The config already carries the user's reduction request, so the spec is fully
+    captured. The *measured* reduction (resolved rank, ``energy_captured``) is recorded
+    in lineage as a diagnostic but deliberately kept OUT of this hash: it is a SVD-derived
+    float that varies at ULP level on non-reproducible BLAS (Apple Accelerate), and a
+    reproducibility hash must not depend on that noise. Kept separate from ``config_hash``
+    so the latter's semantics are undisturbed.
+    """
+    payload = config.canonical_json() + repr(float(tolerance))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _prediction_fingerprint(preds: np.ndarray) -> str:

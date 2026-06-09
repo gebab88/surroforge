@@ -122,8 +122,34 @@ class Run:
 
     @property
     def holdout_fingerprint(self) -> list[Any]:
-        """Out-of-sample holdout predictions recorded for the reproducibility verdict."""
+        """Out-of-sample holdout predictions recorded for the reproducibility verdict.
+
+        For a field run this is the reconstructed out-of-sample holdout *field*; the
+        field-primary verdict compares it by field-energy-relative diff (Story R2.3).
+        """
         return self.lineage.get("holdout_fingerprint", [])
+
+    # Field-run diagnostics (Story R2.3) — empty/blank for scalar runs ----------
+
+    @property
+    def holdout_coefficients(self) -> list[Any]:
+        """Canonicalized out-of-sample modal coefficients (field-run diagnostic)."""
+        return self.lineage.get("holdout_coefficients", [])
+
+    @property
+    def basis_hash(self) -> str:
+        """Canonicalized basis hash — diagnostic only, never a verdict gate."""
+        return self.lineage.get("basis_hash", "")
+
+    @property
+    def reduction(self) -> dict[str, Any]:
+        """Resolved reduction spec for a field run (empty dict for a scalar run)."""
+        return self.lineage.get("reduction", {})
+
+    @property
+    def spec_hash(self) -> str:
+        """Hashed spec (config + reduction + field tolerance); widening tolerance re-hashes."""
+        return self.lineage.get("spec_hash", "")
 
     # Artifacts ----------------------------------------------------------------
 
