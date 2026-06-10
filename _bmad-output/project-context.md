@@ -74,6 +74,7 @@ To add a trainer (exporters/reporters are analogous):
 - `[CONV]` Seeding is **sklearn-style integer `random_state`**, not `np.random.default_rng`: the run `seed` (config default `42`) is threaded as `train_test_split(random_state=seed)` and `KFold(..., random_state=seed if shuffle else None)`. Don't introduce global `np.random.seed`.
 - See the **Read First** defect. The fix `(planned)` requires a **single named tolerance constant** (relative for magnitudes, absolute floor near zero) owned in one place — `[GOTCHA]` do not inline `np.allclose` defaults per call site.
 - `[GOTCHA]` Reproducibility is BLAS/threading-sensitive. The `(planned)` repro test must **pin threads** (`OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS=1`) in its fixture **and** assert the verdict — never trade thread-count against tolerance to make a flaky test pass.
+- `[GOTCHA]` **Holdout vs. final model (Epic R1 retro):** the fingerprint and all reproducibility diagnostics come from the **holdout** model; the persisted artifact is the **final** model. Any new engine introspection hook (e.g. `resolved_config_overrides`, `reproducibility_diagnostics`) must be queried on the **holdout** model — reading the final model falsely diverges `reproduce()` when the two resolve differently (R1.2's straddling-spectrum High bug).
 
 ## Errors & CLI Output
 

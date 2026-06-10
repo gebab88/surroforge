@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-10  # R1.4 done (review passed, 4 patches applied) — Epic R1 complete
+last_updated: 2026-06-10  # Epic R1 retrospective done (R1.4 done, epic-r1 complete)
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -182,7 +182,7 @@ development_status:
   # + validated; the `rank: adaptive` snapshot write-back still planned).
   r1-3-reducedfieldtrainer-pod-basis-per-mode-inner-surrogate: done
   r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified: done
-  epic-r1-retrospective: optional
+  epic-r1-retrospective: done
 
   # Epic R2 — Field Reproducibility (Fingerprint) — critical path (DONE: r2-1…r2-5 all done)
   epic-r2: done

@@ -2,7 +2,7 @@
 title: 'Field ROM reproducibility fingerprint — spike findings + reproduce() contract'
 type: 'spike+contract'
 created: '2026-06-05'
-status: 'proposed'
+status: 'implemented (R2.2–R2.5 shipped; see the as-built reconciliation notes below)'
 baseline_commit: 'NO_VCS'
 delivers: 'Story R2.1 (de-risk gate); feeds R2.2, R2.3, R2.4, R2.5'
 context:
@@ -75,7 +75,16 @@ Scenario: `n_dof=200`, `r=6` modes, spectrum `[10,7,5,3,3,1]` (modes 3,4 degener
 
 The frozen block above speaks of "energy-weighted probe **nodes** … recorded with their coverage" (decision #1, Boundaries) — a spatial subset of DOF. The shipped implementation (R2.3 verdict + R2.5 coverage) instead uses the **full reconstructed field** as the global energy-norm verdict: there is no node subset in v1, so "the probes" are the whole field. Accordingly `probe_coverage_energy` (R2.5) records the **modal-truncation** coverage — the retained-mode energy share the verdict verifies (out-of-probe energy = the truncation floor) — and `reproduce()` **warns, never gates**, when it is low. This is OQ-3's explicit recommendation ("prefer the global energy-norm as the definition … probes as the fast path") and this story's title. Energy-weighted probe-**node** subsampling (Q-DEIM/QR, ideas #49/#84) and a persisted `basis.npz` remain deferred to Phase 2. (Frozen text left intact; this note records the as-built reconciliation, like the R2.3 deferral notes in `deferred-work.md`.)
 
-## reproduce() Contract (proposed shape)
+## reproduce() Contract (pre-implementation proposal — SUPERSEDED)
+
+> **SUPERSEDED (Epic R1 retro, 2026-06-10; R2-retro Action Item 3).** This section is the
+> pre-R2.3 *proposal*, kept for history. The as-built contract differs in three points the
+> R2.5 note above explains: **no `basis.npz` is persisted**, **no `probe_nodes` exist**
+> (the verdict is the global energy-norm over the full reconstructed field), and
+> `probe_coverage_energy` records the **retained-mode energy share**, not a node subset's.
+> The binding contract is the frozen block above + the shipped code
+> (`src/surroforge/services.py`, `trainers/reduced_field.py::reproducibility_diagnostics`).
+> Do not implement from this section.
 
 **Persisted (lineage.json / run dir), additive to the scalar fields:**
 - `reduction`: resolved spec (`basis`, resolved `rank`, `energy_captured`) — part of the hashed spec.
