@@ -2,6 +2,17 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r3-1-field-metrics-as-registered-callables (2026-06-11)
+
+- **engine.py:123 rewraps every CV `ValueError` as `DataError` — including numerical
+  failures.** The `except ValueError` around `cross_validate` exists for KFold/data
+  problems, but `np.linalg.LinAlgError` subclasses `ValueError`, so an SVD
+  non-convergence (e.g. NaN predictions from a diverged inner surrogate reaching
+  `truncation_error`) surfaces as a `DataError` blaming the dataset. Pre-existing
+  behavior, merely made more reachable by SVD-based metrics. Fix shape when touched:
+  catch `LinAlgError` separately (re-raise as `TrainerError`/numerical error) or
+  narrow the handler to the KFold call.
+
 ## Deferred from: code review of r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified (2026-06-10)
 
 - **`blas_is_bit_reproducible` is optimistic for unknown BLAS backends.** tests/conftest.py

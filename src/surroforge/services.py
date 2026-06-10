@@ -21,6 +21,7 @@ from surroforge.data.loader import load_table
 from surroforge.engine import run_training
 from surroforge.errors import DataError, ExportError, ReproducibilityError
 from surroforge.plugins import get_exporter, get_reporter
+from surroforge.validators.metrics import FIELD_ENERGY_FLOOR
 
 # --- Reproduce ---------------------------------------------------------------
 
@@ -29,9 +30,10 @@ from surroforge.plugins import get_exporter, get_reporter
 # counts as reproduced. Anything larger is a divergence.
 REPRODUCTION_TOLERANCE = 1e-9
 
-# Floor for the field-energy-relative denominator, so a (near-)zero parent field does
-# not divide by zero; far below any meaningful field energy (Story R2.3).
-FIELD_ENERGY_FLOOR = 1e-300
+# FIELD_ENERGY_FLOOR (the verdict denominator floor, Story R2.3) lives in
+# validators/metrics.py since R3.1 — energy_l2 shares the verdict's norm, and
+# validators must not import services, so the constant moved down. Imported above
+# so the verdict and prior importers keep reading it from here.
 
 # Below this fraction of field energy verified by the verdict, reproduce() emits a
 # FieldCoverageWarning: "reproduced" then covers only part of the field, the truncated

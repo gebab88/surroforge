@@ -13,6 +13,12 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from surroforge.errors import ConfigError
 
+# Floor for the field-energy-relative denominator, so a (near-)zero reference field
+# does not divide by zero; far below any meaningful field energy (Story R2.3). Single
+# source of truth shared with the reproduce() verdict norm — services imports it from
+# here (Story R3.1).
+FIELD_ENERGY_FLOOR = 1e-300
+
 
 def _rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(np.sqrt(mean_squared_error(y_true, y_pred, multioutput="uniform_average")))
@@ -26,10 +32,80 @@ def _r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(r2_score(y_true, y_pred, multioutput="uniform_average"))
 
 
+def _check_field_inputs(y_true: np.ndarray, y_pred: np.ndarray) -> None:
+    """Enforce the contract sklearn's check_array gives the other metrics.
+
+    The field metrics consume raw arrays, so without this a shape mismatch would
+    silently broadcast to a plausible-but-wrong number, 1-D input would surface as
+    a raw LinAlgError from the SVD, non-finite values would propagate as silent
+    ``nan``, and empty arrays would score a perfect 0.0.
+    """
+    if y_true.ndim != 2 or y_true.shape != y_pred.shape:
+        raise ValueError(
+            f"Field metrics require matching 2-D arrays, got {y_true.shape} vs {y_pred.shape}."
+        )
+    if y_true.size == 0:
+        raise ValueError("Field metrics require non-empty arrays.")
+    if not (np.isfinite(y_true).all() and np.isfinite(y_pred).all()):
+        raise ValueError("Field metrics require finite values; got NaN or inf.")
+
+
+def _energy_l2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Relative field-energy error ``‖y_pred − y_true‖_F / max(‖y_true‖_F, floor)``.
+
+    Deliberately a GLOBAL Frobenius norm over the whole ``(n, n_outputs)`` block —
+    not sklearn's per-column ``uniform_average`` like rmse/mae/r2. The asymmetry is
+    the point: this is the same norm the reproduce() verdict uses
+    (``services._field_energy_relative_diff``, Story R2.3), so a run's field error
+    and its reproducibility verdict speak one language (Story R3.1).
+    """
+    _check_field_inputs(y_true, y_pred)
+    return float(np.linalg.norm(y_pred - y_true) / max(np.linalg.norm(y_true), FIELD_ENERGY_FLOOR))
+
+
+def _truncation_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Orthogonal-residual fraction of ``y_true`` outside the predictions' subspace.
+
+    The basis is recovered FROM the predictions: a reduced-field prediction is
+    ``mean + c·Vᵀ``, so the centered prediction block lies exactly in ``span(V)``
+    and an SVD recovers the inhabited subspace — no model access needed. The
+    orthogonal residual of ``y_true`` against that affine space is the truncation
+    floor; together with ``energy_l2`` it splits Pythagorean:
+    ``energy_l2² = truncation_error² + (in-span surrogate error)²``.
+
+    Semantics: this is the floor of the subspace the predictions ACTUALLY inhabit.
+    If an inner surrogate predicts a constant for a retained mode, that mode's true
+    variation counts as truncation — the model effectively does not use the mode,
+    which is the honest answer. A full-rank or scalar model spans the full output
+    space, so the metric is ≈0.
+
+    This is a BATCH-level metric: the value depends on the evaluation block's
+    empirical mean and SVD, not on a per-sample average — a CV fold's value is the
+    floor measured on that fold's block, which is not algebraically a mean of
+    per-sample contributions. Inputs are validated like the sklearn-backed entries
+    (matching 2-D shapes, non-empty, finite) — clear ``ValueError`` otherwise.
+    """
+    _check_field_inputs(y_true, y_pred)
+    mean = y_pred.mean(axis=0, keepdims=True)
+    centered = y_pred - mean
+    _u, s, vt = np.linalg.svd(centered, full_matrices=False)
+    if s.size and s[0] > 0.0:
+        tol = s[0] * max(centered.shape) * np.finfo(float).eps  # matrix_rank default
+        basis = vt[s > tol].T
+    else:
+        # All-zero predictions: empty basis, the metric is the full relative residual.
+        basis = np.zeros((y_pred.shape[1], 0))
+    resid = y_true - mean
+    ortho = resid - (resid @ basis) @ basis.T
+    return float(np.linalg.norm(ortho) / max(np.linalg.norm(y_true), FIELD_ENERGY_FLOOR))
+
+
 AVAILABLE_METRICS: dict[str, Callable[[np.ndarray, np.ndarray], float]] = {
     "rmse": _rmse,
     "mae": _mae,
     "r2": _r2,
+    "energy_l2": _energy_l2,
+    "truncation_error": _truncation_error,
 }
 
 
