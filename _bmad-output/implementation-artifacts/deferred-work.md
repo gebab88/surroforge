@@ -2,6 +2,36 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r1-2-configure-reduction-in-a-model-reduction-block (2026-06-10)
+
+- **RATIFIED DECISION (lead, 2026-06-10): pre-R1.2 field-run snapshots are not migrated.**
+  r1-3-era persisted snapshots with `reduction: {basis: pod}` / `reduction: {}` /
+  `inner: {<hyper>}` (no `method`) no longer re-parse through the strict R1.2 models —
+  `Run.config` raises `ConfigError` on such runs (reproduce/predict/compare/report), and
+  re-parsed old field snapshots hash differently (`basis: pod` default injected,
+  `energy: 1` → `1.0`). Accepted because the product is pre-release with no shipped
+  users; snapshots are canonical from R1.2 on. If a migration ever becomes necessary
+  (a real user's persisted runs), add a lenient legacy re-parse in `Run.config`
+  (default `method: polynomial`, map neither-set to `energy: 0.999`), keyed off a
+  missing `schema_version`.
+- **Engine ROM-hook `resolved_config_overrides` robustness for external plugins.** The
+  engine deep-merges the duck-typed hook's return without shape validation: a truthy
+  non-dict return crashes `_deep_merge` (`AttributeError: items`); a merged dict that
+  fails `parse_config` raises `ConfigError` labeled `<resolved config>` AFTER holdout
+  fit + CV + final fit (the completed run is discarded); an override touching
+  `experiment`/`method` would change snapshot/`config_hash` while lineage still reads
+  those keys from the pre-merge config. The built-in `ReducedFieldTrainer` hook returns
+  only `{"model": {"reduction": {"rank": <int>}}}`, so none of this can fire in v1.
+  Folds into the standing R2.3/R2.5 item "Engine ROM-hook input validation for external
+  plugins" — harden all hook entry points together when the first external ROM plugin binds.
+- **Declared `reduction`/`inner` config fields shadow third-party trainer hyperparameters.**
+  A plugin trainer (entry-point seam) with its own `inner`- or `reduction`-named
+  hyperparameter of a different shape (e.g. `inner: {radius: 2}`, no `method`) now fails
+  strict config parsing (`InnerConfig` requires `method`; `ReductionConfig` is
+  extra=forbid/pod-only), where pre-R1.2 these flowed through as opaque extras. Accepted
+  consequence of the R1.2 architectural decision (structured blocks in the generic
+  config); revisit naming/namespacing with the seam hardening when an external plugin binds.
+
 ## Deferred from: code review of r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free (2026-06-10)
 
 - **`expand_field_columns` non-string column labels.** Pattern matches are returned as

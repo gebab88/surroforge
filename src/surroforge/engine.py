@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from surroforge.core.config import ExperimentConfig
+from surroforge.core.config import ExperimentConfig, parse_config
 from surroforge.core.dataset import Dataset
 from surroforge.core.project import Project
 from surroforge.core.run import (
@@ -160,6 +160,30 @@ def run_training(
             "probe_coverage_energy": float(diag["probe_coverage_energy"]),
         }
 
+    # Canonical config (Story R1.2): a trainer may resolve part of its spec at fit time
+    # (e.g. `rank: adaptive` -> a concrete int) and expose it via the duck-typed
+    # resolved_config_overrides() hook. The engine deep-merges that opaque dict into the
+    # config and re-validates, so the SNAPSHOT — not the input YAML — is canonical and
+    # config_hash/spec_hash reflect the resolved run. Without the hook (every scalar
+    # trainer) or when it returns None (an energy-specified field run) the config is
+    # untouched, keeping those snapshots and hashes byte-identical (R2.3/R2.4).
+    #
+    # The hook is queried on the HOLDOUT model — the model that defines the
+    # reproducibility fingerprint and the R2.3 lineage diagnostics above — never the
+    # final model: when an adaptive threshold straddles a mode the two resolve different
+    # ranks, and a snapshot carrying the final model's rank would make reproduce()
+    # re-train the holdout at the wrong truncation (a false "diverged" on a faithful
+    # re-run) and contradict lineage `reduction.rank`. The residual: the persisted final
+    # artifact may then hold more/fewer modes than the snapshot rank — a diagnostic
+    # asymmetry, not a verdict one.
+    canonical_config = config
+    if hasattr(holdout_model, "resolved_config_overrides"):
+        overrides = holdout_model.resolved_config_overrides()
+        if overrides:
+            merged = _deep_merge(config.canonical_dict(), overrides)
+            canonical_config = parse_config(merged, origin="<resolved config>")
+            log(f"Resolved config overrides written to snapshot: {overrides}")
+
     metrics_doc = {
         "train": train_metrics,
         "test": test_metrics,
@@ -174,7 +198,7 @@ def run_training(
     run = Run(run_dir)
     log(f"Run id: {run.run_id}")
 
-    write_yaml(run_dir / CONFIG_SNAPSHOT, config.model_dump(mode="json"))
+    write_yaml(run_dir / CONFIG_SNAPSHOT, canonical_config.canonical_dict())
     PickleExporter().export(final_model, run_dir / MODEL_PICKLE, n_features=n_features)
 
     onnx_exported = False
@@ -192,7 +216,7 @@ def run_training(
         "created_at": _now_iso(),
         "experiment": config.experiment,
         "method": config.model.method,
-        "config_hash": _config_hash(config),
+        "config_hash": _config_hash(canonical_config),
         "data_hash": data_hash,
         "data_source": source_label,
         "seed": split.seed,
@@ -209,11 +233,22 @@ def run_training(
         lineage.update(field_extras)
         # D2: fold the field tolerance into a dedicated spec hash so widening it is a
         # different run, without disturbing config_hash semantics.
-        lineage["spec_hash"] = _spec_hash(config, final_model.reproduction_tolerance)
+        lineage["spec_hash"] = _spec_hash(canonical_config, final_model.reproduction_tolerance)
     write_json(run_dir / LINEAGE_FILE, lineage)
     (run_dir / LOG_FILE).write_text("\n".join(log.lines) + "\n")
 
     return run
+
+
+def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge ``overrides`` into a copy of ``base`` (dicts merge, else replace)."""
+    merged = dict(base)
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
 def _config_hash(config: ExperimentConfig) -> str:

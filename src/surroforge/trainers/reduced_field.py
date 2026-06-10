@@ -197,6 +197,21 @@ class ReducedFieldTrainer(BaseTrainer):
         """The reduction spec actually realized at fit time (recorded in lineage)."""
         return {"basis": "pod", "rank": self.rank, "energy_captured": self._energy_captured}
 
+    def resolved_config_overrides(self) -> dict[str, Any] | None:
+        """Config overrides resolved at fit time, for the canonical snapshot (Story R1.2).
+
+        Only ``rank: adaptive`` is resolved into something the config did not already
+        say: the engine deep-merges the returned dict into the config snapshot so the
+        persisted run carries the concrete integer rank (the snapshot, not the input
+        YAML, is canonical) and ``reproduce()`` re-trains deterministically. An
+        energy- or explicit-rank-specified run returns ``None`` — its config is
+        already canonical, and its snapshot/hashes must stay byte-identical (R2.3/R2.4).
+        The engine duck-types this hook; it never names ``reduction.rank``.
+        """
+        if self._rank != "adaptive" or self._basis is None:
+            return None
+        return {"model": {"reduction": {"rank": self.rank}}}
+
 
 def _canonicalize_signs(basis: np.ndarray) -> np.ndarray:
     """Fix each mode's sign so its max-abs entry is positive (#16).
