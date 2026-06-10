@@ -2,6 +2,17 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified (2026-06-10)
+
+- **`blas_is_bit_reproducible` is optimistic for unknown BLAS backends.** tests/conftest.py
+  returns `True` on any exception or any non-Accelerate backend — e.g. MKL without CNR mode
+  is not bit-reproducible, yet the guard would let `requires_reproducible_blas` tests run
+  (and potentially fail at 1e-9) instead of skipping. Pre-existing policy inherited from
+  test_conformance.py's use of the same guard; R1.4's kriging-inner reproduce test merely
+  doubles the exposure (more kriging fits judged at 1e-9). Revisit if CI ever adds a
+  non-OpenBLAS runner: extend the probe to an allow-list (OpenBLAS, Accelerate-detected)
+  rather than default-True.
+
 ## Deferred from: code review of r1-2-configure-reduction-in-a-model-reduction-block (2026-06-10)
 
 - **RATIFIED DECISION (lead, 2026-06-10): pre-R1.2 field-run snapshots are not migrated.**

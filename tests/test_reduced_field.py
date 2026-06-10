@@ -2,9 +2,14 @@
 
 The spine-theorem check (#36): a field run goes through the *unchanged* engine
 end-to-end, because the reducer is an ordinary BaseTrainer emitting (n, n_dof).
+Story R1.4 extends the proof to all three built-in inner methods: kriging/rbf/
+polynomial serve as per-mode inner surrogates with zero changes to the inner
+trainers, the engine, or the conformance suite.
 """
 
 from __future__ import annotations
+
+import importlib.util
 
 import numpy as np
 import pandas as pd
@@ -16,7 +21,17 @@ from surroforge.core.project import Project
 from surroforge.engine import run_training
 from surroforge.errors import TrainerError
 from surroforge.plugins import available_trainers, get_trainer
+from surroforge.services import assert_reproducible, reproduce
 from surroforge.trainers.reduced_field import ReducedFieldTrainer
+from tests.conftest import blas_is_bit_reproducible, requires_reproducible_blas
+
+# Kriging and RBF need the SMT backend; skip them where it is not installed
+# (mirrors tests/test_conformance.py — replicated, not imported, to keep
+# cross-test-module coupling to the single low_rank_field precedent).
+_needs_smt = pytest.mark.skipif(
+    importlib.util.find_spec("smt") is None,
+    reason="requires the 'smt' optional backend",
+)
 
 
 def low_rank_field(n_samples=80, n_dof=40, k_true=3, seed=0):
@@ -160,3 +175,109 @@ def test_end_to_end_through_unchanged_engine(tmp_path):
     # The persisted reduced-field model reloads and reconstructs the field.
     model = run.load_model()
     assert model.predict(p[:4]).shape == (4, 6)
+
+
+# --- Story R1.4: built-ins as inner surrogates, unmodified -------------------
+
+# Per-mode targets are single-output (n, 1) slices — squarely inside the SMT MVP
+# envelope (Kriging/RBF reject only y.shape[1] != 1, which the reducer never
+# produces). Small fixture on purpose: each mode x each CV fold x holdout x final
+# is a separate SMT fit, so r~2 with 3 folds keeps a kriging run at ~10 fits.
+
+INNER_METHODS = [
+    # degree 3 on purpose: it differs from BOTH the default-inner-method fallback
+    # AND PolynomialTrainer's own default (2), so the hyper pass-through assertion
+    # below has teeth for the one param row that runs everywhere.
+    pytest.param("polynomial", {"degree": 3}, id="polynomial"),
+    pytest.param("kriging", {}, id="kriging", marks=_needs_smt),
+    pytest.param("rbf", {}, id="rbf", marks=_needs_smt),
+]
+
+
+def _inner_field_run(tmp_path, method: str, hyper: dict):
+    """Train a reduced-field run with the given inner method through the unchanged engine."""
+    p, field = low_rank_field(n_samples=60, n_dof=6, k_true=2, seed=1)
+    cols = {"p0": p[:, 0], "p1": p[:, 1]}
+    for j in range(field.shape[1]):
+        cols[f"f{j}"] = field[:, j]
+    csv = tmp_path / "field.csv"
+    pd.DataFrame(cols).to_csv(csv, index=False)
+    proj = Project.init(tmp_path / "proj", name="rom")
+    proj.add_dataset(csv, name="snaps")
+    cfg = parse_config(
+        {
+            "experiment": f"rom-inner-{method}",
+            "data": {
+                "source": "snaps",
+                "inputs": ["p0", "p1"],
+                "outputs": [f"f{j}" for j in range(6)],
+                "split": {"test_fraction": 0.25, "seed": 1},
+            },
+            "model": {
+                "method": "reduced-field",
+                "reduction": {"basis": "pod", "energy": 0.99},
+                "inner": {"method": method, **hyper},
+            },
+            "validation": {"cross_validation": 3, "metrics": ["rmse", "r2", "mae"]},
+        }
+    )
+    return proj, run_training(proj, cfg), p
+
+
+@pytest.mark.parametrize(("method", "hyper"), INNER_METHODS)
+def test_each_builtin_trains_as_inner_through_unchanged_engine(tmp_path, method, hyper):
+    proj, run, p = _inner_field_run(tmp_path, method, hyper)
+    assert run.metrics["n_outputs"] == 6
+    # 0.99, not 0.9: mode 1 alone holds ~0.945 of the fixture's energy, so a rank
+    # collapse (or a garbage mode-2 fit) would clear a 0.9 floor. Real runs sit
+    # at r² ≈ 1 - 5e-13 for all three methods.
+    assert run.metrics["test"]["r2"] > 0.99
+    model = run.load_model()
+    assert model.predict(p[:4]).shape == (4, 6)
+    # The discriminating assertions: metrics/shape above are identical under the
+    # default-polynomial fallback, so they alone cannot prove `inner.method` was
+    # honored. Pin the exact rank (k_true=2; mode energies 0.945/1.0 straddle the
+    # 0.99 target with wide margin), one inner instance per retained mode of the
+    # configured method, and the configured inner hyperparameters' pass-through.
+    assert model.rank == 2
+    assert len(model._models) == model.rank
+    inner_cls = get_trainer(method)
+    assert all(isinstance(im, inner_cls) for im in model._models)
+    for key, value in hyper.items():
+        assert all(im.hyperparameters[key] == value for im in model._models)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [pytest.param("kriging", marks=_needs_smt), pytest.param("rbf", marks=_needs_smt)],
+)
+def test_conformance_with_smt_inner(method):
+    # The polynomial inner is covered by test_passes_conformance_suite above; this
+    # adds the two SMT methods. check_trainer drives the trainer DIRECTLY (trainer
+    # kwargs, bypassing the R1.2 config layer), complementing the config-path e2e.
+    report = check_trainer(
+        ReducedFieldTrainer,
+        hyperparameters={"reduction": {"energy": 0.99}, "inner": {"method": method}},
+    )
+    if method == "kriging" and not blas_is_bit_reproducible():
+        # Apple Accelerate's LAPACK is not bit-reproducible, so gradient-MLE
+        # Kriging's determinism probe (two independent fits) legitimately fails
+        # here — verified for the WRAPPED case too: only `deterministic` may fail
+        # (picklable re-predicts ONE fitted model, which is bit-stable). The 1e-9
+        # guarantee holds on OpenBLAS/CI. Nothing else may fail.
+        assert {r.name for r in report.failures} <= {"deterministic"}, report.summary()
+        return
+    assert report.passed, report.summary()
+
+
+@_needs_smt
+@requires_reproducible_blas
+def test_kriging_inner_field_run_reproduces(tmp_path):
+    # Reproducibility for a tolerant SMT inner: reproduce() re-trains from the
+    # snapshot, doubling the kriging fit count — hence the small Task-1 fixture.
+    # Double-guarded: on Accelerate this measurably returns `diverged` (fit-to-fit
+    # divergence is real there), so the BLAS guard is mandatory, not defensive.
+    proj, run, _ = _inner_field_run(tmp_path, "kriging", {})
+    result = reproduce(proj, run.run_id)
+    assert result.verdict in {"reproduced", "reproduced_within_tolerance"}
+    assert_reproducible(result)  # must not raise

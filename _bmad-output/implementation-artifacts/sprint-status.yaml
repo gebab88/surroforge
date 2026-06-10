@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-10  # R1.2 done (review passed, patches applied)
+last_updated: 2026-06-10  # R1.4 done (review passed, 4 patches applied) — Epic R1 complete
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -169,8 +169,8 @@ development_status:
   # FIELD ROM v1 (epics-field-rom-v1.md) — planning done; implementation begun.
   # ==========================================================================
 
-  # Epic R1 — Reduction Engine & Trainer (in-progress: r1-3 delivered)
-  epic-r1: in-progress
+  # Epic R1 — Reduction Engine & Trainer (DONE: r1-1…r1-4 all done, 2026-06-10)
+  epic-r1: done
   r1-1-ingest-a-field-as-a-snapshot-matrix-mesh-free: done
   r1-2-configure-reduction-in-a-model-reduction-block: done
   # done (ad hoc, ahead of tracking): src/surroforge/trainers/reduced_field.py — POD
@@ -181,7 +181,7 @@ development_status:
   # output column-group; glob expansion still planned) and r1-2 (reduction/inner parsed
   # + validated; the `rank: adaptive` snapshot write-back still planned).
   r1-3-reducedfieldtrainer-pod-basis-per-mode-inner-surrogate: done
-  r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified: backlog
+  r1-4-built-in-methods-work-as-inner-surrogates-and-pass-conformance-unmodified: done
   epic-r1-retrospective: optional
 
   # Epic R2 — Field Reproducibility (Fingerprint) — critical path (DONE: r2-1…r2-5 all done)

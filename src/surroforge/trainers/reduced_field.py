@@ -42,8 +42,14 @@ class ReducedFieldTrainer(BaseTrainer):
     name = "reduced-field"
     # The artifact is the basis + inner models (all picklable); v1 has no field ONNX.
     export_formats = frozenset({"pickle"})
-    # POD/SVD and the deterministic built-in inner (polynomial) reproduce within the
-    # standard band; a tolerant inner (SMT) inherits its own looseness at fit time.
+    # POD/SVD and every built-in inner reproduce within this band: polynomial
+    # declares 0.0 and kriging/rbf declare 1e-9 — equal to it. Like every
+    # declared tolerance it presumes a bit-reproducible BLAS (Apple Accelerate
+    # is not; such hosts are guarded in tests/CI — see tests/conftest.py). An
+    # inner with a LOOSER declared tolerance would need this widened;
+    # deliberately static until such an inner exists (the value is folded into
+    # the field spec_hash, so changing how it is derived churns field-run
+    # identity).
     reproduction_tolerance = 1e-9
 
     def __init__(
