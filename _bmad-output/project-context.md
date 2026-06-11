@@ -98,6 +98,7 @@ To add a trainer (exporters/reporters are analogous):
 
 - `[CONV]` Flat `tests/`, one file per concern, plus `test_scenarios.py` for the three end-to-end UX scenarios. Keep new tests in this shape.
 - `[MUST]` **A reproducibility- or plugin-numerics change is not done until it has a negative test:** train, then perturb (reseed / change thread count / nudge a hyperparameter) and assert `reproduce()` **FAILS** (`ReproducibilityError`). A same-seed round-trip test passes even for a broken `reproduce()` — the negative case is the one with teeth.
+- `[GOTCHA]` **Vacant pins** (R3 retro; 5 occurrences across 3 stories): before trusting a discriminating assertion, name the wrong implementation it catches and verify the fixture makes that implementation render differently. Three trap classes: (a) **aliasing** — the expected string also occurs elsewhere in the output (scope the extraction to the line/cell, never whole-output substrings); (b) **value degeneracy** — the fixture makes right and wrong wiring produce identical values (pick a fixture where they differ at the rendered precision); (c) **presence-without-structure** — per-value substring asserts tolerate scrambled/duplicated output (prefer exact equality against a recomputed-not-golden expectation).
 - `(planned)` The plugin conformance suite ships as library code in `src/surroforge/conformance/` (so out-of-tree plugins can import it), **not** under `tests/`. Mark the slow/threading-pinned repro test `@pytest.mark.slow`.
 
 ## No-Network & Licensing
