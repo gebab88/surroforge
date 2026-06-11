@@ -61,6 +61,7 @@ this table is the coefficient-vs-field view. A dominant truncation floor means t
 basis is too small: add modes. A dominant surrogate error means the inner models
 are underfitting: add data.
 {% if two_source.reduction %}Reduction: rank {{ two_source.reduction.rank }}, energy captured {{ fmt(two_source.reduction.energy_captured) }}.
+Basis variance across folds (honest CV): per-fold truncation floors {{ two_source.truncation_per_fold }} (std {{ fmt(two_source.cv_std.truncation) }}).
 {% endif %}{% endif %}
 ## Configuration
 
@@ -96,6 +97,9 @@ class MarkdownReporter(BaseReporter):
 
         def cv_view(metric: str) -> dict[str, float]:
             return {"mean": cv[metric]["mean"], "std": cv[metric]["std"]}
+
+        def fmt(value: Any) -> str:
+            return f"{value:.5g}"
 
         # Two-source error split (Story R3.2): derived at render time from the r3-1
         # field metrics — per fold first, then aggregated (Jensen: never split the
@@ -134,6 +138,12 @@ class MarkdownReporter(BaseReporter):
                 "cv_std": {
                     c: float(np.std([s[c] for s in fold_splits])) for c in components
                 },
+                # Honest-basis CV (Story R3.3): each fold's floor is measured against
+                # that fold's freshly derived basis; the per-fold spread is the
+                # prediction-observable basis variance the table's aggregate hides.
+                "truncation_per_fold": ", ".join(
+                    fmt(t) for t in cv["truncation_error"]["per_fold"]
+                ),
                 # Absent on runs without the R2.3 diagnostics hook — the template
                 # then omits the context line rather than failing.
                 "reduction": lineage.get("reduction"),
@@ -167,6 +177,6 @@ class MarkdownReporter(BaseReporter):
             "surroforge_version": lineage.get("surroforge_version", ""),
             "prediction_hash": lineage.get("prediction_hash", ""),
             "dependencies": lineage.get("dependencies", []),
-            "fmt": lambda v: f"{v:.5g}",
+            "fmt": fmt,
         }
         return _TEMPLATE.render(**context)
