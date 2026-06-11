@@ -59,6 +59,34 @@ def read_yaml(path: str | Path) -> Any:
     return yaml.safe_load(Path(path).read_text())
 
 
+def write_npz(path: str | Path, **arrays: Any) -> None:
+    """Atomically persist numpy arrays as an ``.npz`` archive (Story R4.1).
+
+    Same tmp-file + ``os.replace`` discipline as the JSON/YAML writers, in binary
+    mode — a crash mid-write can never leave a half-written artifact behind.
+    """
+    import numpy as np  # localized: this module sits on the CLI cold path
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=path.suffix)
+    try:
+        handle = os.fdopen(fd, "wb")
+    except BaseException:
+        # fdopen never took ownership of the descriptor — close it ourselves.
+        os.close(fd)
+        os.unlink(tmp)
+        raise
+    try:
+        with handle:
+            np.savez(handle, **arrays)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
 def _atomic_write(path: str | Path, text: str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

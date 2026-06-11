@@ -19,7 +19,7 @@ from surroforge.core.project import Project
 from surroforge.core.run import FieldCoverageWarning, Run
 from surroforge.data.loader import load_table
 from surroforge.engine import run_training
-from surroforge.errors import DataError, ExportError, ReproducibilityError
+from surroforge.errors import DataError, ExportError, ReproducibilityError, TrainerError
 from surroforge.plugins import get_exporter, get_reporter
 from surroforge.validators.metrics import FIELD_ENERGY_FLOOR
 
@@ -331,8 +331,17 @@ def _select_best(rows: list[dict[str, Any]], metric: str) -> str | None:
 
 # --- Predict -----------------------------------------------------------------
 
-def predict_with_run(run: Run, frame: pd.DataFrame) -> pd.DataFrame:
-    """Predict outputs for new inputs using a trained run's model (PRD 4.1)."""
+def predict_with_run(run: Run, frame: pd.DataFrame, *, field: bool = False) -> pd.DataFrame:
+    """Predict outputs for new inputs using a trained run's model (PRD 4.1, 4.7).
+
+    A reducing model (duck-typed ``predict_coefficients``) returns compact modal
+    coefficients ``mode_0 … mode_{r-1}`` by default (#35 — KB, not GB, per query);
+    ``field=True`` reconstructs the full field under the run's recorded
+    ``output_columns``, so the written frame re-ingests under the run's own outputs
+    pattern (#21). A scalar model has no coefficients to return — its prediction
+    already is the full output — so ``field`` is accepted silently there and the
+    behavior is byte-identical to pre-R4.1.
+    """
     config = run.config
     inputs = config.data.inputs
     missing = [c for c in inputs if c not in frame.columns]
@@ -341,22 +350,46 @@ def predict_with_run(run: Run, frame: pd.DataFrame) -> pd.DataFrame:
 
     x = frame[inputs].to_numpy(dtype=float)
     model = run.load_model()
+    if not field and hasattr(model, "predict_coefficients"):
+        coefficients = np.asarray(model.predict_coefficients(x), dtype=float)
+        if coefficients.ndim == 1:
+            # Same normalization as the predict path: a duck-typed plugin may
+            # return (n,) for a rank-1 reduction.
+            coefficients = coefficients.reshape(-1, 1)
+        if coefficients.ndim != 2 or coefficients.shape[0] != len(frame):
+            # Duck-typed surface with no BaseTrainer conformance backing it —
+            # fail the contract loudly instead of dying inside pandas.
+            raise TrainerError(
+                "predict_coefficients must return an (n, r) array for n input "
+                f"rows; got shape {coefficients.shape} for {len(frame)} rows."
+            )
+        result = frame.copy()
+        for k in range(coefficients.shape[1]):
+            result[f"mode_{k}"] = coefficients[:, k]
+        return result
+
     preds = np.asarray(model.predict(x), dtype=float)
     if preds.ndim == 1:
         preds = preds.reshape(-1, 1)
 
     outputs = config.data.outputs
-    columns = outputs if preds.shape[1] == len(outputs) else [
-        f"output_{i}" for i in range(preds.shape[1])
-    ]
+    recorded = run.output_columns  # empty for scalar/pre-R4.1 runs -> legacy chain
+    if len(recorded) == preds.shape[1]:
+        columns = recorded
+    elif preds.shape[1] == len(outputs):
+        columns = outputs
+    else:
+        columns = [f"output_{i}" for i in range(preds.shape[1])]
     result = frame.copy()
     for i, col in enumerate(columns):
         result[col] = preds[:, i]
     return result
 
 
-def predict_from_file(run: Run, input_path: str | Path) -> pd.DataFrame:
-    return predict_with_run(run, load_table(input_path))
+def predict_from_file(
+    run: Run, input_path: str | Path, *, field: bool = False
+) -> pd.DataFrame:
+    return predict_with_run(run, load_table(input_path), field=field)
 
 
 # --- Export ------------------------------------------------------------------

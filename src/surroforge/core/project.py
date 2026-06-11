@@ -95,6 +95,15 @@ class Project:
     def reports_dir(self) -> Path:
         return self.root / "reports"
 
+    @property
+    def basis_dir(self) -> Path:
+        """Content-addressed store for reduction bases (Story R4.1).
+
+        Created lazily on the first field-run write — scalar-only and legacy
+        projects never grow an empty directory.
+        """
+        return self.root / "basis"
+
     # Metadata -----------------------------------------------------------------
 
     @property

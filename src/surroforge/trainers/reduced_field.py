@@ -101,6 +101,7 @@ class ReducedFieldTrainer(BaseTrainer):
         self._models: list[BaseTrainer] = []  # one inner trainer per retained mode
         self._n_dof: int | None = None
         self._energy_captured: float | None = None  # σ²-energy share of retained modes
+        self._spectrum: np.ndarray | None = None  # full singular spectrum (Story R4.1)
 
     # -- fitting ------------------------------------------------------------
 
@@ -116,6 +117,7 @@ class ReducedFieldTrainer(BaseTrainer):
         self._mean = field.mean(axis=0, keepdims=True)
         fluctuations = field - self._mean
         _u, singular, vt = np.linalg.svd(fluctuations, full_matrices=False)
+        self._spectrum = singular  # full spectrum, pre-truncation (rom inspect, R4.2)
         r = self._resolve_rank(singular)
         total = float((singular**2).sum())
         self._energy_captured = (
@@ -151,16 +153,54 @@ class ReducedFieldTrainer(BaseTrainer):
     def predict(self, x: np.ndarray) -> np.ndarray:
         if self._basis is None or self._mean is None:
             raise TrainerError("Model is not fitted.")
-        field = self._coefficients(x) @ self._basis.T + self._mean
+        field = self.predict_coefficients(x) @ self._basis.T + self._mean
         return self._as_2d(field)
 
-    def _coefficients(self, x: np.ndarray) -> np.ndarray:
-        """Inner-surrogate modal coefficients for ``x`` (the pre-reconstruction step)."""
+    def predict_coefficients(self, x: np.ndarray) -> np.ndarray:
+        """Inner-surrogate modal coefficients for ``x`` (the pre-reconstruction step).
+
+        The compact ``(n, r)`` answer ``predict`` reconstructs from — and the default
+        prediction surface for field runs (#35, Story R4.1): services duck-type this
+        method, so the ``(n, n_dof)`` BaseTrainer contract of ``predict`` is untouched.
+        """
+        if self._basis is None or not self._models:
+            raise TrainerError("Model is not fitted.")
         x = self._as_2d(x)
         coefficients = np.empty((x.shape[0], len(self._models)), dtype=float)
         for k, model in enumerate(self._models):
             coefficients[:, k] = model.predict(x).reshape(-1)
         return coefficients
+
+    def reduction_artifacts(self) -> dict[str, np.ndarray]:
+        """Arrays of the PERSISTED model for the content-addressed store (Story R4.1).
+
+        Consumed by the engine persist step on the FINAL model — this is a storage
+        artifact of the shipped pickle (predict / `rom inspect`), explicitly NOT a
+        fingerprint input: ``reproduce()`` never reads the store, and the holdout-model
+        rule governs the diagnostics hooks, not storage (R3 retro action item 3; the
+        fingerprint spec superseded basis.npz only as a VERDICT input).
+        ``singular_values`` is the full pre-truncation spectrum (feeds R4.2).
+        Returned arrays are read-only views, so accidental in-place mutation by
+        a caller fails loudly (a deliberate write through ``.base`` remains
+        possible — the views guard against mistakes, not malice).
+        """
+        spectrum = getattr(self, "_spectrum", None)  # absent on pre-R4.1 pickles
+        if self._basis is None or self._mean is None or spectrum is None:
+            raise TrainerError(
+                "Model is not fitted, or it was trained before the reduction-"
+                "artifact store existed (pre-R4.1 pickle) — re-train the run."
+            )
+
+        def _frozen(array: np.ndarray) -> np.ndarray:
+            view = array.view()
+            view.flags.writeable = False
+            return view
+
+        return {
+            "basis": _frozen(self._basis),
+            "mean": _frozen(self._mean),
+            "singular_values": _frozen(spectrum),
+        }
 
     # -- introspection (feeds `rom inspect`, Story R4.2; reproduce(), R2.3) -
 
@@ -184,7 +224,7 @@ class ReducedFieldTrainer(BaseTrainer):
         """
         if self._basis is None:
             raise TrainerError("Model is not fitted.")
-        canon_coeffs, canon_basis = canonicalize(self._coefficients(x), self._basis)
+        canon_coeffs, canon_basis = canonicalize(self.predict_coefficients(x), self._basis)
         basis_bytes = np.ascontiguousarray(canon_basis, dtype=np.float64).tobytes()
         # In v1 "the probes" are the full reconstructed field (the global energy-norm IS
         # the definition; node subsampling deferred), so coverage = the retained-mode

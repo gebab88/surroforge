@@ -7,13 +7,14 @@ holding them in memory.
 
 from __future__ import annotations
 
+import re
 import warnings
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 from surroforge.core.config import ExperimentConfig, parse_config
-from surroforge.errors import RunNotFoundError
+from surroforge.errors import ProjectError, RunNotFoundError
 from surroforge.persistence import is_locally_produced, read_json, read_yaml
 
 CONFIG_SNAPSHOT = "config.snapshot.yaml"
@@ -175,6 +176,63 @@ class Run:
         default).
         """
         return float(self.lineage.get("probe_coverage_energy", 1.0))
+
+    @property
+    def basis_file(self) -> str:
+        """Project-relative POSIX path of the content-addressed reduction artifact
+        (Story R4.1). Empty for scalar and pre-R4.1 field runs. The filename stem is
+        the sha256 of the FINAL model's array bytes — a storage identity, distinct
+        from the holdout-diagnostic :attr:`basis_hash`."""
+        return self.lineage.get("basis_file", "")
+
+    @property
+    def output_columns(self) -> list[str]:
+        """Expanded field output column names recorded at train time (Story R4.1).
+
+        Lets ``predict --field`` write a frame that re-ingests under the run's own
+        outputs pattern. Empty for scalar and pre-R4.1 field runs (callers fall back
+        to the legacy naming chain). Lineage is data from disk: a non-list value
+        (corruption, hand-editing) also falls back to the legacy chain rather than
+        being type-laundered into garbage column names."""
+        value = self.lineage.get("output_columns", [])
+        if not isinstance(value, list):
+            return []
+        return [str(column) for column in value]
+
+    @property
+    def basis_path(self) -> Path | None:
+        """Absolute path of the stored basis npz, or ``None`` for runs without one
+        (scalar and pre-R4.1 field runs).
+
+        Resolves against the project root via the canonical ``<project>/runs/<run-id>``
+        layout this class already assumes. The lineage value is data from disk —
+        it is validated against the exact store layout the engine writes, so a
+        corrupted or hand-edited lineage can never resolve outside the project.
+        Raises :class:`ProjectError` when the lineage references a store file that
+        no longer exists (deleted ``basis/`` dir, partial project copy)."""
+        if not self.basis_file:
+            return None
+        if not re.fullmatch(r"basis/[0-9a-f]{64}\.npz", self.basis_file):
+            raise ProjectError(
+                f"Lineage basis_file '{self.basis_file}' does not match the "
+                "expected 'basis/<sha256>.npz' store layout — the lineage may be "
+                "corrupted or hand-edited. Re-train the run to restore it."
+            )
+        parents = self.run_dir.parents
+        if len(parents) < 2:
+            raise ProjectError(
+                f"Cannot resolve the project root from run directory "
+                f"'{self.run_dir}'. Expected the canonical "
+                "'<project>/runs/<run-id>' layout."
+            )
+        path = parents[1] / self.basis_file
+        if not path.is_file():
+            raise ProjectError(
+                f"Reduction artifact '{self.basis_file}' is missing from the "
+                "project store. Re-train the run to restore it (the store is "
+                "content-addressed: an identical retrain rewrites the same file)."
+            )
+        return path
 
     # Artifacts ----------------------------------------------------------------
 

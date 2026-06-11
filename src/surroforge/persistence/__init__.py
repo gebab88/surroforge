@@ -10,6 +10,7 @@ from surroforge.persistence.store import (
     read_json,
     read_yaml,
     write_json,
+    write_npz,
     write_yaml,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "read_json",
     "read_yaml",
     "write_json",
+    "write_npz",
     "write_yaml",
 ]

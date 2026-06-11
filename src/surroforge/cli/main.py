@@ -8,6 +8,8 @@ are caught by the :func:`_guard` decorator on each command and rendered as a cle
 from __future__ import annotations
 
 import functools
+import os
+import tempfile
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -121,8 +123,69 @@ def _save_frame(frame, path: Path) -> None:
         frame.to_csv(path, index=False)
     elif suffix in {".parquet", ".pq"}:
         frame.to_parquet(path, index=False)
+    elif suffix in {".h5", ".hdf5"}:
+        # Raw h5py column group, NOT frame.to_hdf: pandas HDF needs pytables,
+        # which ships in no extra (Story R4.1).
+        try:
+            import h5py
+        except ImportError as exc:
+            raise DataError(
+                "Writing HDF5 requires the 'h5py' backend. "
+                "Install it with: pip install 'surroforge[formats]'"
+            ) from exc
+        names = [str(col) for col in frame.columns]
+        if len(set(names)) != len(names):
+            raise DataError(
+                "Cannot write HDF5: column names collide after string conversion "
+                "(duplicate or str-identical labels). Rename the input columns "
+                "and retry."
+            )
+        invalid = [name for name in names if "/" in name or name in {"", ".", ".."}]
+        if invalid:
+            raise DataError(
+                "Cannot write HDF5: these column names are not valid h5py dataset "
+                f"names (empty, '.', '..', or containing '/'): {invalid}. "
+                "Rename the input columns."
+            )
+        arrays = {
+            name: frame[col].to_numpy()
+            for name, col in zip(names, frame.columns, strict=True)
+        }
+        non_numeric = [
+            name for name, data in arrays.items() if data.dtype.kind not in "biufc"
+        ]
+        if non_numeric:
+            raise DataError(
+                f"Cannot write HDF5: columns {non_numeric} are not numeric and "
+                "have no native HDF5 representation. Drop them from the input "
+                "or write .csv/.parquet instead."
+            )
+        # Atomic like the persistence writers: h5py.File(path, "w") truncates the
+        # destination immediately, so a failure mid-write must never destroy an
+        # existing output file.
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=path.suffix)
+        os.close(fd)
+        try:
+            # track_order: preserve the frame's column order on read-back —
+            # HDF5 otherwise iterates names lexicographically (f10 before f2).
+            with h5py.File(tmp, "w", track_order=True) as handle:
+                for name, data in arrays.items():
+                    handle.create_dataset(name, data=data)
+            # mkstemp creates 0600; a user-requested output file should honor
+            # the umask like the csv/parquet branches do.
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(tmp, 0o666 & ~umask)
+            os.replace(tmp, path)
+        except BaseException:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise
     else:
-        raise DataError(f"Cannot write predictions to '{suffix}'. Use .csv or .parquet.")
+        raise DataError(
+            f"Cannot write predictions to '{suffix}'. "
+            "Use .csv, .parquet/.pq, or .h5/.hdf5."
+        )
 
 
 # --- Commands ----------------------------------------------------------------
@@ -238,12 +301,19 @@ def predict(
     run_id: str = typer.Argument(..., help="Run id whose model to use."),
     input: Path = typer.Option(..., "--input", "-i", exists=True, help="Input data file."),
     output: Path = typer.Option(
-        None, "--output", "-o", help="Write predictions here (.csv/.parquet)."
+        None, "--output", "-o",
+        help="Write predictions here (.csv, .parquet/.pq, .h5/.hdf5).",
+    ),
+    field: bool = typer.Option(
+        False,
+        "--field",
+        help="Reconstruct and write the full field "
+        "(default: compact modal coefficients for reduced runs).",
     ),
 ) -> None:
-    """Predict with a trained model (PRD 4.2)."""
+    """Predict with a trained model (PRD 4.2, 4.7)."""
     run = _project().run(run_id)
-    frame = services.predict_from_file(run, input)
+    frame = services.predict_from_file(run, input, field=field)
     if output is not None:
         _save_frame(frame, output)
         _success(f"Wrote {len(frame)} predictions to {output}")

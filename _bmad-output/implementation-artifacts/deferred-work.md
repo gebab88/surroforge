@@ -163,3 +163,40 @@ Findings surfaced during reviews but intentionally out of scope for the triggeri
   now: the input is degenerate (an all-zero target field), the metric values themselves
   are already meaningless at that magnitude, and the main metrics table renders the same
   absurd numbers. Pick up if a robustness pass over render-time failure modes happens.
+
+## Deferred from: code review of r4-1-predict-coefficients-by-default-reconstruct-on-field (2026-06-11)
+
+- **`mode_k`/output columns silently overwrite same-named input columns**
+  (`services.py` predict paths). Pre-existing convention: the scalar predict path
+  has overwritten output-named input columns since Epic 3; the new `mode_k` path
+  merely follows it. Changing it (collision detection, suffixing, or a warning)
+  is a cross-cutting design decision over both paths.
+- **Orphaned basis npz on failed runs; no GC for the shared `basis/` store**
+  (`engine.py` basis-store block). The npz is written before metrics/lineage; a
+  later failure leaves an unreferenced artifact, and deleting run dirs never
+  removes store entries. Benign for a content-addressed store (a retry re-uses
+  the artifact), but a GC/refcount policy is undefined — revisit with R4.4
+  packaging or post-MVP.
+- **Predict-written `.h5` re-read via `load_table` raises a raw pytables error,
+  not `DataError`** (`data/loader.py:_read_hdf`, unchanged by R4.1). The story
+  ratifies non-re-ingestability (raw h5py column groups; pandas `read_hdf` ships
+  in no extra), but the loader's missing-backend/wrong-format error translation
+  is rough — pick up if a loader robustness pass happens.
+
+## Deferred from: code review round 2 of r4-1-predict-coefficients-by-default-reconstruct-on-field (2026-06-11)
+
+- **Store entries trusted by filename only** (`engine.py` dedup check): a
+  zero-byte or truncated `basis/<sha>.npz` (interrupted copy, cloud partial
+  sync — the project lives in CloudDocs) is never repaired, because
+  `store_path.exists()` short-circuits the write forever. A content/size
+  verification before reuse belongs to the same store-policy pass as the GC
+  question above.
+- **Persist-window failure strands a half-written run dir** (`engine.py`
+  between `model.pkl` and `lineage.json`): the run id is consumed, the dir
+  fails `Run.exists()` and is invisible to `list`/`run()`. Pre-existing
+  sequence semantics; the R4.1 store block merely added new exception sources
+  inside the window. Revisit with a persist-transaction/cleanup pass.
+- **Duck-typed `predict_coefficients` has no conformance backing** (rank-1
+  shapes, return contract): R4.3's reconstruction round-trip conformance probe
+  is the natural home — add a `predict_coefficients` shape/identity check
+  there.

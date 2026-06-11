@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-11  # Epic R3 complete + retrospective done; next: commit r3-3+retro, then r4-1
+last_updated: 2026-06-11  # r4-1 review rounds 1+2 complete (13+9 patches, gates green) — done
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -206,9 +206,9 @@ development_status:
   r3-3-honest-basis-cross-validation: done
   epic-r3-retrospective: done
 
-  # Epic R4 — Ingestion, Query, Conformance & Packaging (backlog)
-  epic-r4: backlog
-  r4-1-predict-coefficients-by-default-reconstruct-on-field: backlog
+  # Epic R4 — Ingestion, Query, Conformance & Packaging (in-progress)
+  epic-r4: in-progress
+  r4-1-predict-coefficients-by-default-reconstruct-on-field: done
   r4-2-surroforge-rom-inspect: backlog
   r4-3-reconstruction-round-trip-no-mesh-conformance-probe: backlog
   r4-4-surroforge-rom-packaging-extra: backlog

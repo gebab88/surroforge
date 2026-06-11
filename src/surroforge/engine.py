@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import hashlib
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -27,11 +28,11 @@ from surroforge.core.run import (
     MODEL_PICKLE,
     Run,
 )
-from surroforge.data.loader import select_columns
-from surroforge.errors import DataError
+from surroforge.data.loader import expand_field_columns, select_columns
+from surroforge.errors import DataError, TrainerError
 from surroforge.exporters.onnx_exporter import ONNXExporter
 from surroforge.exporters.pickle_exporter import PickleExporter
-from surroforge.persistence import capture_environment, write_json, write_yaml
+from surroforge.persistence import capture_environment, write_json, write_npz, write_yaml
 from surroforge.plugins import get_trainer
 from surroforge.trainers.base import BaseTrainer
 from surroforge.validators import compute_metrics, cross_validate, validate_metric_names
@@ -201,6 +202,53 @@ def run_training(
     write_yaml(run_dir / CONFIG_SNAPSHOT, canonical_config.canonical_dict())
     PickleExporter().export(final_model, run_dir / MODEL_PICKLE, n_features=n_features)
 
+    # Content-addressed reduction-artifact store (Story R4.1): the FINAL model's
+    # basis/mean/spectrum — the arrays `rom inspect` (R4.2) reads back; predict uses
+    # the same arrays from inside the pickle — land in a project-level store,
+    # deduplicated across runs. The address is sha256 over every stored array's
+    # bytes, each framed with its key, dtype, and shape, in sorted key order (an npz
+    # is a zip; its FILE bytes embed timestamps and never dedup — and unframed raw
+    # bytes are ambiguous across shapes/dtypes). Deliberately the FINAL model, not
+    # the holdout: this is a storage artifact of the shipped pickle, never a
+    # fingerprint input — reproduce() does not read the store, and the lineage
+    # basis_hash above remains the (different) holdout diagnostic.
+    basis_file: str | None = None
+    if hasattr(final_model, "reduction_artifacts"):
+        artifacts = final_model.reduction_artifacts()
+        required = ("basis", "mean", "singular_values")
+        missing = [key for key in required if key not in artifacts]
+        if missing:
+            raise TrainerError(
+                f"reduction_artifacts() is missing required keys {missing}; "
+                f"it must provide at least {list(required)}."
+            )
+        digest = hashlib.sha256()
+        arrays: dict[str, np.ndarray] = {}
+        for key in sorted(artifacts):
+            # Contract before content: 'file' collides with np.savez's own
+            # parameter, and the framing below relies on keys free of ':'/';'.
+            if key == "file" or not re.fullmatch(r"[A-Za-z0-9_]+", key):
+                raise TrainerError(
+                    f"reduction_artifacts() key '{key}' is not a valid artifact "
+                    "name. Use [A-Za-z0-9_]+ and avoid the reserved name 'file'."
+                )
+            array = np.ascontiguousarray(artifacts[key])
+            if array.dtype.kind not in "biufc":
+                raise TrainerError(
+                    f"reduction_artifacts()['{key}'] has non-numeric dtype "
+                    f"'{array.dtype}'. Artifacts must be numeric arrays."
+                )
+            digest.update(f"{key}:{array.dtype.str}:{array.shape};".encode())
+            digest.update(array.tobytes())
+            arrays[key] = array
+        store_path = project.basis_dir / f"{digest.hexdigest()}.npz"
+        basis_file = f"basis/{store_path.name}"
+        if store_path.exists():
+            log(f"Reduction basis reused (dedup hit): {basis_file}")
+        else:
+            write_npz(store_path, **arrays)
+            log(f"Reduction basis stored: {basis_file}")
+
     onnx_exported = False
     if export_onnx and final_model.supports_export("onnx"):
         try:
@@ -234,6 +282,14 @@ def run_training(
         # D2: fold the field tolerance into a dedicated spec hash so widening it is a
         # different run, without disturbing config_hash semantics.
         lineage["spec_hash"] = _spec_hash(canonical_config, final_model.reproduction_tolerance)
+    if basis_file is not None:
+        # Reducing trainers only (gated on the duck-typed reduction_artifacts
+        # surface) — built-in scalar lineage stays byte-identical (R2.4).
+        # POSIX form: lineage is cross-OS data, never a native path.
+        lineage["basis_file"] = basis_file
+        # The expanded snapshot column names, so `predict --field` writes a frame
+        # that re-ingests under the run's own outputs pattern (Story R4.1, #21).
+        lineage["output_columns"] = expand_field_columns(frame, canonical_config.data.outputs)
     write_json(run_dir / LINEAGE_FILE, lineage)
     (run_dir / LOG_FILE).write_text("\n".join(log.lines) + "\n")
 
