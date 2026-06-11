@@ -151,3 +151,15 @@ Findings surfaced during reviews but intentionally out of scope for the triggeri
   run-dir shape is backstopped by `test_reproduce.py` and the full suite. If "byte-identical
   to pre-ROM" is ever read to include the whole run dir, add a metrics/config-snapshot
   shape pin to the scalar-identity guard.
+
+## Deferred from: code review of r3-2-two-source-error-split-in-the-report (2026-06-11)
+
+- **`two_source_split` overflows/NaNs for FIELD_ENERGY_FLOOR-dominated relative errors.**
+  A persisted field run whose reference field is identically zero gets
+  `energy_l2 ≈ ‖diff‖/1e-300` (by design of the floor); `energy_l2**2` then raises
+  `OverflowError` at report-render time (Python float `**`), or — via numpy floats —
+  `inf − inf = nan` renders a silent `nan` row. The ratio formulation
+  `e·sqrt(max(1 − (t/e)², 0))` is overflow-free and algebraically identical. Not patched
+  now: the input is degenerate (an all-zero target field), the metric values themselves
+  are already meaningless at that magnitude, and the main metrics table renders the same
+  absurd numbers. Pick up if a robustness pass over render-time failure modes happens.

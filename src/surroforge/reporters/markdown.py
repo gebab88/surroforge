@@ -1,15 +1,20 @@
 """Markdown report (PRD 4.9, Core edition).
 
-Sections: data overview, model specification, validation metrics, and the
-configuration/lineage details needed to reproduce the run.
+Sections: data overview, model specification, validation metrics, the two-source
+error split for field runs (PRD 4.6), and the configuration/lineage details needed
+to reproduce the run.
 """
 
 from __future__ import annotations
 
+from typing import Any
+
+import numpy as np
 from jinja2 import Template
 
 from surroforge.core.run import Run
 from surroforge.reporters.base import BaseReporter
+from surroforge.validators.metrics import two_source_split
 
 _TEMPLATE = Template(
     """# SurroForge Report — {{ run_id }}
@@ -41,7 +46,22 @@ _TEMPLATE = Template(
 {% for m in metric_names %}| {{ m }} | {{ fmt(train[m]) }} | {{ fmt(test[m]) }} | {{ fmt(cv[m].mean) }} | {{ fmt(cv[m].std) }} |
 {% endfor %}
 Cross-validation: {{ cv_folds }}-fold.
+{% if two_source %}
+## Two-Source Error Split
 
+| Error source | Train | Test | CV mean | CV std |
+|---|---|---|---|---|
+| total field error (energy_l2) | {{ fmt(two_source.train.total) }} | {{ fmt(two_source.test.total) }} | {{ fmt(two_source.cv_mean.total) }} | {{ fmt(two_source.cv_std.total) }} |
+| truncation floor (basis) | {{ fmt(two_source.train.truncation) }} | {{ fmt(two_source.test.truncation) }} | {{ fmt(two_source.cv_mean.truncation) }} | {{ fmt(two_source.cv_std.truncation) }} |
+| surrogate error (in-span ≡ coefficient-space) | {{ fmt(two_source.train.surrogate) }} | {{ fmt(two_source.test.surrogate) }} | {{ fmt(two_source.cv_mean.surrogate) }} | {{ fmt(two_source.cv_std.surrogate) }} |
+
+The POD basis is orthonormal, so the in-span surrogate error is also the
+coefficient-space error in the basis the predictions actually inhabit (Parseval) --
+this table is the coefficient-vs-field view. A dominant truncation floor means the
+basis is too small: add modes. A dominant surrogate error means the inner models
+are underfitting: add data.
+{% if two_source.reduction %}Reduction: rank {{ two_source.reduction.rank }}, energy captured {{ fmt(two_source.reduction.energy_captured) }}.
+{% endif %}{% endif %}
 ## Configuration
 
 - **Config hash:** `{{ config_hash }}`
@@ -77,6 +97,48 @@ class MarkdownReporter(BaseReporter):
         def cv_view(metric: str) -> dict[str, float]:
             return {"mean": cv[metric]["mean"], "std": cv[metric]["std"]}
 
+        # Two-source error split (Story R3.2): derived at render time from the r3-1
+        # field metrics — per fold first, then aggregated (Jensen: never split the
+        # aggregated means). Rendered only when EVERY consumed record carries both
+        # metrics (train, test, and equal-length non-empty per-fold lists); a scalar,
+        # legacy, or incomplete run degrades to the exact pre-R3.2 report instead of
+        # crashing mid-render.
+        two_source: dict[str, Any] | None = None
+        names = config.validation.metrics
+        field_names = ("energy_l2", "truncation_error")
+        if (
+            set(field_names) <= set(names)
+            and all(m in metrics[s] for s in ("train", "test") for m in field_names)
+            and all(m in cv and cv[m].get("per_fold") for m in field_names)
+            and len(cv["energy_l2"]["per_fold"]) == len(cv["truncation_error"]["per_fold"])
+        ):
+            fold_splits = [
+                two_source_split(e, t)
+                for e, t in zip(
+                    cv["energy_l2"]["per_fold"],
+                    cv["truncation_error"]["per_fold"],
+                    strict=True,
+                )
+            ]
+            components = ("total", "truncation", "surrogate")
+            two_source = {
+                "train": two_source_split(
+                    metrics["train"]["energy_l2"], metrics["train"]["truncation_error"]
+                ),
+                "test": two_source_split(
+                    metrics["test"]["energy_l2"], metrics["test"]["truncation_error"]
+                ),
+                "cv_mean": {
+                    c: float(np.mean([s[c] for s in fold_splits])) for c in components
+                },
+                "cv_std": {
+                    c: float(np.std([s[c] for s in fold_splits])) for c in components
+                },
+                # Absent on runs without the R2.3 diagnostics hook — the template
+                # then omits the context line rather than failing.
+                "reduction": lineage.get("reduction"),
+            }
+
         context = {
             "run_id": run.run_id,
             "experiment": config.experiment,
@@ -96,6 +158,7 @@ class MarkdownReporter(BaseReporter):
             "test": metrics["test"],
             "cv": {m: cv_view(m) for m in config.validation.metrics},
             "cv_folds": cv.get("folds", config.validation.cross_validation.folds),
+            "two_source": two_source,
             "config_hash": run.config_hash,
             "seed": run.seed,
             "test_fraction": config.data.split.test_fraction,

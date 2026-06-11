@@ -6,6 +6,7 @@ across outputs, so single- and multi-output models share one code path.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 
 import numpy as np
@@ -98,6 +99,32 @@ def _truncation_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     resid = y_true - mean
     ortho = resid - (resid @ basis) @ basis.T
     return float(np.linalg.norm(ortho) / max(np.linalg.norm(y_true), FIELD_ENERGY_FLOOR))
+
+
+def two_source_split(energy_l2: float, truncation_error: float) -> dict[str, float]:
+    """Split the total field error into truncation floor and surrogate error (Story R3.2).
+
+    The truncation residual is orthogonal to the in-span surrogate error (see
+    ``_truncation_error``), so Pythagoras gives
+    ``surrogate = sqrt(max(energy_l2² − truncation_error², 0))``. The clamp is
+    load-bearing, not cosmetic: rounding noise can push the floor infinitesimally
+    above the total (the derived gap amplifies 1-ulp noise on ~0.1-magnitude values
+    to ~1e-8) — without it the sqrt returns nan. By Parseval (the POD basis is
+    orthonormal) the surrogate component equals the coefficient-space error in the
+    basis the predictions actually inhabit.
+
+    Aggregation warning (Jensen): across CV folds, split per fold and then average
+    the components — never feed aggregated means into this function.
+
+    Not an ``AVAILABLE_METRICS`` entry: it derives from two metric values, it does
+    not consume ``(y_true, y_pred)``.
+    """
+    surrogate = math.sqrt(max(energy_l2**2 - truncation_error**2, 0.0))
+    return {
+        "total": float(energy_l2),
+        "truncation": float(truncation_error),
+        "surrogate": surrogate,
+    }
 
 
 AVAILABLE_METRICS: dict[str, Callable[[np.ndarray, np.ndarray], float]] = {
