@@ -76,6 +76,45 @@ def _make_data(seed: int, n_samples: int, n_features: int) -> tuple[np.ndarray, 
     return train_test_split(x, y, test_size=0.25, random_state=seed, shuffle=True)
 
 
+def _make_field_data(seed: int) -> tuple[np.ndarray, ...]:
+    """A small, well-separated POD field for the ROM-specific checks (Story R4.3).
+
+    Mesh-free snapshot matrix: ``n_dof = 8`` columns, three QR-orthonormal spatial modes
+    with clearly decreasing amplitudes, so the energy threshold resolves a stable rank
+    ``1 < r < n_dof`` that is invariant under DOF-column permutation (the no-mesh check
+    permutes columns and re-fits). The scalar ``_make_data`` path is left untouched — only
+    a reduced-field trainer ever sees this fixture.
+    """
+    n_dof = 8
+    rng = np.random.default_rng(seed)
+    modes = np.linalg.qr(rng.standard_normal((n_dof, 3)))[0]  # (n_dof, 3), orthonormal cols
+    x = rng.uniform(-1.0, 1.0, size=(40, 2))
+    amps = np.column_stack([5.0 * x[:, 0], 3.0 * x[:, 1], 1.2 * x[:, 0] * x[:, 1]])
+    field = amps @ modes.T  # (40, n_dof), exactly rank 3
+    return train_test_split(x, field, test_size=0.25, random_state=seed, shuffle=True)
+
+
+def _is_reducer(trainer_cls: Any) -> bool:
+    """A reduced-field trainer is duck-typed by a callable ``predict_coefficients``.
+
+    The spine theorem (#36) means there is no ROM base class or flag to key on; the
+    engine and ``services`` already detect reducers exactly this way (Stories R2.3/R4.1).
+    """
+    return callable(getattr(trainer_cls, "predict_coefficients", None))
+
+
+def _resolve_tolerance(trainer_cls: Any, floor: float) -> float:
+    """The comparison band: a declared ``reproduction_tolerance``, never below ``floor``.
+
+    Mirrors the ``deterministic`` check (Story 5.4) so a method that legitimately
+    reproduces only within a band is not failed for it.
+    """
+    declared = getattr(trainer_cls, "reproduction_tolerance", floor)
+    if isinstance(declared, (int, float)) and not isinstance(declared, bool):
+        return max(floor, float(declared))
+    return floor
+
+
 def _fingerprint(preds: np.ndarray) -> str:
     """SHA-256 over float64 prediction bytes — same scheme as the engine's hash.
 
@@ -295,6 +334,82 @@ def check_trainer(
         kind = "deterministic" if tol == 0 else f"tolerant@{float(tol):.0e}"
         return f"{kind}, exports {sorted(fmt_list)}"
 
+    _NOT_A_REDUCER = "not a reduced-field trainer (no predict_coefficients) — not applicable"
+
+    def _reconstruction_round_trip() -> str:
+        # Story R4.3 (#57): a reduced-field basis must be a faithful projector — a
+        # coeffs→field→coeffs round-trip recovers the coefficients iff the basis columns
+        # are orthonormal (Bᵀ·B = I), catching any sign/normalization/scaling bug.
+        if not _is_reducer(trainer_cls):
+            return _NOT_A_REDUCER
+        xf_train, xf_test, yf_train, _yf_test = _make_field_data(seed)
+        t = trainer_cls(**hyper)
+        t.fit(xf_train, yf_train)
+        predict_coefficients = getattr(t, "predict_coefficients", None)
+        artifacts_fn = getattr(t, "reduction_artifacts", None)
+        if not (callable(predict_coefficients) and callable(artifacts_fn)):
+            raise AssertionError(
+                "a reduced-field trainer must expose callable predict_coefficients AND "
+                "reduction_artifacts — incomplete reducer contract"
+            )
+        coeffs = np.ascontiguousarray(predict_coefficients(xf_test), dtype=np.float64)
+        artifacts = artifacts_fn()
+        basis = np.asarray(artifacts["basis"], dtype=np.float64)  # (n_dof, r)
+        mean = np.asarray(artifacts["mean"], dtype=np.float64)  # (1, n_dof)
+        r = basis.shape[1]
+        if coeffs.shape != (xf_test.shape[0], r):
+            raise AssertionError(
+                f"predict_coefficients returned {coeffs.shape}, expected "
+                f"{(xf_test.shape[0], r)} (rows × rank)"
+            )
+        field = coeffs @ basis.T + mean
+        recovered = (field - mean) @ basis
+        tol = _resolve_tolerance(trainer_cls, tolerance)
+        diff = float(np.max(np.abs(recovered - coeffs)))
+        # A non-finite diff means NaN/inf in the basis or coefficients — exactly the
+        # corruption this check targets. `nan > tol` is False, so guard it explicitly
+        # (the suite's predict/fingerprint checks guard finiteness the same way).
+        if not np.isfinite(diff):
+            raise AssertionError(
+                "round-trip produced non-finite values (NaN/inf in the basis or coefficients)"
+            )
+        if diff > tol:
+            raise AssertionError(
+                f"coeffs→field→coeffs round-trip diverged by {diff:.2e} "
+                f"(> tolerance {tol:.0e}); basis is not an orthonormal projector"
+            )
+        return f"faithful projector: round-trips within {diff:.2e} (rank {r})"
+
+    def _mesh_free() -> str:
+        # Story R4.3 (#53): mesh-freeness is a BEHAVIOURAL invariant — a reducer that reads
+        # no coordinates/connectivity treats DOFs as exchangeable, so permuting the snapshot
+        # columns permutes the reconstructed field identically. A signature check has no
+        # teeth; permutation equivariance does.
+        if not _is_reducer(trainer_cls):
+            return _NOT_A_REDUCER
+        xf_train, xf_test, yf_train, _yf_test = _make_field_data(seed)
+        n_dof = yf_train.shape[1]
+        t1 = trainer_cls(**hyper)
+        t1.fit(xf_train, yf_train)
+        field = np.ascontiguousarray(t1.predict(xf_test), dtype=np.float64)
+        perm = np.random.default_rng(seed).permutation(n_dof)
+        if np.array_equal(perm, np.arange(n_dof)):
+            perm = perm[::-1]  # guarantee a non-identity permutation for any caller seed
+        t2 = trainer_cls(**hyper)
+        t2.fit(xf_train, yf_train[:, perm])
+        field_perm = np.ascontiguousarray(t2.predict(xf_test), dtype=np.float64)
+        tol = _resolve_tolerance(trainer_cls, tolerance)
+        diff = float(np.max(np.abs(field_perm - field[:, perm])))
+        if not np.isfinite(diff):
+            raise AssertionError("reconstructed field is non-finite (NaN/inf)")
+        if diff > tol:
+            raise AssertionError(
+                f"reconstructed field is not DOF-permutation equivariant "
+                f"(diff {diff:.2e} > tolerance {tol:.0e}); the reducer appears to read "
+                "coordinates/connectivity (not mesh-free)"
+            )
+        return f"mesh-free: DOF-permutation equivariant within {diff:.2e}"
+
     record("subclass_of_base_trainer", _subclass)
     record("constructs_from_hyperparameters", _construct)
     record("fit_returns_none", _fit)
@@ -305,4 +420,6 @@ def check_trainer(
     record("surroforge_error_only", _surroforge_error_only)
     record("invalid_hyperparameter_error_only", _invalid_hyperparameter_error_only)
     record("declares_capabilities", _declares_capabilities)
+    record("reconstruction_round_trip", _reconstruction_round_trip)
+    record("mesh_free", _mesh_free)
     return report

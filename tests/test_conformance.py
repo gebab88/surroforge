@@ -47,6 +47,8 @@ EXPECTED_CHECKS = {
     "surroforge_error_only",
     "invalid_hyperparameter_error_only",
     "declares_capabilities",
+    "reconstruction_round_trip",
+    "mesh_free",
 }
 
 
@@ -230,3 +232,96 @@ def test_suite_flags_undeclared_pickle_export():
 def test_suite_flags_invalid_reproduction_tolerance():
     report = check_trainer(_NegativeToleranceTrainer)
     assert "declares_capabilities" in {r.name for r in report.failures}
+
+
+# --- Story R4.3: reconstruction round-trip + no-mesh checks (teeth) -----------
+
+
+class _NonOrthonormalReducer(ReducedFieldTrainer):
+    """Reports a scaled (non-orthonormal) basis: Bᵀ·B ≠ I, so the round-trip must fail.
+
+    ``predict_coefficients`` stays consistent with the true orthonormal basis, so the
+    failure is purely the reported basis being a non-faithful projector — exactly the
+    sign/normalization/scaling class of bug the check targets.
+    """
+
+    name = "bad-nonorthonormal-reducer"
+
+    def reduction_artifacts(self):
+        artifacts = dict(super().reduction_artifacts())
+        artifacts["basis"] = np.asarray(artifacts["basis"], dtype=float) * 2.0
+        return artifacts
+
+
+class _GeometryDependentReducer(ReducedFieldTrainer):
+    """Adds a fixed DOF-index ramp on reconstruction — breaks permutation equivariance.
+
+    A faithful mesh-free reducer treats DOFs as exchangeable; this one makes the
+    reconstructed value depend on the column index, so permuting the snapshot columns no
+    longer permutes the field identically.
+    """
+
+    name = "bad-geometry-reducer"
+
+    def predict(self, x):
+        field = super().predict(x)
+        return field + np.arange(field.shape[1], dtype=float)
+
+
+class _NaNBasisReducer(ReducedFieldTrainer):
+    """Reports a basis containing a NaN — must FAIL the round-trip, not slip through.
+
+    Without the finiteness guard, `diff` is NaN and `nan > tol` is False, so a corrupt
+    basis would PASS. predict() uses the true basis, so only the round-trip is affected.
+    """
+
+    name = "bad-nan-basis-reducer"
+
+    def reduction_artifacts(self):
+        artifacts = dict(super().reduction_artifacts())
+        basis = np.array(artifacts["basis"], dtype=float)  # writable copy of the frozen view
+        basis[0, 0] = np.nan
+        artifacts["basis"] = basis
+        return artifacts
+
+
+def test_suite_flags_non_orthonormal_basis():
+    report = check_trainer(_NonOrthonormalReducer)
+    assert report.passed is False
+    assert "reconstruction_round_trip" in {r.name for r in report.failures}
+    # The bug is isolated to the projector: mesh-freeness still holds (predict uses the
+    # true basis), so this discriminates a non-orthonormal basis from a broken reducer.
+    assert "mesh_free" not in {r.name for r in report.failures}
+
+
+def test_suite_flags_geometry_dependent_reducer():
+    report = check_trainer(_GeometryDependentReducer)
+    assert report.passed is False
+    assert "mesh_free" in {r.name for r in report.failures}
+    # The projector itself is fine (round-trip reads the basis, not predict), so the
+    # failure is specifically the geometry dependence, not reducer breakage in general.
+    assert "reconstruction_round_trip" not in {r.name for r in report.failures}
+
+
+def test_suite_flags_nan_in_basis():
+    # Teeth for the finiteness guard: a NaN basis must FAIL, not pass via `nan > tol == False`.
+    report = check_trainer(_NaNBasisReducer)
+    assert report.passed is False
+    assert "reconstruction_round_trip" in {r.name for r in report.failures}
+
+
+def test_correct_reducer_passes_both_rom_checks():
+    """Trap guard: the faithful built-in reducer PASSES both checks the broken ones fail."""
+    report = check_trainer(ReducedFieldTrainer)
+    by_name = {r.name: r for r in report.results}
+    assert by_name["reconstruction_round_trip"].passed, report.summary()
+    assert by_name["mesh_free"].passed, report.summary()
+
+
+def test_scalar_trainer_rom_checks_not_applicable():
+    report = check_trainer(PolynomialTrainer)
+    by_name = {r.name: r for r in report.results}
+    for name in ("reconstruction_round_trip", "mesh_free"):
+        assert by_name[name].passed
+        assert "not a reduced-field trainer" in by_name[name].detail
+    assert report.passed is True

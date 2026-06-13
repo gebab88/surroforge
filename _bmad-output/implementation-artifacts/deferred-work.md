@@ -2,6 +2,27 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: code review of r4-3-reconstruction-round-trip-no-mesh-conformance-probe (2026-06-13)
+
+- **`reconstruction_round_trip` tests basis orthonormality only — `mean` and `predict()`
+  are not cross-checked** (`conformance/trainer.py`). `recovered = (coeffs@Bᵀ+mean−mean)@B`
+  cancels `mean` algebraically, and the check never compares `trainer.predict(x)` to
+  `coeffs@Bᵀ+mean`, so a wrong stored `mean` or a `predict()`/`predict_coefficients()`
+  inconsistency (a likely real ROM bug) passes. AC 1 scopes the check to `Bᵀ·B = I`
+  (faithful projector), which it does correctly. Strengthening it to assert
+  `predict(x) ≈ coeffs@Bᵀ+mean` would exercise `mean` and the central ROM invariant in one
+  shot, but it needs its own negative fixture and re-scopes the `_GeometryDependentReducer`
+  test (whose post-hoc ramp would then also trip the round-trip). A deliberate suite-quality
+  pass, not an R4.3 AC.
+
+- **Declared `reproduction_tolerance` has no upper bound in the conformance band**
+  (`conformance/trainer.py` `_resolve_tolerance`, also the pre-existing `_deterministic`).
+  `tol = max(floor, declared)` lets a trainer declare an arbitrarily large tolerance and pass
+  the determinism / round-trip / mesh-free checks trivially. `declares_capabilities` enforces
+  finite & ≥ 0 but no ceiling. A sane upper bound (or a warning) is a suite-wide policy
+  decision affecting every band-comparing check, not R4.3-specific — revisit when the first
+  external ROM/tolerant plugin binds (folds in with the standing engine-ROM-hook hardening).
+
 ## Deferred from: code review of r3-1-field-metrics-as-registered-callables (2026-06-11)
 
 - **engine.py:123 rewraps every CV `ValueError` as `DataError` — including numerical

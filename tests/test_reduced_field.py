@@ -260,12 +260,15 @@ def test_conformance_with_smt_inner(method):
         hyperparameters={"reduction": {"energy": 0.99}, "inner": {"method": method}},
     )
     if method == "kriging" and not blas_is_bit_reproducible():
-        # Apple Accelerate's LAPACK is not bit-reproducible, so gradient-MLE
-        # Kriging's determinism probe (two independent fits) legitimately fails
-        # here — verified for the WRAPPED case too: only `deterministic` may fail
-        # (picklable re-predicts ONE fitted model, which is bit-stable). The 1e-9
-        # guarantee holds on OpenBLAS/CI. Nothing else may fail.
-        assert {r.name for r in report.failures} <= {"deterministic"}, report.summary()
+        # Apple Accelerate's LAPACK is not bit-reproducible, so any check that fits
+        # gradient-MLE Kriging TWICE legitimately diverges here: `deterministic` (two
+        # independent fits) and `mesh_free` (a second fit on permuted DOFs). Both probe
+        # fit-to-fit stability, which the 1e-9 guarantee only promises on OpenBLAS/CI.
+        # `reconstruction_round_trip` is a SINGLE fit (projector identity) and `picklable`
+        # re-predicts ONE fitted model — both stay bit-stable, so nothing else may fail.
+        assert {r.name for r in report.failures} <= {"deterministic", "mesh_free"}, (
+            report.summary()
+        )
         return
     assert report.passed, report.summary()
 
