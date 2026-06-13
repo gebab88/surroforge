@@ -31,6 +31,8 @@ app = typer.Typer(
 )
 data_app = typer.Typer(help="Register and inspect datasets.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
+rom_app = typer.Typer(help="Reduced-order model (ROM) inspection commands.", no_args_is_help=True)
+app.add_typer(rom_app, name="rom")
 
 
 @dataclass
@@ -405,6 +407,32 @@ def info(run_id: str = typer.Argument(..., help="Run id to inspect.")) -> None:
     _info(f"  {'dependencies':<18}: {', '.join(lineage.get('dependencies', []))}")
     _info("")
     _metrics_summary(run)
+
+
+@rom_app.command("inspect")
+@_guard
+def rom_inspect(run_id: str = typer.Argument(..., help="Run id to inspect.")) -> None:
+    """Show the energy spectrum, rank, and probe coverage for a reduced-field run (PRD 4.8 #30)."""
+    run = _project().run(run_id)
+    result = services.inspect_rom_run(run)
+    if not result.is_reduced:
+        _info(f"Run {run_id} is not a reduced-field run.")
+        return
+    _info(f"ROM inspection: {run_id}")
+    _info("")
+    _info(f"  method         : {run.method}")
+    _info(f"  basis          : {result.basis}")
+    _info(f"  rank           : {result.rank} / {result.total_modes} modes retained")
+    _info(f"  energy_captured: {result.energy_captured * 100:.2f}%")
+    _info(f"  probe_coverage : {result.probe_coverage_energy * 100:.2f}%")
+    _info("")
+    _info(f"  energy spectrum ({result.total_modes} modes total):")
+    _info(f"  {'mode':>5}  {'energy_frac':>12}  {'cumulative':>12}  status")
+    for i, (e, c) in enumerate(
+        zip(result.per_mode_energy, result.cumulative_energy, strict=True)
+    ):
+        status = "[retained]" if i < result.rank else ""
+        _info(f"  {i:>5}  {e * 100:>11.2f}%  {c * 100:>11.2f}%  {status}")
 
 
 @app.command()

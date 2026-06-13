@@ -7,7 +7,8 @@ user actually runs: reproduce, compare, predict, export, report.
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+import zipfile
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,13 @@ from surroforge.core.project import Project
 from surroforge.core.run import FieldCoverageWarning, Run
 from surroforge.data.loader import load_table
 from surroforge.engine import run_training
-from surroforge.errors import DataError, ExportError, ReproducibilityError, TrainerError
+from surroforge.errors import (
+    DataError,
+    ExportError,
+    ProjectError,
+    ReproducibilityError,
+    TrainerError,
+)
 from surroforge.plugins import get_exporter, get_reporter
 from surroforge.validators.metrics import FIELD_ENERGY_FLOOR
 
@@ -65,6 +72,91 @@ class ReproduceResult:
     #: Field runs only (Story R2.5): fraction of field energy the verdict verifies (the
     #: retained-mode energy share). ``None`` for a scalar run. Advisory, never a gate.
     probe_coverage_energy: float | None = None
+
+
+@dataclass
+class RomInspectResult:
+    """Energy spectrum and rank summary for a reduced-field run (Story R4.2, PRD §4.8 #30)."""
+
+    is_reduced: bool
+    rank: int = 0
+    total_modes: int = 0
+    #: Retained-mode energy share from lineage (holdout model, same as reproduce verdict).
+    #: NOT re-derived from the final-model spectrum — they differ when holdout ≠ final set.
+    energy_captured: float = 0.0
+    probe_coverage_energy: float = 1.0
+    per_mode_energy: list[float] = field(default_factory=list)
+    cumulative_energy: list[float] = field(default_factory=list)
+    basis: str = ""
+
+
+def inspect_rom_run(run: Run) -> RomInspectResult:
+    """Return the energy spectrum and rank for a reduced-field run (PRD §4.8 #30).
+
+    Guard order (see Dev Notes, Story R4.2):
+    1. Empty ``reduction`` → scalar/non-ROM run → ``is_reduced=False`` (no error).
+    2. Empty ``basis_file`` → pre-R4.1 run, basis store not yet written → ``ProjectError``
+       with "re-train" guidance.
+    3. ``run.basis_path`` → validates layout + file existence (raises ``ProjectError``
+       for missing or malformed-path files).
+    4. Load npz, compute per-mode and cumulative energy fractions. The lineage is treated
+       as untrusted disk data: a corrupt/foreign basis store (unreadable zip, missing
+       ``singular_values``) or a malformed ``reduction`` block (missing/non-numeric
+       ``rank``/``energy_captured``) is re-raised as ``ProjectError`` with re-train
+       guidance, never as a bare ``KeyError``/``BadZipFile`` that would escape ``_guard``.
+
+    ``energy_captured`` is read from lineage (holdout model), matching the reproduce
+    verdict. Re-deriving it from the final-model spectrum yields a different value when
+    the holdout/final train sets differ (e.g. under k-fold seed).
+    """
+    if not run.reduction:
+        return RomInspectResult(is_reduced=False)
+
+    if not run.basis_file:
+        raise ProjectError(
+            f"Run '{run.run_id}' has a reduction config but no basis store "
+            "(trained before Story R4.1). Re-train the run to generate the basis file."
+        )
+
+    path = run.basis_path  # raises ProjectError for missing / malformed path
+
+    try:
+        with np.load(str(path)) as npz:
+            sv = npz["singular_values"]
+    except (zipfile.BadZipFile, OSError, ValueError, EOFError, KeyError) as exc:
+        raise ProjectError(
+            f"Run '{run.run_id}' basis store '{run.basis_file}' is unreadable or "
+            f"malformed ({type(exc).__name__}). Re-train the run to regenerate the "
+            "basis file."
+        ) from exc
+
+    try:
+        rank = int(run.reduction["rank"])
+        energy_captured = float(run.reduction["energy_captured"])
+    except (KeyError, ValueError, TypeError) as exc:
+        raise ProjectError(
+            f"Run '{run.run_id}' has a malformed reduction lineage "
+            f"(missing or non-numeric rank/energy_captured: {exc!r}). "
+            "Re-train the run to regenerate a consistent lineage."
+        ) from exc
+
+    total_sq = float((sv**2).sum())
+    if total_sq > 0:
+        per_mode_energy = (sv**2 / total_sq).tolist()
+    else:
+        per_mode_energy = [0.0] * len(sv)
+    cumulative_energy = np.cumsum(per_mode_energy).tolist()
+
+    return RomInspectResult(
+        is_reduced=True,
+        rank=rank,
+        total_modes=len(sv),
+        energy_captured=energy_captured,
+        probe_coverage_energy=run.probe_coverage_energy,
+        per_mode_energy=per_mode_energy,
+        cumulative_energy=cumulative_energy,
+        basis=str(run.reduction.get("basis", "pod")),
+    )
 
 
 def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceResult:

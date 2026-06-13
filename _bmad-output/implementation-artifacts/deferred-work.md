@@ -200,3 +200,33 @@ Findings surfaced during reviews but intentionally out of scope for the triggeri
   shapes, return contract): R4.3's reconstruction round-trip conformance probe
   is the natural home — add a `predict_coefficients` shape/identity check
   there.
+
+## Deferred from: code review (round 2) of r4-2-surroforge-rom-inspect (2026-06-13)
+
+- **`energy_captured` vs. `cumulative` column from different models, no visual cue**
+  (`cli/main.py` rom_inspect): the printed `energy_captured` is the holdout-model lineage
+  value (consistent with the reproduce verdict, AC 1), while the per-mode `cumulative`
+  column is derived from the final-model `basis.npz` spectrum. A reader may expect
+  `cumulative[rank-1] ≈ energy_captured` and be confused when they differ slightly (holdout
+  ≠ final train set). Spec mandates the lineage value; a display-polish note (e.g. a
+  footnote "energy_captured from holdout model") is the natural Phase-2 fix. Same family as
+  the round-1 holdout-vs-final `[retained]` defer below.
+
+## Deferred from: code review of r4-2-surroforge-rom-inspect (2026-06-12)
+
+- **`[retained]` markers use the holdout-model rank against the final-model
+  spectrum** (`services.py` inspect_rom_run / `cli/main.py` rom_inspect): under
+  energy/adaptive rank configs the holdout and final model can resolve
+  different ranks (the engine's own residual, engine.py:174-179), so the
+  spectrum table can mislabel retained modes. AC 1 mandates the lineage rank
+  for reproduce-verdict consistency — a deliberate spec choice. If it bites,
+  the final rank is available as `npz["basis"].shape[1]`; reconcile in a
+  display-polish pass.
+- **Unbounded spectrum table in `rom inspect`** (`cli/main.py` rom_inspect):
+  one line per mode, no truncation; thousands of modes flood the terminal.
+  V1 scope excludes display options — a `--top` flag is the natural Phase-2
+  addition.
+- **Zero-energy spectrum branch untested** (`services.py` inspect_rom_run,
+  `total_sq == 0` fallback): reachable for constant-field runs and correct per
+  manual trace, but no regression pin exists. Add a constant-field test when
+  the branch is next touched.
