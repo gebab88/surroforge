@@ -1,0 +1,82 @@
+# Changelog
+
+All notable changes to SurroForge are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+_Nothing yet._
+
+## [0.1.0] — 2026-06-14
+
+First public release. SurroForge — the open-source **Core** (Apache 2.0) — takes you from a
+solver's output table to a validated, exportable surrogate model, with the data, configuration,
+and model cleanly versioned and reproducible. This release contains the Phase-1 MVP **and**
+Field ROM v1 (reduced-order field models).
+
+### Added — Projects, data & training
+
+- `surroforge init` to create a project; `surroforge data add` to register a dataset with
+  schema validation and a SHA-256 content hash; `surroforge list` to enumerate datasets and runs.
+- A single YAML file as the complete specification of a training run (`data`, `model`,
+  `validation`). `surroforge train --config …` trains from it.
+- k-fold cross-validation with the standard metrics **RMSE, R², MAE**.
+- Three built-in methods: **polynomial** (scikit-learn), **kriging** and **rbf** (SMT backend).
+
+### Added — Compare, predict, export & report
+
+- `surroforge compare` to rank runs and identify the best; `surroforge predict` for out-of-sample
+  inputs; `surroforge export` to **ONNX** or **pickle**; `surroforge report` for a Markdown summary.
+
+### Added — Reproducibility & lineage
+
+- Every run records its full configuration, a SHA-256 data hash, the random seed, and exact
+  Python/library versions in `runs/<id>/lineage.json`.
+- `surroforge reproduce` re-trains from config and returns a trustworthy verdict via an
+  out-of-sample prediction fingerprint (it never unpickles the model — no code-execution risk).
+- A one-time provenance warning when loading a non-local model artifact (`predict`/`export`).
+
+### Added — Field ROM v1 (reduced-order field models)
+
+- A new **`reduced-field`** method: POD reduction (energy- or rank-truncated SVD) of a field —
+  "output columns that move together" — with a per-mode inner surrogate. **Mesh-free**: no
+  coordinates or connectivity are read. The inner method is any registered trainer
+  (kriging/rbf/polynomial all work unchanged). Configured via a `model.reduction` block
+  (`basis: pod`, `energy`/`rank`/`rank: adaptive`) and `model.inner`.
+- **Field-primary reproducibility fingerprint**: sign/order canonicalization with degeneracy
+  handling; the scalar (non-field) path stays byte-identical; probe-coverage recorded in lineage.
+- **Field validation & report**: `energy_l2` and `truncation_error` as registered metrics; a
+  two-source error split (truncation floor vs. surrogate error — "add modes or add data"); and
+  honest-basis cross-validation (a fresh basis per fold).
+- **Prediction**: modal coefficients by default, full-field reconstruction on `--field`, with
+  lazy content-addressed basis storage (the run dir stays smaller than the raw data).
+- **Introspection**: `surroforge rom inspect` (energy spectrum, retained rank, probe coverage).
+- **Conformance**: a `coeffs→field→coeffs` reconstruction round-trip check and a no-mesh
+  (DOF-permutation equivariance) check in the shipped conformance suite.
+- The **`surroforge[rom]`** packaging extra (lazy imports; v1 adds no new heavy dependency).
+
+### Added — Python API & extensibility
+
+- A Python API that mirrors the CLI one-to-one (`Project`, `Trainer`, …).
+- Plugin registration through the `surroforge.trainers`, `surroforge.exporters`, and
+  `surroforge.reporters` entry-point groups (the built-ins use the same mechanism).
+- A shippable, framework-agnostic conformance suite (`check_trainer`) so a plugin can
+  self-certify against the `BaseTrainer` contract.
+- Methods declare their reproducibility tolerance and export capabilities; a Core↔commercial
+  plugin seam is reserved (shape-only, a documented no-op gate in Core).
+
+### Added — CLI ergonomics, quality & distribution
+
+- Consistent global CLI options; errors-as-a-feature (clear messages and actionable install
+  hints, not tracebacks); graceful degradation when an optional backend is absent.
+- Enforced architectural and quality gates (ruff, mypy, import-linter) and a cross-OS/Python CI
+  matrix (Ubuntu/macOS/Windows × Python 3.10–3.12), plus reproducibility and license-hygiene
+  (no GPL/LGPL in Core) jobs.
+- A MkDocs Material documentation site under `docs/`.
+- Optional extras: `smt`, `onnx`, `formats`, `rom`, `all` (and `dev`, `docs`).
+
+[Unreleased]: https://github.com/gebab88/surroforge/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/gebab88/surroforge/releases/tag/v0.1.0
+</content>

@@ -12,12 +12,21 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "SurroForge Contributors" }]
 keywords = ["surrogate", "kriging", "cae", "fem", "cfd", "machine-learning", "engineering"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 dependencies = [
     "numpy>=1.24",
@@ -47,7 +56,7 @@ formats = ["pyarrow>=14.0", "h5py>=3.10"]
 rom = []
 # Everything an MVP user might want. (rom adds no package in v1 — see above.)
 all = ["smt>=2.0", "skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17", "pyarrow>=14.0", "h5py>=3.10"]
-dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "import-linter>=2.0"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "import-linter>=2.0", "build>=1.0", "twine>=5.0"]
 # Documentation site (PRD §13, Story 6.5): MkDocs Material.
 docs = ["mkdocs-material>=9.5"]
 
@@ -57,6 +66,9 @@ surroforge = "surroforge.cli.main:main"
 [project.urls]
 Homepage = "https://github.com/gebab88/surroforge"
 Documentation = "https://github.com/gebab88/surroforge/tree/main/docs"
+Repository = "https://github.com/gebab88/surroforge"
+Issues = "https://github.com/gebab88/surroforge/issues"
+Changelog = "https://github.com/gebab88/surroforge/blob/main/CHANGELOG.md"
 
 # Built-in trainers are registered through the same entry-point mechanism that
 # third-party plugins use (PRD 4.11), so the core has no special-case path.
