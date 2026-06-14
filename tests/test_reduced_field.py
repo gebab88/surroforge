@@ -10,6 +10,7 @@ trainers, the engine, or the conformance suite.
 from __future__ import annotations
 
 import importlib.util
+import sys
 
 import numpy as np
 import pandas as pd
@@ -49,6 +50,21 @@ def low_rank_field(n_samples=80, n_dof=40, k_true=3, seed=0):
 def test_registered_as_builtin():
     assert "reduced-field" in available_trainers()
     assert get_trainer("reduced-field") is ReducedFieldTrainer
+
+
+def test_missing_rom_backend_yields_install_hint(monkeypatch):
+    """R4.4: training reduced-field without the ROM backend gives an actionable hint.
+
+    The trainer stays registered (mirroring [smt]/[onnx]); the missing-backend case
+    surfaces a clean TrainerError naming `pip install 'surroforge[rom]'` at fit time —
+    NOT a raw ImportError. `sys.modules["scipy"] = None` makes the guard's `import
+    scipy.linalg` raise, simulating an install without the ROM stack.
+    """
+    monkeypatch.setitem(sys.modules, "scipy", None)
+    p, field = low_rank_field(n_samples=20, n_dof=6, k_true=2)
+    t = ReducedFieldTrainer(reduction={"energy": 0.99}, inner={"method": "polynomial"})
+    with pytest.raises(TrainerError, match=r"surroforge\[rom\]"):
+        t.fit(p, field)
 
 
 # --- reduction & reconstruction ---------------------------------------------

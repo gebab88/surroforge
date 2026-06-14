@@ -2,6 +2,24 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: r4-4-surroforge-rom-packaging-extra (2026-06-14)
+
+- **The `[rom]` lazy guard cannot fire in a real v1 install.** `_require_rom_support()`
+  (`trainers/reduced_field.py`) gates on `import scipy.linalg`, but scipy is a hard Core
+  dependency (and transitively pulled in by scikit-learn), so a working SurroForge always has
+  it — the actionable install hint is structurally present and unit-tested (via a simulated
+  `sys.modules["scipy"] = None`) but unreachable in practice. This is the accepted consequence
+  of the Faithful-pattern decision (honour PRD-ROM §4.10 "gleiches Muster wie [smt]/[onnx]"
+  literally; v1 adds no new heavy dependency). It becomes live the moment Phase-2 adds the first
+  genuine optional ROM dependency (meshio/pyvista mesh readers): they join this guard and
+  populate the currently empty `rom = []` extra. No action in v1.
+- **`np.linalg.svd` vs. the PRD-named "SVD aus scipy".** The v1 reduction uses numpy's SVD
+  (the field fingerprint is frozen on it, R2.x), while the `[rom]` guard imports scipy and PRD
+  §4.10 names scipy as the SVD source. Deliberately not reconciled: switching the numeric path
+  to `scipy.linalg.svd` would churn field-run identity (a frozen-contract renegotiation). If a
+  Phase-2 reduction ever genuinely needs scipy's SVD (e.g. sparse / randomized variants for
+  million-DOF meshes), introduce it behind a new spec version, not by mutating the v1 path.
+
 ## Deferred from: code review of r4-3-reconstruction-round-trip-no-mesh-conformance-probe (2026-06-13)
 
 - **`reconstruction_round_trip` tests basis orthonormality only — `mean` and `predict()`

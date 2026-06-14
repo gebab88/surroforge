@@ -22,6 +22,7 @@ pip install surroforge            # core
 pip install 'surroforge[smt]'     # + Kriging / RBF backends
 pip install 'surroforge[onnx]'    # + ONNX export
 pip install 'surroforge[formats]' # + Parquet / HDF5 input
+pip install 'surroforge[rom]'     # + Field ROM (POD field reduction)
 pip install 'surroforge[all]'     # everything
 ```
 

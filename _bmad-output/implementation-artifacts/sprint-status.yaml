@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-14  # r4-3 code-review complete (2 patches applied), status → done
+last_updated: 2026-06-14  # r4-4 done (rom packaging extra); epic-r4 complete → Field ROM v1 feature-complete
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -206,10 +206,17 @@ development_status:
   r3-3-honest-basis-cross-validation: done
   epic-r3-retrospective: done
 
-  # Epic R4 — Ingestion, Query, Conformance & Packaging (in-progress)
-  epic-r4: in-progress
+  # Epic R4 — Ingestion, Query, Conformance & Packaging (DONE: r4-1…r4-4 all done, 2026-06-14)
+  epic-r4: done
   r4-1-predict-coefficients-by-default-reconstruct-on-field: done
   r4-2-surroforge-rom-inspect: done
   r4-3-reconstruction-round-trip-no-mesh-conformance-probe: done
-  r4-4-surroforge-rom-packaging-extra: backlog
+  # done: rom = [] packaging extra (v1 adds no new heavy dependency — numpy/scipy already Core;
+  # the extra is the documented install target + Phase-2 mesh-reader home). Lazy guard
+  # _require_rom_support() in reduced_field.fit() surfaces an actionable "pip install
+  # 'surroforge[rom]'" TrainerError instead of a raw ImportError, mirroring [smt]/[onnx]; unit-
+  # tested via a simulated missing scipy. Faithful-pattern decision: ship the guard shape now
+  # though it cannot fire in a real install (scipy is a hard Core dep) — recorded in
+  # deferred-work.md. With this, Field ROM v1 (R1–R4) is feature-complete.
+  r4-4-surroforge-rom-packaging-extra: done
   epic-r4-retrospective: optional

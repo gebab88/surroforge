@@ -36,6 +36,30 @@ DEFAULT_ENERGY = 0.999
 DEFAULT_INNER_METHOD = "polynomial"
 
 
+def _require_rom_support() -> None:
+    """Fail with an actionable install hint if the ROM backend is unavailable (Story R4.4).
+
+    Mirrors the ``[smt]``/``[onnx]`` lazy-import pattern (``kriging.fit`` / the polynomial
+    ONNX export): the trainer always registers, so ``available_trainers()`` lists it, and a
+    missing backend surfaces a clean :class:`TrainerError` ("pip install 'surroforge[rom]'")
+    at fit time — never a raw ``ImportError``.
+
+    ROM's reduction is the numpy/scipy linear-algebra stack, both already Core deps
+    (PRD-ROM 4.10: v1 adds **no new heavy dependency**), so in a normal install this guard
+    never fires. It is the documented ROM install seam and the gate the Phase-2 mesh readers
+    (meshio/pyvista) will join. scipy is the PRD-named SVD backend; the v1 reduction itself
+    uses numpy's SVD (frozen — the field fingerprint is pinned on it, R2.x), so this checks
+    scipy's presence without touching the numeric path.
+    """
+    try:
+        import scipy.linalg  # noqa: F401  -- ROM numeric backend (PRD-ROM 4.10)
+    except ImportError as exc:
+        raise TrainerError(
+            "Reduced-field ROM requires the 'rom' extra. "
+            "Install it with: pip install 'surroforge[rom]'"
+        ) from exc
+
+
 class ReducedFieldTrainer(BaseTrainer):
     """POD field reduction with a per-mode inner surrogate, behind the trainer contract."""
 
@@ -106,6 +130,7 @@ class ReducedFieldTrainer(BaseTrainer):
     # -- fitting ------------------------------------------------------------
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        _require_rom_support()  # actionable hint if the ROM backend is missing (Story R4.4)
         from surroforge.plugins import get_trainer  # lazy: keep __init__/import cheap
 
         x = self._as_2d(x)
