@@ -59,6 +59,11 @@ def test_missing_rom_backend_yields_install_hint(monkeypatch):
     surfaces a clean TrainerError naming `pip install 'surroforge[rom]'` at fit time —
     NOT a raw ImportError. `sys.modules["scipy"] = None` makes the guard's `import
     scipy.linalg` raise, simulating an install without the ROM stack.
+
+    Teeth: without the guard, the sklearn-based inner fit's lazy `import scipy.sparse`
+    raises a raw ModuleNotFoundError (not a TrainerError), so this test fails — proving
+    the guard, not a downstream re-import, produces the clean hint. (Relies on scipy being
+    imported at module load, before the patch — the top-level imports guarantee that.)
     """
     monkeypatch.setitem(sys.modules, "scipy", None)
     p, field = low_rank_field(n_samples=20, n_dof=6, k_true=2)

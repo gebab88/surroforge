@@ -86,6 +86,42 @@ so the guard checks scipy's *presence* (the PRD-named SVD backend) without chang
 - [x] **Task 5 — gates (AC, project-context).**
   - [x] Full suite green; `ruff check src tests`, `mypy src`, `lint-imports` (3/3 contracts).
 
+## Review Findings (post-hoc adversarial review, 2026-06-14)
+
+Ran during the Epic R4 retrospective to restore the review rhythm R4.4 had skipped (it
+landed on gates + self-review only). Three parallel adversarial layers — Blind Hunter
+(correctness/robustness), Edge Case Hunter (branch/boundary), Acceptance Auditor (ACs +
+diff discipline) — each verifying claims against the live runtime. **No Critical/Major/Minor
+findings; all 7 AC checks PASS.** Two doc-only patches applied; the rest dismissed or deferred.
+
+- [x] [Review][Patch] **Guard docstring undersold scipy as incidental.** Said the guard
+  "checks scipy's presence without touching the numeric path", implying scipy is a token gate
+  while the numpy SVD is the real work. The Auditor proved otherwise: with scipy absent the
+  first raw failure is `import scipy.sparse` from the **sklearn polynomial inner** (reached at
+  `reduced_field.py:159`), so scipy is a *genuine* fit-time requirement (every default inner
+  pulls it in via scikit-learn/SMT). Refined the docstring to state this — the gate preempts a
+  real `scipy.sparse` ImportError, and the numpy SVD path is separately frozen.
+  [src/surroforge/trainers/reduced_field.py `_require_rom_support`]
+- [x] [Review][Patch] **Test teeth depend on an invisible import-ordering precondition.** The
+  test pins the guard only because surroforge+sklearn+scipy are imported at module load before
+  `sys.modules["scipy"]=None`; without the guard the sklearn inner's `import scipy.sparse`
+  raises a raw `ModuleNotFoundError` (≠ `TrainerError`), which is exactly what gives the test
+  teeth. Added a docstring note making this explicit (both reviewers independently flagged it).
+  Verified empirically by neutralizing the guard → test fails as designed.
+  [tests/test_reduced_field.py::test_missing_rom_backend_yields_install_hint]
+- [x] [Review][Defer] **scipy ships GPL/LGPL license *text* (bundled reference code) in its
+  metadata.** The CI license job (`.github/workflows/ci.yml`) reads pip-licenses' top-level
+  `License` *classifier* field, which reports scipy as `BSD License`, so NFR8 enforcement is
+  unaffected today. But a future switch of the scanner to scan full license *text* would
+  false-positive on scipy. Pre-existing (scipy is a base dep regardless of R4.4), surfaced by
+  this audit; recorded in `deferred-work.md`. Revisit only if the license job's detection
+  method changes.
+- Dismissed (with reason): **guard masks a genuinely-broken scipy as the rom hint** (Blind
+  Hunter Nit) — byte-identical to the ratified `[smt]`/`[onnx]` pattern in `kriging.fit`
+  (`except ImportError → install hint`); scipy is a hard Core dep so unreachable; tightening it
+  is a suite-wide policy for the whole guard family, not R4.4. **AC7 vacuous-firing** — confirmed
+  an honest, fully documented trade-off (Faithful-pattern), not a blocker.
+
 ## Dev Notes
 
 ### Why gate on scipy (not numpy) and keep the extra empty

@@ -2,6 +2,18 @@
 
 Findings surfaced during reviews but intentionally out of scope for the triggering change.
 
+## Deferred from: r4-4 post-hoc adversarial review (2026-06-14)
+
+- **scipy ships GPL/LGPL license *text* (bundled reference code) in its package metadata.**
+  The CI license-hygiene job (`.github/workflows/ci.yml`, NFR8) reads pip-licenses' top-level
+  `License` *classifier* field — which reports scipy as `BSD License` — so it flags zero
+  packages and NFR8 enforcement is correct today. The latent risk: if the scanner is ever
+  changed to grep full license *text* rather than the classifier field, scipy (and possibly
+  other scientific-stack packages) would false-positive. Pre-existing — scipy is a Core base
+  dependency independent of R4.4 — surfaced by the R4.4 acceptance audit. No action unless the
+  license job's detection method changes; if it does, pin the scan to the classifier field or
+  add an explicit BSD allow-list for the scientific stack.
+
 ## Deferred from: r4-4-surroforge-rom-packaging-extra (2026-06-14)
 
 - **The `[rom]` lazy guard cannot fire in a real v1 install.** `_require_rom_support()`

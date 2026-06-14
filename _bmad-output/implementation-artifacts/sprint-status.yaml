@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-14  # r4-4 done (rom packaging extra); epic-r4 complete → Field ROM v1 feature-complete
+last_updated: 2026-06-14  # epic-r4 retrospective done → Field ROM v1 (R1–R4) feature-complete; next: v1 release prep
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -219,4 +219,8 @@ development_status:
   # though it cannot fire in a real install (scipy is a hard Core dep) — recorded in
   # deferred-work.md. With this, Field ROM v1 (R1–R4) is feature-complete.
   r4-4-surroforge-rom-packaging-extra: done
-  epic-r4-retrospective: optional
+  # done: epic-r4-retro-2026-06-14.md. 3-layer post-hoc adversarial review of r4-4 (it had
+  # skipped review at done) — 0 Critical/Major/Minor, 2 doc patches, 1 defer. Action items:
+  # (2) risk-tiered review as a conscious recorded decision; (3) v1 release prep (lead's chosen
+  # next direction — no R5; Field ROM v1 R1–R4 feature-complete). No significant-discovery alarm.
+  epic-r4-retrospective: done

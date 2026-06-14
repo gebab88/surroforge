@@ -47,9 +47,11 @@ def _require_rom_support() -> None:
     ROM's reduction is the numpy/scipy linear-algebra stack, both already Core deps
     (PRD-ROM 4.10: v1 adds **no new heavy dependency**), so in a normal install this guard
     never fires. It is the documented ROM install seam and the gate the Phase-2 mesh readers
-    (meshio/pyvista) will join. scipy is the PRD-named SVD backend; the v1 reduction itself
-    uses numpy's SVD (frozen — the field fingerprint is pinned on it, R2.x), so this checks
-    scipy's presence without touching the numeric path.
+    (meshio/pyvista) will join. scipy is a genuine fit-time requirement, not a token: the
+    default polynomial inner surrogate (and the kriging/rbf alternatives) pull it in via
+    scikit-learn/SMT, so a missing scipy would otherwise surface as a raw ``scipy.sparse``
+    ImportError from the inner fit — this preempts it with an actionable hint. The numpy SVD
+    path itself is unchanged (the field fingerprint is frozen on it, R2.x).
     """
     try:
         import scipy.linalg  # noqa: F401  -- ROM numeric backend (PRD-ROM 4.10)
