@@ -46,7 +46,7 @@ v1** (reduced-order field models), Phase-2 **solver-native ingestion** (OpenFOAM
   ONNX** via `skl2onnx` — the second ONNX-capable method after `polynomial`. As an ordinary
   `BaseTrainer` it also serves as a `reduced-field` inner surrogate (POD-NN: `model.inner.method:
   mlp`). A heavyweight framework (PyTorch/DeepONet/FNO) stays available on the external plugin seam.
-  See `examples/06_mlp_surrogate.py`.
+  See `examples/06_mlp_surrogate.py` (scalar) and `examples/07_pod_nn_field.py` (POD-NN field).
 
 ### Added — Compare, predict, export & report
 
