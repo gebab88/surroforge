@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-14  # Phase-2: Epic R5; r5-1 + r5-2 both done (review: 1 decision + 8 patches, 371 passed)
+last_updated: 2026-06-14  # Epic R5 DONE + retro; next gate: cut v0.2.0 (Phase-1 + Field ROM v1 + R5)
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -231,12 +231,17 @@ development_status:
   # deliberately OPENS Phase 2 — a new track, not part of the v1 plan.
   # ==========================================================================
 
-  # Epic R5 — Solver-Native & Mesh Readers (Phase 2)
-  epic-r5: in-progress
+  # Epic R5 — Solver-Native & Mesh Readers (Phase 2) — DONE (retro 2026-06-14)
+  epic-r5: done
   # r5-1: promote the OpenFOAM reader prototype (examples/05_openfoam_field_rom.py) into
   # src/surroforge/data/openfoam.py as a first-class, typed, tested, mesh-free reader that
   # emits the wide (n_samples × n_dof) snapshot matrix the unchanged reduced-field pipeline
   # trains on. ASCII parsing is Core-pure (no new dep); binary/meshio readers deferred to [rom].
   r5-1-openfoam-field-ingestion: done
-  # r5-2 (deferred): `surroforge data add-openfoam` CLI + meshio binary/mesh readers behind [rom].
+  # r5-2: `surroforge data add-openfoam` CLI + meshio binary/mesh readers behind [rom] (now non-empty).
   r5-2-data-add-openfoam-cli-and-binary-readers: done
+  # done: epic-r5-retro-2026-06-14.md. 2/2 stories; full 3-layer review on both (r5-2 caught 2 live
+  # bugs). Significant discovery: [rom] gained meshio → release surface changed. Lead decision: cut a
+  # single v0.2.0 (Phase-1 + Field ROM v1 R1–R4 + Phase-2 R5). Action items: (1) cut v0.2.0; (2) wire
+  # meshio into CI [all]/[rom]; (3) fixture-diversity test rule; (4) push b60c7a0+6b33bbd to origin.
+  epic-r5-retrospective: done
