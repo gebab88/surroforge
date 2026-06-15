@@ -7,24 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+_Nothing yet._
 
-- **Neural-network surrogate method `mlp`** (`model.method: mlp`): a multi-layer perceptron backed
-  by scikit-learn's `MLPRegressor` (input `StandardScaler`, `solver="lbfgs"` default for the
-  small-data DOE regime). It adds **no new dependency** (scikit-learn is already Core, BSD), fits
-  multi-output targets natively, declares an honest reproduction tolerance for its iterative
-  optimiser, and **exports to ONNX** via `skl2onnx` — the second ONNX-capable method after
-  `polynomial`. Being an ordinary `BaseTrainer`, it also works unchanged as a `reduced-field` inner
-  surrogate (POD-NN: `model.inner.method: mlp`). A heavyweight framework (PyTorch/DeepONet/FNO) for
-  large, strongly-nonlinear fields remains available on the external entry-point plugin seam.
-  See `examples/06_mlp_surrogate.py`.
-
-## [0.2.0] — 2026-06-14
+## [0.2.0] — 2026-06-15
 
 First public release. SurroForge — the open-source **Core** (Apache 2.0) — takes you from a
 solver's output table to a validated, exportable surrogate model, with the data, configuration,
 and model cleanly versioned and reproducible. This release contains the Phase-1 MVP, **Field ROM
-v1** (reduced-order field models), **and** Phase-2 **solver-native ingestion** (OpenFOAM).
+v1** (reduced-order field models), Phase-2 **solver-native ingestion** (OpenFOAM), **and** a first
+**neural-network method** (`mlp`).
 
 ### Added — Solver-native ingestion (Phase 2)
 
@@ -48,7 +39,14 @@ v1** (reduced-order field models), **and** Phase-2 **solver-native ingestion** (
 - A single YAML file as the complete specification of a training run (`data`, `model`,
   `validation`). `surroforge train --config …` trains from it.
 - k-fold cross-validation with the standard metrics **RMSE, R², MAE**.
-- Three built-in methods: **polynomial** (scikit-learn), **kriging** and **rbf** (SMT backend).
+- Four built-in methods: **polynomial** (scikit-learn), **kriging** and **rbf** (SMT backend), and
+  **mlp** — a neural network (multi-layer perceptron via scikit-learn's `MLPRegressor`, input
+  `StandardScaler`, `lbfgs` by default). It adds **no new dependency**, fits multi-output targets
+  natively, declares an honest reproduction tolerance for its iterative optimiser, and **exports to
+  ONNX** via `skl2onnx` — the second ONNX-capable method after `polynomial`. As an ordinary
+  `BaseTrainer` it also serves as a `reduced-field` inner surrogate (POD-NN: `model.inner.method:
+  mlp`). A heavyweight framework (PyTorch/DeepONet/FNO) stays available on the external plugin seam.
+  See `examples/06_mlp_surrogate.py`.
 
 ### Added — Compare, predict, export & report
 
@@ -68,7 +66,7 @@ v1** (reduced-order field models), **and** Phase-2 **solver-native ingestion** (
 - A new **`reduced-field`** method: POD reduction (energy- or rank-truncated SVD) of a field —
   "output columns that move together" — with a per-mode inner surrogate. **Mesh-free**: no
   coordinates or connectivity are read. The inner method is any registered trainer
-  (kriging/rbf/polynomial all work unchanged). Configured via a `model.reduction` block
+  (kriging/rbf/polynomial/mlp all work unchanged). Configured via a `model.reduction` block
   (`basis: pod`, `energy`/`rank`/`rank: adaptive`) and `model.inner`.
 - **Field-primary reproducibility fingerprint**: sign/order canonicalization with degeneracy
   handling; the scalar (non-field) path stays byte-identical; probe-coverage recorded in lineage.

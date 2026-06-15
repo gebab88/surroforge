@@ -56,7 +56,7 @@ Unknown top-level keys are rejected.
 
 | Field | Type | Default | Notes |
 |---|---|---|---|
-| `method` | string | — (required) | A registered method: `kriging`, `rbf`, `polynomial`, or a plugin. |
+| `method` | string | — (required) | A registered method: `kriging`, `rbf`, `polynomial`, `mlp`, `reduced-field`, or a plugin. |
 | *(any other key)* | — | — | Collected as **method-specific hyperparameters** and passed straight to the trainer. |
 
 Hyperparameters are not enumerated centrally — each method validates its own and

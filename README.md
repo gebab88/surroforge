@@ -67,7 +67,7 @@ data:
     test_fraction: 0.2
     seed: 42
 model:
-  method: kriging         # kriging | rbf | polynomial
+  method: kriging         # kriging | rbf | polynomial | mlp
   corr: squar_exp
 validation:
   cross_validation: 5     # k-fold; or {folds: 5, shuffle: true}
