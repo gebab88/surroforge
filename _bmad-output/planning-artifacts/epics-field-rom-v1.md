@@ -353,6 +353,44 @@ So that the Core stays lean and permissively licensed.
 
 **Status:** 📋 planned (FR-R8, AR-R7, NFR8; #31)
 
+## Epic R5: Solver-Native & Mesh Readers — *Phase 2*
+
+> **Phase 2 — opens after Field ROM v1 (R1–R4) shipped.** v1 deliberately deferred
+> *solver-native & mesh readers* (Overview / PRD-ROM §1.5, §11); this epic begins that track on
+> the reserved `surroforge[rom]` seam. It extends the FR-R1 ingestion contract (a field is
+> "columns that move together", mesh-free) to solver output, and rides the spine theorem
+> (AR-R1): readers only emit an ordinary wide `(n_samples × n_dof)` DataFrame, so the engine,
+> registry, `reduced-field` trainer, fingerprint, and reproduce path stay **unchanged**.
+
+### Story R5.1: OpenFOAM field ingestion (solver-native, mesh-free)
+
+As a methods engineer with OpenFOAM CFD results,
+I want a first-class library reader that turns an OpenFOAM case sweep into the wide snapshot
+matrix SurroForge already trains on,
+So that I can build a field surrogate straight from solver output — without SurroForge ever
+reading a mesh.
+
+**Acceptance Criteria:** (full BDD in the story file)
+
+**Given** an OpenFOAM case sweep (one case dir per DOE point, ASCII `volScalarField`/
+`volVectorField` `internalField`)
+**When** I ingest field `p` (or a vector field) via the new `surroforge.data` reader
+**Then** I get a deterministic-order wide DataFrame (`p_0000…`, vectors `_x/_y/_z`) that
+registers and trains through the unchanged `reduced-field` pipeline with `data.outputs: ['p_*']`
+**And** only `internalField` values are read (no coordinates/connectivity); ASCII parsing is
+pure-Python with **no new dependency** (binary/`meshio` readers deferred to `[rom]`)
+**And** the working prototype in `examples/05_openfoam_field_rom.py` is promoted into the
+package and the example refactored to import it.
+
+**Status:** 📋 planned — Phase 2 (FR-R1 extension, AR-R1, AR-R5; story
+`r5-1-openfoam-field-ingestion.md`). Prototype already runs in `examples/05_openfoam_field_rom.py`.
+
+### Story R5.2 (deferred): `surroforge data add-openfoam` CLI + binary/meshio readers
+
+⏸ Deferred follow-on: a CLI ingestion command and `meshio`-backed binary/mesh readers behind the
+`surroforge[rom]` extra (lazy import + install-hint pattern). Not started; carried for Phase-2
+sequencing.
+
 ## Open Questions (carried from PRD-ROM §9)
 
 - **OQ-1 — Edition:** confirm Core (default) vs. a Pro differentiator. *Recommendation: Core* (the reproduce() change must be Core).

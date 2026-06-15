@@ -15,6 +15,7 @@ python examples/01_quickstart.py
 | [`02_method_comparison.py`](02_method_comparison.py) | Train several methods, tabulate metrics, pick the best with `compare_runs` | Core (Kriging/RBF added if `smt` present) |
 | [`03_reproduction.py`](03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Core only |
 | [`04_field_rom.py`](04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |
+| [`05_openfoam_field_rom.py`](05_openfoam_field_rom.py) | Ingest an OpenFOAM case sweep (parse `internalField`) into a field ROM | Core only |
 
 The Python scripts mirror the documented workflows — the same steps are shown
 from the shell in [docs/quickstart.md](../docs/quickstart.md) and the

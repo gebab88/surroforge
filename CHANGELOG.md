@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added — Solver-native ingestion (Phase 2, Field ROM)
+
+- **OpenFOAM field ingestion** (`surroforge.data.read_openfoam_sweep`,
+  `read_openfoam_field`, `read_openfoam_dimensioned_scalar`, `latest_time_field`): read an
+  OpenFOAM case sweep's ASCII `internalField` (scalar and vector, `nonuniform`/`uniform`)
+  straight into the wide `(n_samples × n_dof)` snapshot matrix the `reduced-field` method
+  trains on — **mesh-free** (no coordinates/connectivity) and dependency-free (pure-Python
+  parsing on existing Core deps). Binary/`meshio`-backed readers remain deferred to the
+  `surroforge[rom]` extra. See `examples/05_openfoam_field_rom.py`.
 
 ## [0.1.0] — 2026-06-14
 
