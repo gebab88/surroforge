@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `polynomial`. Being an ordinary `BaseTrainer`, it also works unchanged as a `reduced-field` inner
   surrogate (POD-NN: `model.inner.method: mlp`). A heavyweight framework (PyTorch/DeepONet/FNO) for
   large, strongly-nonlinear fields remains available on the external entry-point plugin seam.
+  See `examples/06_mlp_surrogate.py`.
 
 ## [0.2.0] — 2026-06-14
 
