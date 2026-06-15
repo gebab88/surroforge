@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — Solver-native ingestion (Phase 2, Field ROM)
+_Nothing yet._
+
+## [0.2.0] — 2026-06-14
+
+First public release. SurroForge — the open-source **Core** (Apache 2.0) — takes you from a
+solver's output table to a validated, exportable surrogate model, with the data, configuration,
+and model cleanly versioned and reproducible. This release contains the Phase-1 MVP, **Field ROM
+v1** (reduced-order field models), **and** Phase-2 **solver-native ingestion** (OpenFOAM).
+
+### Added — Solver-native ingestion (Phase 2)
 
 - **OpenFOAM field ingestion** (`surroforge.data.read_openfoam_sweep`,
   `read_openfoam_field`, `read_openfoam_dimensioned_scalar`, `latest_time_field`): read an
@@ -21,13 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Binary/mesh field reading** (`surroforge.data.read_mesh_field`) via `meshio`, behind the
   `surroforge[rom]` extra (now `meshio>=5.3`, MIT-licensed): reads a named point/cell field from
   any `meshio`-supported format, with a lazy import + `pip install 'surroforge[rom]'` hint.
-
-## [0.1.0] — 2026-06-14
-
-First public release. SurroForge — the open-source **Core** (Apache 2.0) — takes you from a
-solver's output table to a validated, exportable surrogate model, with the data, configuration,
-and model cleanly versioned and reproducible. This release contains the Phase-1 MVP **and**
-Field ROM v1 (reduced-order field models).
 
 ### Added — Projects, data & training
 
@@ -90,6 +92,6 @@ Field ROM v1 (reduced-order field models).
 - A MkDocs Material documentation site under `docs/`.
 - Optional extras: `smt`, `onnx`, `formats`, `rom`, `all` (and `dev`, `docs`).
 
-[Unreleased]: https://github.com/gebab88/surroforge/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/gebab88/surroforge/releases/tag/v0.1.0
+[Unreleased]: https://github.com/gebab88/surroforge/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gebab88/surroforge/releases/tag/v0.2.0
 </content>

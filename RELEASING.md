@@ -97,7 +97,8 @@ Test first against TestPyPI if unsure: `twine upload --repository testpypi dist/
 
 - **No GPL/LGPL in Core (NFR8).** The `licenses` CI job enforces this; keep new dependencies
   permissive (Apache/MIT/BSD).
-- **`surroforge[rom]` is empty in v1** by design (POD/SVD runs on numpy/scipy, already Core deps).
-  It is the documented install target and the Phase-2 home for mesh readers — see `pyproject.toml`.
+- **`surroforge[rom]`** carries the optional **mesh readers** (`meshio`, MIT) as of 0.2.0; POD/SVD
+  itself still runs on numpy/scipy (already Core), so `reduced-field` and the ASCII OpenFOAM reader
+  work on the base install — only the binary/mesh path needs the extra. See `pyproject.toml`.
 - Build/release tooling (`build`, `twine`) ships in the `dev` extra.
 </content>
