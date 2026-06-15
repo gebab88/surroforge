@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-15  # Epic R6 opened: R6.1 mlp (neural-network) trainer — ready-for-dev
+last_updated: 2026-06-15  # Epic R6 DONE + retro (epic-r6-retro-2026-06-15.md); next gate: release incl. mlp
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -258,4 +258,10 @@ development_status:
   # validation, to_onnx feature-count + conversion guards, build-then-assign in fit, BLAS-pinned
   # repro test), 3 dismissed. Suite 400 passed / 7 skipped; ruff/mypy/lint-imports green.
   r6-1-neural-network-mlp-trainer: done
-  epic-r6-retrospective: optional
+  # done: epic-r6-retro-2026-06-15.md. 1/1 story. Spine theorem's 3rd proof (method, after R1
+  # trainer + R5 ingestion). Review degraded to 1 subagent (Blind) + 2 inline after a session-limit;
+  # 6 patches applied / 3 dismissed. No epic-update alarm (no R7 defined). Action items: doc the
+  # seeding seam; subagent-review fallback explicit; heavyweight-NN = new external-seam epic; fold
+  # mlp into next release; verify CI runs the BLAS-pinned probe on OpenBLAS. Suite 401 passed / 7
+  # skipped; gates green. Committed + pushed (06925c2, f5d616c).
+  epic-r6-retrospective: done
