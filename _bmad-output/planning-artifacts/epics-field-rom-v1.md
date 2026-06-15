@@ -391,6 +391,48 @@ package and the example refactored to import it.
 `surroforge[rom]` extra (lazy import + install-hint pattern). Not started; carried for Phase-2
 sequencing.
 
+## Epic R6: Advanced Surrogate Methods — *Phase 2*
+
+> **Phase 2 — opens a second Phase-2 track (parallel to R5's solver-native readers).** v1 shipped
+> three methods (`polynomial`, `kriging`, `rbf`) plus the `reduced-field` reducer and **no neural
+> network**. This epic begins the *advanced methods* track. Like every method, it rides the spine
+> theorem (AR-R1): a new method is a single `surroforge.trainers` entry point + `_BUILTIN` line —
+> the engine builds it via `trainer_cls(**hyperparameters)` (`ModelConfig` is `extra="allow"`), so
+> engine/config/services/CLI/export/compare/reproduce/conformance stay **unchanged**, and any
+> `BaseTrainer` is automatically usable as a `reduced-field` inner.
+
+### Story R6.1: Neural-network surrogate — built-in `mlp` trainer (scikit-learn)
+
+As a methods engineer,
+I want a neural-network surrogate method (`model.method: mlp`) that trains a multi-layer
+perceptron, compares against the existing methods, and exports to ONNX,
+So that I can fit smooth nonlinear response surfaces with a genuine NN without the Core taking on a
+heavy deep-learning framework or losing its reproducibility/export guarantees.
+
+**Acceptance Criteria:** (full BDD in the story file)
+
+**Given** a config with `model.method: mlp` (or `model.inner.method: mlp` under `reduced-field`)
+**When** the run trains
+**Then** an `MLPTrainer(BaseTrainer)` backed by `sklearn.neural_network.MLPRegressor` (input
+`StandardScaler`, `solver="lbfgs"` default) fits and predicts behind the unchanged trainer
+contract (2-D predict, native multi-output), passes `check_trainer()` unmodified, declares a small
+positive `reproduction_tolerance` (iterative optimiser) with a negative reproduce test, and exports
+to **ONNX** via skl2onnx (the second ONNX-capable method)
+**And** it adds **no new dependency** (scikit-learn is Core, BSD → NFR8) and changes only the
+trainer leaf + the two registration sites (AR-R1).
+
+**Backend decision:** scikit-learn `MLPRegressor`, **not** PyTorch. A real MLP with zero new deps,
+permissive, and compatible with the sklearn-style `random_state` reproducibility model. PyTorch is
+heavy + SGD-stochastic and, per the Golden Path `[MUST]`, framework plugins are entry-points-only
+(a separate distribution) — so a PyTorch/DeepONet/FNO track stays available on that external seam
+for the large, strongly-nonlinear field regime, but is out of Core scope.
+
+**Status:** ✅ delivered — Phase 2 (new-method track, AR-R1; story `r6-1-neural-network-mlp-trainer.md`).
+`src/surroforge/trainers/mlp.py` (sklearn MLPRegressor, StandardScaler + lbfgs, native multi-output,
+ONNX via skl2onnx → 2nd ONNX-capable method); registered in both sites; added to conformance
+BUILTINS; works as a `reduced-field` inner (POD-NN). Zero new dependency. 3-layer adversarial review
+(6 patches applied / 3 dismissed). Suite 400 passed / 7 skipped; all gates green.
+
 ## Open Questions (carried from PRD-ROM §9)
 
 - **OQ-1 — Edition:** confirm Core (default) vs. a Pro differentiator. *Recommendation: Core* (the reproduce() change must be Core).

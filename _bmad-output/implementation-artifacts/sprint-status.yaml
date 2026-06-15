@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-14  # Epic R5 DONE + retro; next gate: cut v0.2.0 (Phase-1 + Field ROM v1 + R5)
+last_updated: 2026-06-15  # Epic R6 opened: R6.1 mlp (neural-network) trainer — ready-for-dev
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -245,3 +245,17 @@ development_status:
   # single v0.2.0 (Phase-1 + Field ROM v1 R1–R4 + Phase-2 R5). Action items: (1) cut v0.2.0; (2) wire
   # meshio into CI [all]/[rom]; (3) fixture-diversity test rule; (4) push b60c7a0+6b33bbd to origin.
   epic-r5-retrospective: done
+
+  # Epic R6 — Advanced Surrogate Methods (Phase 2) — DONE 2026-06-15 (1/1 story)
+  # A second Phase-2 track (parallel to R5). First story adds the first neural network.
+  epic-r6: done
+  # r6-1: built-in `mlp` trainer on sklearn.neural_network.MLPRegressor (real NN, zero new deps;
+  # input StandardScaler + lbfgs default; native multi-output; ONNX-capable via skl2onnx → 2nd ONNX
+  # method; reproduction_tolerance 1e-6 + negative reproduce test; usable as a reduced-field inner).
+  # Pure leaf+registry change (AR-R1). Backend decision: sklearn MLPRegressor, NOT PyTorch
+  # (heavy/stochastic + framework plugins are entry-points-only per the Golden Path). Review: Blind
+  # Hunter ran; Edge/Auditor inline after a subagent session-limit; 6 patches applied (hyperparameter
+  # validation, to_onnx feature-count + conversion guards, build-then-assign in fit, BLAS-pinned
+  # repro test), 3 dismissed. Suite 400 passed / 7 skipped; ruff/mypy/lint-imports green.
+  r6-1-neural-network-mlp-trainer: done
+  epic-r6-retrospective: optional

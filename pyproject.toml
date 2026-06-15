@@ -74,6 +74,7 @@ Changelog = "https://github.com/gebab88/surroforge/blob/main/CHANGELOG.md"
 polynomial = "surroforge.trainers.polynomial:PolynomialTrainer"
 kriging = "surroforge.trainers.kriging:KrigingTrainer"
 rbf = "surroforge.trainers.rbf:RBFTrainer"
+mlp = "surroforge.trainers.mlp:MLPTrainer"
 reduced-field = "surroforge.trainers.reduced_field:ReducedFieldTrainer"
 
 [project.entry-points."surroforge.exporters"]

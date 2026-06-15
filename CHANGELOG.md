@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Neural-network surrogate method `mlp`** (`model.method: mlp`): a multi-layer perceptron backed
+  by scikit-learn's `MLPRegressor` (input `StandardScaler`, `solver="lbfgs"` default for the
+  small-data DOE regime). It adds **no new dependency** (scikit-learn is already Core, BSD), fits
+  multi-output targets natively, declares an honest reproduction tolerance for its iterative
+  optimiser, and **exports to ONNX** via `skl2onnx` — the second ONNX-capable method after
+  `polynomial`. Being an ordinary `BaseTrainer`, it also works unchanged as a `reduced-field` inner
+  surrogate (POD-NN: `model.inner.method: mlp`). A heavyweight framework (PyTorch/DeepONet/FNO) for
+  large, strongly-nonlinear fields remains available on the external entry-point plugin seam.
 
 ## [0.2.0] — 2026-06-14
 
