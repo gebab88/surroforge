@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   OpenFOAM case sweep's ASCII `internalField` (scalar and vector, `nonuniform`/`uniform`)
   straight into the wide `(n_samples × n_dof)` snapshot matrix the `reduced-field` method
   trains on — **mesh-free** (no coordinates/connectivity) and dependency-free (pure-Python
-  parsing on existing Core deps). Binary/`meshio`-backed readers remain deferred to the
-  `surroforge[rom]` extra. See `examples/05_openfoam_field_rom.py`.
+  parsing on existing Core deps). See `examples/05_openfoam_field_rom.py`.
+- **`surroforge data add-openfoam <case-root>`**: a CLI command that ingests an OpenFOAM case
+  sweep (`--field`, `--samples` DoE table, `--name`, `--output`, `--time`) and registers it as a
+  dataset in one step — a thin wrapper over `read_openfoam_sweep`, same lineage/hash as `data add`.
+- **Binary/mesh field reading** (`surroforge.data.read_mesh_field`) via `meshio`, behind the
+  `surroforge[rom]` extra (now `meshio>=5.3`, MIT-licensed): reads a named point/cell field from
+  any `meshio`-supported format, with a lazy import + `pip install 'surroforge[rom]'` hint.
 
 ## [0.1.0] — 2026-06-14
 

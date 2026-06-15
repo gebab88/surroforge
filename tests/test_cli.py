@@ -190,3 +190,173 @@ def test_verbose_mode_shows_progress(tmp_path):
     result = runner.invoke(app, ["--config-dir", str(root), "-v", "train", "--config", str(cfg)])
     assert result.exit_code == 0
     assert "·" in result.output  # per-step progress bullets
+
+
+# --- data add-openfoam (Story R5.2) --------------------------------------------------
+
+
+def _of_scalar(path, values):
+    body = "\n".join(f"{v:.10g}" for v in values)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "FoamFile\n{\n    class volScalarField;\n    object p;\n}\n"
+        f"internalField nonuniform List<scalar>\n{len(values)}\n(\n{body}\n)\n;\n"
+    )
+
+
+def _make_of_sweep(tmp_path):
+    """Three OpenFOAM cases of a 3-cell field 'p' + a DoE samples table."""
+    case_root = tmp_path / "cases"
+    rows = {"case_00": [1.0, 2.0, 3.0], "case_01": [4.0, 5.0, 6.0], "case_02": [7.0, 8.0, 9.0]}
+    for case, values in rows.items():
+        _of_scalar(case_root / case / "10" / "p", values)
+    samples = tmp_path / "samples.csv"
+    pd.DataFrame(
+        {"case": list(rows), "u_in": [1.0, 2.0, 3.0], "aoa": [0.0, 1.0, 2.0]}
+    ).to_csv(samples, index=False)
+    return case_root, samples
+
+
+def test_data_add_openfoam_registers(tmp_path):
+    root = tmp_path / "proj"
+    assert runner.invoke(app, ["init", str(root)]).exit_code == 0
+    case_root, samples = _make_of_sweep(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(samples), "--name", "cfd"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Registered dataset 'cfd'" in result.output
+    assert "3 rows" in result.output  # 3 cases; cols = u_in, aoa, p_0000..p_0002
+    listing = runner.invoke(app, ["--config-dir", str(root), "data", "list"])
+    assert "cfd" in listing.output
+
+
+def test_data_add_openfoam_deterministic_hash(tmp_path):
+    from surroforge.core.project import Project
+
+    case_root, samples = _make_of_sweep(tmp_path)
+    hashes = []
+    for i in range(2):
+        root = tmp_path / f"proj{i}"
+        runner.invoke(app, ["init", str(root)])
+        result = runner.invoke(
+            app,
+            ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+             "--field", "p", "--samples", str(samples), "--name", "cfd"],
+        )
+        assert result.exit_code == 0, result.output
+        hashes.append(Project.open(root).dataset("cfd").hash)
+    assert hashes[0] == hashes[1]
+
+
+def test_data_add_openfoam_bad_samples_errors(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root, _ = _make_of_sweep(tmp_path)
+    bad = tmp_path / "bad.csv"
+    pd.DataFrame({"name": ["case_00"], "u_in": [1.0]}).to_csv(bad, index=False)  # no 'case' column
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(bad), "--name", "cfd"],
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output and "'case' column" in result.output
+
+
+def test_data_add_openfoam_name_collision_preserves_existing(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    pre = tmp_path / "pre.csv"
+    pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]}).to_csv(pre, index=False)
+    assert runner.invoke(
+        app, ["--config-dir", str(root), "data", "add", str(pre), "--name", "cfd"]
+    ).exit_code == 0
+    backing = root / "data" / "cfd.csv"
+    before = backing.read_text()
+    case_root, samples = _make_of_sweep(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(samples), "--name", "cfd"],
+    )
+    assert result.exit_code == 1
+    assert "already registered" in result.output
+    assert backing.read_text() == before  # existing backing file must NOT be clobbered
+
+
+def test_data_add_openfoam_integer_case_names(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root = tmp_path / "cases"
+    for i in range(3):
+        _of_scalar(case_root / str(i) / "10" / "p", [float(i), float(i) + 0.5])
+    samples = tmp_path / "samples.csv"
+    pd.DataFrame({"case": [0, 1, 2], "u": [1.0, 2.0, 3.0]}).to_csv(samples, index=False)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(samples), "--name", "cfd"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Registered dataset 'cfd'" in result.output
+
+
+def test_data_add_openfoam_case_mismatch_errors(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root, _ = _make_of_sweep(tmp_path)  # dirs case_00..case_02
+    bad = tmp_path / "mismatch.csv"
+    mismatch = pd.DataFrame({"case": ["nope_0", "nope_1", "nope_2"], "u": [1.0, 2.0, 3.0]})
+    mismatch.to_csv(bad, index=False)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(bad), "--name", "cfd"],
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output and "No parameters provided" in result.output
+
+
+def test_data_add_openfoam_empty_samples_errors(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root, _ = _make_of_sweep(tmp_path)
+    empty = tmp_path / "empty.csv"
+    pd.DataFrame({"case": [], "u": []}).to_csv(empty, index=False)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(empty), "--name", "cfd"],
+    )
+    assert result.exit_code == 1
+    assert "no rows" in result.output
+
+
+def test_data_add_openfoam_unsupported_output_errors(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root, samples = _make_of_sweep(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(samples), "--name", "cfd",
+         "--output", str(tmp_path / "out.txt")],
+    )
+    assert result.exit_code == 1
+    assert "Unsupported --output format" in result.output
+
+
+def test_data_add_openfoam_bad_time_errors(tmp_path):
+    root = tmp_path / "proj"
+    runner.invoke(app, ["init", str(root)])
+    case_root, samples = _make_of_sweep(tmp_path)
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "data", "add-openfoam", str(case_root),
+         "--field", "p", "--samples", str(samples), "--name", "cfd", "--time", "999"],
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output

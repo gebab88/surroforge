@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-14  # Phase-2: Epic R5; story r5-1 done (review: 1 decision + 11 patches, 361 passed)
+last_updated: 2026-06-14  # Phase-2: Epic R5; r5-1 + r5-2 both done (review: 1 decision + 8 patches, 371 passed)
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -239,4 +239,4 @@ development_status:
   # trains on. ASCII parsing is Core-pure (no new dep); binary/meshio readers deferred to [rom].
   r5-1-openfoam-field-ingestion: done
   # r5-2 (deferred): `surroforge data add-openfoam` CLI + meshio binary/mesh readers behind [rom].
-  r5-2-data-add-openfoam-cli-and-binary-readers: backlog
+  r5-2-data-add-openfoam-cli-and-binary-readers: done

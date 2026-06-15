@@ -173,6 +173,73 @@ def read_openfoam_sweep(
     return pd.DataFrame(frame)
 
 
+def read_mesh_field(path: str | Path, field: str, *, location: str = "point") -> np.ndarray:
+    """Read a named field from a binary/mesh file via ``meshio`` as a flat array.
+
+    Handles any format :mod:`meshio` supports (VTK/VTU/XDMF, binary OpenFOAM, …) — the
+    deferred Phase-2 binary path. ``location='point'`` reads ``mesh.point_data[field]``;
+    ``location='cell'`` concatenates ``mesh.cell_data[field]`` across cell blocks. Vector
+    fields flatten cell-major (``[x0 y0 z0 …]``), matching :func:`read_openfoam_field`.
+
+    ``meshio`` is imported lazily; if it is not installed this raises a :class:`DataError`
+    with a ``pip install 'surroforge[rom]'`` hint (mirroring ``[smt]``/``[onnx]``).
+    """
+    meshio = _require_meshio()
+    path = Path(path)
+    if not path.is_file():
+        raise DataError(f"Mesh field file not found: {path}")
+    try:
+        mesh = meshio.read(str(path))
+    except Exception as exc:  # meshio raises a variety of reader-specific errors
+        raise DataError(f"{path}: meshio could not read this file: {exc}") from exc
+
+    if location == "point":
+        store = mesh.point_data
+    elif location == "cell":
+        store = mesh.cell_data
+    else:
+        raise DataError(f"location must be 'point' or 'cell', got {location!r}")
+    if field not in store:
+        raise DataError(f"{path}: field '{field}' not found; available: {sorted(store)}")
+
+    raw = store[field]
+    try:
+        if location == "cell":
+            # cell_data[field] is one array per cell block — concatenate in block order.
+            if not list(raw):
+                raise DataError(f"{path}: field '{field}' has no cell-data blocks")
+            array = np.concatenate([np.asarray(block, dtype=float) for block in raw])
+        else:
+            array = np.asarray(raw, dtype=float)
+    except (ValueError, TypeError) as exc:
+        raise DataError(f"{path}: could not read field '{field}' as a float array: {exc}") from exc
+    # Only scalar (1 component) or vector (3) fields map to a DOF column group — reject
+    # tensors etc. rather than silently flattening them (mirrors read_openfoam_field).
+    components = 1 if array.ndim == 1 else array.shape[-1]
+    if array.ndim > 2 or components not in (1, 3):
+        raise DataError(
+            f"{path}: field '{field}' has shape {array.shape}; only scalar (n,) or vector "
+            "(n, 3) fields are supported"
+        )
+    values = array.reshape(-1)  # (n, 3) -> cell-major [x0 y0 z0 …]; (n,) -> as-is
+    if values.size == 0:
+        raise DataError(f"{path}: field '{field}' is empty")
+    if not np.all(np.isfinite(values)):
+        raise DataError(f"{path}: non-finite (nan/inf) value in field '{field}'")
+    return values
+
+
+def _require_meshio():
+    try:
+        import meshio  # lazy: keeps meshio out of the base install
+    except ImportError as exc:
+        raise DataError(
+            "Reading binary/mesh field files requires the 'meshio' backend. "
+            "Install it with: pip install 'surroforge[rom]'"
+        ) from exc
+    return meshio
+
+
 # --------------------------------------------------------------------------- #
 # Internals
 # --------------------------------------------------------------------------- #

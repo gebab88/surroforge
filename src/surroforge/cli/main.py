@@ -20,6 +20,7 @@ from surroforge import __version__, services
 from surroforge.core.config import load_config
 from surroforge.core.project import Project
 from surroforge.core.run import FieldCoverageWarning, ProvenanceWarning, Run
+from surroforge.data import SUPPORTED_SUFFIXES, load_table, read_openfoam_sweep
 from surroforge.engine import run_training
 from surroforge.errors import DataError, SurroForgeError
 from surroforge.plugins import get_trainer
@@ -216,6 +217,92 @@ def data_add(
     project = _project()
     dataset = project.add_dataset(file, name=name)
     _success(f"Registered dataset '{dataset.name}' ({dataset.n_rows} rows, {dataset.n_cols} cols)")
+    _info(f"  path: {dataset.path}")
+    _info(f"  hash: {dataset.hash}")
+
+
+def _has_pyarrow() -> bool:
+    import importlib.util
+
+    return importlib.util.find_spec("pyarrow") is not None
+
+
+def _openfoam_params(samples: Path) -> dict[str, dict[str, float]]:
+    """Parse a DoE table (a ``case`` column + parameter columns) into the mapping
+    ``read_openfoam_sweep`` expects: ``{case_name: {param: value}}``."""
+    table = load_table(samples)
+    if "case" not in table.columns:
+        raise DataError(
+            f"Samples table {samples} must have a 'case' column naming each case directory; "
+            f"got columns {list(table.columns)}."
+        )
+    if table.empty:
+        raise DataError(f"Samples table {samples} has no rows.")
+    param_cols = [c for c in table.columns if c != "case"]
+    if not param_cols:
+        raise DataError(
+            f"Samples table {samples} has only a 'case' column and no parameter columns."
+        )
+    # Build keys from the column directly (astype(str)), not row iteration: iterrows() upcasts
+    # an integer 'case' column to float, turning case '0' into '0.0' and never matching the dir.
+    cases = table["case"].astype(str).tolist()
+    mapping: dict[str, dict[str, float]] = {}
+    for position, case in enumerate(cases):
+        if case in mapping:
+            raise DataError(f"Duplicate case '{case}' in samples table {samples}.")
+        case_params: dict[str, float] = {}
+        for col in param_cols:
+            value = table[col].iloc[position]
+            try:
+                case_params[col] = float(value)
+            except (TypeError, ValueError) as exc:
+                raise DataError(
+                    f"Non-numeric parameter '{col}' in samples table {samples} for case "
+                    f"'{case}': {value!r} ({exc})"
+                ) from exc
+        mapping[case] = case_params
+    return mapping
+
+
+@data_app.command("add-openfoam")
+@_guard
+def data_add_openfoam(
+    case_root: Path = typer.Argument(
+        ..., exists=True, file_okay=False, help="OpenFOAM case-root (one sub-dir per DOE point)."
+    ),
+    field: str = typer.Option(..., "--field", "-f", help="Field to ingest (e.g. 'p', 'U')."),
+    name: str = typer.Option(..., "--name", "-n", help="Name for the registered dataset."),
+    samples: Path = typer.Option(
+        None, "--samples", exists=True, help="DoE table CSV: a 'case' column + parameter columns."
+    ),
+    output: Path = typer.Option(
+        None, "--output", "-o", help="Snapshot file to write (default: data/<name>.parquet|csv)."
+    ),
+    time: str = typer.Option(None, "--time", help="Pin a time directory (default: the latest)."),
+) -> None:
+    """Ingest an OpenFOAM case sweep and register it as a dataset (PRD-ROM 4.2)."""
+    project = _project()
+    # Fail fast on a name collision BEFORE writing — otherwise the default output path
+    # (data/<name>.<ext>) would clobber the existing dataset's backing file, then abort.
+    if any(dataset.name == name for dataset in project.datasets()):
+        raise DataError(f"A dataset named '{name}' is already registered.")
+    if output is None:
+        # Prefer a lossless default where available; CSV is fine but lossy at ULP precision.
+        output = project.data_dir / (f"{name}.parquet" if _has_pyarrow() else f"{name}.csv")
+    if output.suffix.lower() not in SUPPORTED_SUFFIXES:
+        raise DataError(
+            f"Unsupported --output format '{output.suffix}'. "
+            f"Supported: {sorted(SUPPORTED_SUFFIXES)}."
+        )
+    params = _openfoam_params(samples) if samples is not None else None
+    frame = read_openfoam_sweep(case_root, field=field, params=params, time=time)
+    try:
+        _save_frame(frame, output)
+    except OSError as exc:
+        raise DataError(f"Could not write snapshot to {output}: {exc}") from exc
+    dataset = project.add_dataset(output, name=name)
+    _success(f"Registered dataset '{dataset.name}' ({dataset.n_rows} rows, {dataset.n_cols} cols)")
+    _info(f"  field: {field}")
     _info(f"  path: {dataset.path}")
     _info(f"  hash: {dataset.hash}")
 

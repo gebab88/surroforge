@@ -16,6 +16,7 @@ import pytest
 from surroforge.data import (
     hash_dataframe,
     latest_time_field,
+    read_mesh_field,
     read_openfoam_dimensioned_scalar,
     read_openfoam_field,
     read_openfoam_sweep,
@@ -383,3 +384,49 @@ def test_sweep_trains_through_reduced_field_pipeline(tmp_path):
     assert run.metrics["n_outputs"] == 8  # p_* resolved to the 8-DOF field
     assert run.metrics["test"]["r2"] > 0.95
     assert_reproducible(reproduce(proj, run.run_id))
+
+
+# --- meshio-backed binary/mesh reader behind [rom] (Story R5.2) ----------------------
+
+
+def test_read_mesh_field_missing_meshio_gives_install_hint(tmp_path, monkeypatch):
+    import sys
+
+    # A None entry in sys.modules makes `import meshio` raise ImportError, so the test
+    # is deterministic whether or not meshio is actually installed.
+    monkeypatch.setitem(sys.modules, "meshio", None)
+    with pytest.raises(DataError, match=r"surroforge\[rom\]"):
+        read_mesh_field(tmp_path / "whatever.vtu", "T")
+
+
+def test_read_mesh_field_point_data_roundtrip(tmp_path):
+    meshio = pytest.importorskip("meshio")
+    points = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    cells = [("triangle", np.array([[0, 1, 2]]))]
+    mesh = meshio.Mesh(points, cells, point_data={"T": np.array([1.0, 2.0, 3.0])})
+    path = tmp_path / "m.vtu"
+    mesh.write(path)
+    assert np.allclose(read_mesh_field(path, "T", location="point"), [1.0, 2.0, 3.0])
+
+
+def test_read_mesh_field_unknown_field_raises(tmp_path):
+    meshio = pytest.importorskip("meshio")
+    points = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    cells = [("triangle", np.array([[0, 1, 2]]))]
+    mesh = meshio.Mesh(points, cells, point_data={"T": [1.0, 2.0, 3.0]})
+    path = tmp_path / "m.vtu"
+    mesh.write(path)
+    with pytest.raises(DataError, match=r"field 'p' not found"):
+        read_mesh_field(path, "p", location="point")
+
+
+def test_read_mesh_field_rejects_tensor(tmp_path):
+    meshio = pytest.importorskip("meshio")
+    points = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    cells = [("triangle", np.array([[0, 1, 2]]))]
+    tensor = np.arange(3 * 9, dtype=float).reshape(3, 9)  # 9 components/point — not scalar/vector
+    mesh = meshio.Mesh(points, cells, point_data={"R": tensor})
+    path = tmp_path / "m.vtu"
+    mesh.write(path)
+    with pytest.raises(DataError, match="only scalar"):
+        read_mesh_field(path, "R", location="point")

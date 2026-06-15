@@ -46,16 +46,14 @@ smt = ["smt>=2.0"]
 onnx = ["skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17"]
 # Additional tabular input formats (PRD 4.4).
 formats = ["pyarrow>=14.0", "h5py>=3.10"]
-# Field ROM — POD field reduction (PRD-ROM 4.10, Story R4.4). v1 adds NO new heavy
-# dependency: the reduction runs on numpy/scipy, both already core deps, so this
-# extra is intentionally empty. It exists as the documented ROM install target
-# (`pip install 'surroforge[rom]'`, mirroring [smt]/[onnx]) and the Phase-2 home for
-# the optional mesh readers (meshio/pyvista, deferred). `reduced-field` already works
-# on the base install; the lazy guard in the trainer surfaces an actionable install
-# hint instead of a raw ImportError if the numpy/scipy stack is ever absent.
-rom = []
-# Everything an MVP user might want. (rom adds no package in v1 — see above.)
-all = ["smt>=2.0", "skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17", "pyarrow>=14.0", "h5py>=3.10"]
+# Field ROM. POD reduction needs only numpy/scipy (already Core), so `reduced-field` and
+# the ASCII OpenFOAM reader work on the base install. This extra now carries the Phase-2
+# mesh/binary readers: `meshio` backs `read_mesh_field` and the binary OpenFOAM path
+# (Story R5.2), behind a lazy import + `pip install 'surroforge[rom]'` hint (mirroring
+# [smt]/[onnx]). meshio is MIT-licensed — keeps Core permissive (NFR8).
+rom = ["meshio>=5.3"]
+# Everything an MVP user might want.
+all = ["smt>=2.0", "skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17", "pyarrow>=14.0", "h5py>=3.10", "meshio>=5.3"]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "import-linter>=2.0", "build>=1.0", "twine>=5.0"]
 # Documentation site (PRD §13, Story 6.5): MkDocs Material.
 docs = ["mkdocs-material>=9.5"]
