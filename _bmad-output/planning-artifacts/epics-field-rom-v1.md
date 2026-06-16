@@ -433,6 +433,45 @@ ONNX via skl2onnx → 2nd ONNX-capable method); registered in both sites; added 
 BUILTINS; works as a `reduced-field` inner (POD-NN). Zero new dependency. 3-layer adversarial review
 (6 patches applied / 3 dismissed). Suite 400 passed / 7 skipped; all gates green.
 
+## Epic R7: PyTorch Surrogates — *Phase 2* (external-plugin distribution)
+
+> **Phase 2 — the first heavyweight-framework track, delivered OFF Core.** R6 added the first neural
+> network (`mlp`) as a Core built-in but deliberately deferred PyTorch: the Golden Path `[MUST]` keeps
+> framework plugins on the entry-points-only seam (a separate distribution, never `_BUILTIN`), and the
+> R6 retro (Action Item 3) pre-scoped exactly this epic. R7 ships PyTorch as the `surroforge-torch`
+> package — Core stays torch-free, and the never-before-exercised plugin seam is validated end-to-end
+> by a real distribution. The switch between backends is the `model.method` field (`mlp` ↔ `torch-mlp`).
+
+### Story R7.1: PyTorch neural-network surrogate — the `surroforge-torch` plugin (`torch-mlp`)
+
+As a methods engineer,
+I want a PyTorch-backed surrogate (`model.method: torch-mlp`) I switch to from the built-in `mlp` by
+changing one config line and installing one package,
+So that I can reach for a real deep-learning framework on strongly-nonlinear problems without Core
+taking on a heavy dependency or losing its reproducibility/export guarantees.
+
+**Acceptance Criteria:** (full BDD in the story file)
+
+**Given** the `surroforge-torch` package is installed
+**When** the registry resolves `model.method: torch-mlp` (or `model.inner.method: torch-mlp`)
+**Then** a `TorchMLPTrainer(BaseTrainer)` registered via the package's `surroforge.trainers` entry
+point **only** (never Core's `_BUILTIN`) fits and predicts behind the unchanged trainer contract (2-D
+predict, native multi-output), passes `check_trainer()` unmodified, carries its own `random_state`
+with an honest float32 `reproduction_tolerance` (+ a negative reproduce test), and exports to **ONNX**
+**And** **no** Core source changes (AR-R1 from outside; only docs/CHANGELOG note the plugin), and
+PyTorch (BSD-3 → NFR8) is confined to the opt-in package.
+
+**Placement decision:** a separate `surroforge-torch` distribution in the monorepo
+(`plugins/surroforge-torch/`), entry-points-only — per the Golden Path and the R6 retro Action Item 3.
+The switch is `method: mlp` ↔ `torch-mlp`; `torch-mlp` mirrors `mlp`'s hyperparameter surface so the
+edit is one line.
+
+**Status:** ✅ delivered — Phase 2 (external-plugin track; story `r7-1-pytorch-mlp-plugin.md`).
+`plugins/surroforge-torch/` (`TorchMLPTrainer` on PyTorch — seeded/full-batch determinism, ONNX via
+torch's exporter with standardisation baked in, POD-NN inner). **First real plugin-seam exercise; no
+Core change.** Plugin suite 28 passed; Core 402 passed / 7 skipped; ruff/mypy clean. 3-layer
+adversarial review applied.
+
 ## Open Questions (carried from PRD-ROM §9)
 
 - **OQ-1 — Edition:** confirm Core (default) vs. a Pro differentiator. *Recommendation: Core* (the reproduce() change must be Core).

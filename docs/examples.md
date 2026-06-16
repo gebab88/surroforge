@@ -19,6 +19,7 @@ python examples/01_quickstart.py
 | [`05_openfoam_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/05_openfoam_field_rom.py) | Ingest an OpenFOAM case sweep (parse `internalField`) into a field ROM | Core only |
 | [`06_mlp_surrogate.py`](https://github.com/gebab88/surroforge/blob/main/examples/06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Core (ONNX export adds `[onnx]`) |
 | [`07_pod_nn_field.py`](https://github.com/gebab88/surroforge/blob/main/examples/07_pod_nn_field.py) | POD-NN: reduce a field with POD, learn the modal coefficients with an `mlp` inner, beat a polynomial inner | Core only |
+| [`08_torch_mlp.py`](https://github.com/gebab88/surroforge/blob/main/examples/08_torch_mlp.py) | Switch the NN backend with one config line — `mlp` (scikit-learn) ↔ `torch-mlp` (PyTorch), same hyperparameters | Core; the PyTorch half needs the `surroforge-torch` plugin |
 
 The Python scripts are the API twin of the shell workflows in the
 [Quickstart](quickstart.md) and the [Scenarios](scenarios/greenfield.md). They

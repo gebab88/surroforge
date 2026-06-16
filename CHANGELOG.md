@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added — Plugins
+
+- **`surroforge-torch` plugin** (`plugins/surroforge-torch/`, separate distribution): a
+  **PyTorch** neural-network surrogate registered as the `torch-mlp` method through the
+  `surroforge.trainers` entry point only — **never** Core's `_BUILTIN`, so Core stays
+  PyTorch-free. It is the first heavyweight-framework method and the first real exercise of
+  the plugin seam. You switch between scikit-learn and PyTorch by changing one config line
+  (`model.method: mlp` ↔ `torch-mlp`) — `torch-mlp` mirrors `mlp`'s hyperparameter surface.
+  Deterministic by construction (own integer `random_state`, seeded weight init, full-batch
+  training; honest float32 `reproduction_tolerance = 1e-4`), exports to **ONNX** (torch's
+  built-in exporter, standardisation baked into the graph), passes the shipped `check_trainer`
+  conformance suite, and works as a `reduced-field` inner (POD-NN). PyTorch is BSD-3 → NFR8
+  holds; install with `pip install ./plugins/surroforge-torch`. See `examples/08_torch_mlp.py`
+  for the one-line `mlp` ↔ `torch-mlp` switch.
 
 ## [0.2.0] — 2026-06-15
 

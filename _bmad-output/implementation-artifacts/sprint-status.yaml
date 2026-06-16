@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-15  # Epic R6 DONE + retro (epic-r6-retro-2026-06-15.md); next gate: release incl. mlp
+last_updated: 2026-06-15  # Epic R7 (surroforge-torch plugin) DONE (story+review); next gate: release incl. mlp + torch plugin
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -265,3 +265,16 @@ development_status:
   # mlp into next release; verify CI runs the BLAS-pinned probe on OpenBLAS. Suite 401 passed / 7
   # skipped; gates green. Committed + pushed (06925c2, f5d616c).
   epic-r6-retrospective: done
+
+  # Epic R7 — PyTorch Surrogates (Phase 2, EXTERNAL-PLUGIN distribution) — DONE 2026-06-15 (1/1 story)
+  # First heavyweight-framework track, delivered OFF Core per the Golden Path + R6 retro AI3.
+  epic-r7: done
+  # r7-1: the `surroforge-torch` plugin (plugins/surroforge-torch/) — TorchMLPTrainer registers
+  # `torch-mlp` via the surroforge.trainers entry point ONLY (never _BUILTIN); NO Core change. First
+  # real plugin-seam exercise. Switch backend via method: mlp <-> torch-mlp (mirrored hyperparameters).
+  # Seeded/full-batch determinism (reproduction_tolerance 1e-4 + negative test); ONNX via torch's
+  # legacy exporter (standardisation baked in); passes check_trainer; works as a reduced-field inner.
+  # Full 3-layer adversarial review (code-verified): 8 findings, 7 applied / 1 dismissed; scope clean.
+  # Plugin suite 29 passed; Core 402 passed / 7 skipped; ruff/mypy clean.
+  r7-1-pytorch-mlp-plugin: done
+  epic-r7-retrospective: optional

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "surroforge-torch"
+version = "0.1.0"
+description = "PyTorch neural-network surrogate (torch-mlp) plugin for SurroForge."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "SurroForge" }]
+keywords = ["surrogate", "pytorch", "neural-network", "surroforge", "plugin"]
+# PyTorch is BSD-3 → keeps the install permissive (NFR8). surroforge is the host Core.
+dependencies = [
+    "surroforge",
+    "torch>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+# ONNX export + inference. torch's legacy exporter serialises the graph through the `onnx`
+# package; onnxruntime is additionally needed to run/round-trip the exported model.
+onnx = ["onnx>=1.15", "onnxruntime>=1.17"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
+
+# The whole reason this package exists: register torch-mlp on the Core trainer seam. No
+# Core change is needed — the registry resolves a single external entry point directly.
+[project.entry-points."surroforge.trainers"]
+torch-mlp = "surroforge_torch.trainer:TorchMLPTrainer"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/surroforge_torch"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
