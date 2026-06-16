@@ -60,7 +60,7 @@
 # by r1-3 but kept 'backlog' until their own acceptance criteria are met.
 
 generated: 2026-06-04
-last_updated: 2026-06-15  # Epic R7 (surroforge-torch plugin) DONE (story+review); next gate: release incl. mlp + torch plugin
+last_updated: 2026-06-16  # Epic R7 DONE incl. retrospective (epic-r7-retro-2026-06-16.md); next gate: release incl. mlp + torch plugin
 project: SurroForge
 project_key: NOKEY
 tracking_system: file-system
@@ -277,4 +277,11 @@ development_status:
   # Full 3-layer adversarial review (code-verified): 8 findings, 7 applied / 1 dismissed; scope clean.
   # Plugin suite 29 passed; Core 402 passed / 7 skipped; ruff/mypy clean.
   r7-1-pytorch-mlp-plugin: done
-  epic-r7-retrospective: optional
+  # done: epic-r7-retro-2026-06-16.md. 1/1 story. First REAL plugin-seam proof (external distribution,
+  # zero Core change). Executes R6 AI3 (heavyweight-NN = external epic) and applies R6 AI2 (full 3-layer
+  # review, no degradation, + per-finding code-verification): 8 findings, 7 applied / 1 dismissed.
+  # Action items: (1) optional plugin CI job (torch + check_trainer, off main matrix); (2) decide
+  # surroforge-torch publish path; (3) track torch ONNX legacy-exporter deprecation; (4) further
+  # heavyweight methods extend the plugin, never Core; (5) carry R6 AI4 — release incl. mlp + plugin.
+  # ad0ca0e committed (not yet pushed). Plugin suite 29 passed; Core 402 passed / 7 skipped.
+  epic-r7-retrospective: done
