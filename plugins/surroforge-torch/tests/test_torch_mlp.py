@@ -10,6 +10,7 @@ core path needs torch; the ONNX round-trip importorskips onnxruntime.
 from __future__ import annotations
 
 import importlib.util
+import io
 import pickle
 
 import numpy as np
@@ -171,10 +172,11 @@ def test_different_seed_diverges_beyond_tolerance():
 
 
 def test_declares_capabilities():
-    assert TorchMLPTrainer.export_formats == frozenset({"pickle", "onnx"})
+    assert TorchMLPTrainer.export_formats == frozenset({"pickle", "onnx", "pt"})
     tol = TorchMLPTrainer.reproduction_tolerance
     assert isinstance(tol, float) and np.isfinite(tol) and tol > 0.0  # honest, not 0.0
-    assert TorchMLPTrainer().supports_export("onnx") and TorchMLPTrainer().supports_export("pickle")
+    t = TorchMLPTrainer()
+    assert t.supports_export("onnx") and t.supports_export("pickle") and t.supports_export("pt")
 
 
 # --- the shipped conformance suite (all 12 checks) ---------------------------
@@ -243,6 +245,82 @@ def test_onnx_export_hint_when_onnx_missing(monkeypatch):
     )
     with pytest.raises(ExportError, match=r"surroforge-torch\[onnx\]"):
         t.to_onnx(n_features=2)
+
+
+# --- native PyTorch .pt export -----------------------------------------------
+
+def _rebuild_from_pt(checkpoint) -> "torch.nn.Module":
+    """Reconstruct the fitted module from a to_pt() checkpoint, the way a consumer would."""
+    from surroforge_torch.trainer import _ACTIVATIONS, _StandardizedMLP
+
+    layers, prev = [], checkpoint["n_features"]
+    for width in checkpoint["hidden_layer_sizes"]:
+        layers += [torch.nn.Linear(prev, width), _ACTIVATIONS[checkpoint["activation"]]()]
+        prev = width
+    layers.append(torch.nn.Linear(prev, checkpoint["n_outputs"]))
+    net = torch.nn.Sequential(*layers)
+    xz, yz = torch.zeros(checkpoint["n_features"]), torch.zeros(checkpoint["n_outputs"])
+    # Right-shaped buffer placeholders; load_state_dict fills in the saved values.
+    model = _StandardizedMLP(net, xz.clone(), xz.clone(), yz.clone(), yz.clone())
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
+    return model
+
+
+@pytest.mark.parametrize("n_outputs", [1, 2])
+def test_pt_round_trip_reproduces_predict(n_outputs):
+    """The .pt checkpoint loads under the safe weights_only path and, once the architecture
+    is rebuilt from it, reproduces predict() bit-for-bit (standardisation buffers included)."""
+    x, y1 = _smooth_problem(n=160)
+    y = y1 if n_outputs == 1 else np.column_stack([y1[:, 0], x[:, 0] * x[:, 1]])
+    t = TorchMLPTrainer(max_iter=300)
+    t.fit(x, y)
+
+    blob = t.to_pt(n_features=2)
+    assert isinstance(blob, bytes) and blob
+
+    checkpoint = torch.load(io.BytesIO(blob), weights_only=True)  # safe load, no code exec
+    assert checkpoint["surroforge_torch_pt_version"] == 1
+    model = _rebuild_from_pt(checkpoint)
+    xt = torch.from_numpy(np.ascontiguousarray(x, dtype=np.float32))
+    with torch.no_grad():
+        out = model(xt).numpy()
+    np.testing.assert_allclose(out.reshape(t.predict(x).shape), t.predict(x), atol=1e-6)
+
+
+def test_pt_export_before_fit_raises():
+    with pytest.raises(TrainerError, match="not fitted"):
+        TorchMLPTrainer().to_pt(n_features=2)
+
+
+def test_pt_export_rejects_wrong_feature_count():
+    x, y = _smooth_problem(n=60)  # 2 input features
+    t = TorchMLPTrainer(max_iter=100)
+    t.fit(x, y)
+    with pytest.raises(ExportError, match="fitted on 2"):
+        t.to_pt(n_features=5)
+
+
+def test_pt_exporter_registered_on_seam():
+    """The plugin registers the `pt` exporter on the Core seam, so Core resolves it without
+    any built-in entry — and writes a real .pt file for a fitted torch-mlp."""
+    from surroforge.plugins import available_exporters, get_exporter
+    from surroforge_torch.pt_exporter import PtExporter
+
+    assert "pt" in available_exporters()
+    assert get_exporter("pt") is PtExporter
+
+
+def test_pt_exporter_writes_file(tmp_path):
+    x, y = _smooth_problem(n=80)
+    t = TorchMLPTrainer(max_iter=100)
+    t.fit(x, y)
+    from surroforge_torch.pt_exporter import PtExporter
+
+    dest = PtExporter().export(t, tmp_path / "model.pt", n_features=2)
+    assert dest.exists() and dest.suffix == ".pt"
+    checkpoint = torch.load(io.BytesIO(dest.read_bytes()), weights_only=True)
+    assert set(checkpoint) >= {"state_dict", "hidden_layer_sizes", "activation", "n_features"}
 
 
 # --- works as a reduced-field inner (POD-NN), unchanged ----------------------

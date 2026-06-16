@@ -29,6 +29,11 @@ dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
 [project.entry-points."surroforge.trainers"]
 torch-mlp = "surroforge_torch.trainer:TorchMLPTrainer"
 
+# Native PyTorch checkpoint export. Registered on the Core exporter seam only, so Core
+# gains the `pt` format solely while this package is installed (torch-mlp declares it).
+[project.entry-points."surroforge.exporters"]
+pt = "surroforge_torch.pt_exporter:PtExporter"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/surroforge_torch"]
 

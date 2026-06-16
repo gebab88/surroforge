@@ -38,6 +38,10 @@ python examples/naca0012_openfoam/run_sweep.py --angles "-6 -3 0 3 6 9 12 14 16 
 python examples/naca0012_openfoam/ingest_and_train.py run
 ```
 
+`ingest_and_train.py` also **exports** the trained surrogates into the sweep directory: the best
+`Cl` model to `cl_surrogate.onnx` (and `cl_surrogate.pt`, a native PyTorch checkpoint, when
+`torch-mlp` won), and the field surrogate to `field_surrogate.pkl` (`reduced-field` is pickle-only).
+
 `run_sweep.py` options: `--angles` (deg, space/comma-separated), `--speed` (|U|, default 25.95 m/s),
 `--iters` (steady-state *cap*, default 500), `--residual` (residual-convergence tolerance, default
 `1e-8`), `--out` (sweep dir, default `run`), `--base` (an explicit `airFoil2D` case; defaults to

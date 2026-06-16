@@ -43,8 +43,9 @@ from sklearn.exceptions import ConvergenceWarning
 
 from surroforge import Project, Trainer
 from surroforge.data import read_openfoam_sweep
+from surroforge.errors import ExportError
 from surroforge.plugins import available_trainers
-from surroforge.services import compare_runs
+from surroforge.services import compare_runs, export_model
 
 # The lbfgs optimiser stops at its iteration cap on the sharp stall nonlinearity; the
 # resulting fits are excellent (see the R² columns the example prints), so silence the
@@ -242,8 +243,31 @@ def main(workdir: Path) -> None:
     for angle, cl in zip(probe[:, 0], pred[:, 0], strict=False):
         print(f"{angle:>10.1f}{cl:>12.4f}{naca0012_lift(np.array([angle]))[0]:>13.4f}")
 
+    # 5. Export the best lift surrogate to portable artifacts. ONNX is the framework-
+    #    agnostic graph (mlp via skl2onnx, torch-mlp via torch's exporter); `pt` is a
+    #    native PyTorch checkpoint and is therefore only offered by torch-backed methods.
+    #    We export only the formats the chosen method declares, and degrade gracefully if
+    #    an optional dependency (e.g. the `onnx` extra) is missing.
+    print("\n=== Export the best lift surrogate ===")
+    best_model = best_cl.load_model()
+    for fmt in ("onnx", "pt"):
+        if not best_model.supports_export(fmt):
+            print(f"  {fmt:5} skipped — {best_model.name} does not support it")
+            continue
+        try:
+            out = export_model(best_cl, fmt, workdir / f"cl_surrogate.{fmt}")
+            print(f"  {fmt:5} -> {out.name} ({out.stat().st_size} bytes)")
+        except ExportError as exc:
+            print(f"  {fmt:5} unavailable — {exc}")
+    # The field surrogate is reduced-field, which exports to pickle only (a POD basis +
+    # inner model, not a single graph); export it that way for completeness.
+    field_best = next(r for r in field_runs.values() if r.run_id == field_result["best"])
+    field_out = export_model(field_best, "pickle", workdir / "field_surrogate.pkl")
+    print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
+
     if not _HAS_TORCH:
-        print("\n(Install ./plugins/surroforge-torch to add the PyTorch `torch-mlp` backend.)")
+        print("\n(Install ./plugins/surroforge-torch to add the PyTorch `torch-mlp` backend"
+              " and native .pt export.)")
 
 
 if __name__ == "__main__":

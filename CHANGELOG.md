@@ -17,10 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`model.method: mlp` ↔ `torch-mlp`) — `torch-mlp` mirrors `mlp`'s hyperparameter surface.
   Deterministic by construction (own integer `random_state`, seeded weight init, full-batch
   training; honest float32 `reproduction_tolerance = 1e-4`), exports to **ONNX** (torch's
-  built-in exporter, standardisation baked into the graph), passes the shipped `check_trainer`
-  conformance suite, and works as a `reduced-field` inner (POD-NN). PyTorch is BSD-3 → NFR8
-  holds; install with `pip install ./plugins/surroforge-torch`. See `examples/08_torch_mlp.py`
-  for the one-line `mlp` ↔ `torch-mlp` switch.
+  built-in exporter, standardisation baked into the graph) **and to a native PyTorch `.pt`
+  checkpoint**, passes the shipped `check_trainer` conformance suite, and works as a
+  `reduced-field` inner (POD-NN). PyTorch is BSD-3 → NFR8 holds; install with
+  `pip install ./plugins/surroforge-torch`. See `examples/08_torch_mlp.py` for the one-line
+  `mlp` ↔ `torch-mlp` switch.
+- **`pt` export format** — the plugin registers a native PyTorch checkpoint exporter on Core's
+  `surroforge.exporters` entry-point seam (so Core gains the `pt` format only while the plugin
+  is installed). `torch-mlp.to_pt()` writes a `state_dict` + architecture checkpoint that loads
+  under the safe `torch.load(..., weights_only=True)` path; `surroforge export --format pt` (or
+  `export_model(run, "pt")`) produces it, and a non-torch method refuses `pt` with a clear error.
 
 ### Added — Examples
 
@@ -29,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   POD-NN of the pressure field and a scalar lift-coefficient (`C_L`) model. The lift curve stalls, so
   the neural surrogate beats a quadratic on both; `torch-mlp` joins when the plugin is present.
   Self-contained/CI-safe: it fabricates a representative sweep in genuine OpenFOAM format (no solver).
+  Finishes by exporting the best `C_L` surrogate to **ONNX** and, when `torch-mlp` won, a native
+  **`.pt`** checkpoint (the field surrogate to pickle), degrading gracefully when a backend is absent.
 - **`examples/naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
   `simpleFoam` over an AoA sweep on the validated `airFoil2D` mesh (rotating the freestream +
   `forceCoeffs`), and `ingest_and_train.py` builds the same surrogates from the genuine fields + the

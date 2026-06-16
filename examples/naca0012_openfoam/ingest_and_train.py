@@ -29,8 +29,9 @@ from sklearn.exceptions import ConvergenceWarning
 
 from surroforge import Project, Trainer
 from surroforge.data import read_openfoam_sweep
+from surroforge.errors import ExportError
 from surroforge.plugins import available_trainers
-from surroforge.services import compare_runs
+from surroforge.services import compare_runs, export_model
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)  # benign lbfgs iteration cap
 _HAS_TORCH = "torch-mlp" in available_trainers()
@@ -162,13 +163,41 @@ def main(run_dir: Path) -> None:
             }).fit(project)
             for label, model in _candidates([32, 32])
         }
-        _report(project, cl_runs, "method")
+        best_cl = cl_runs[_report(project, cl_runs, "method")]
+
+        # Export the trained surrogates into the (persistent) sweep directory. The best Cl
+        # model goes to every portable format it supports — ONNX always, plus a native
+        # PyTorch .pt when torch-mlp won; the field surrogate is reduced-field, pickle-only.
+        print("\n=== Export ===")
+        _export_best(best_cl, run_dir / "cl_surrogate")
+        field_best = field_runs[_best_label(project, field_runs)]
+        field_out = export_model(field_best, "pickle", run_dir / "field_surrogate.pkl")
+        print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
 
     if not _HAS_TORCH:
-        print("\n(Install ./plugins/surroforge-torch to add the PyTorch `torch-mlp` backend.)")
+        print("\n(Install ./plugins/surroforge-torch to add the PyTorch `torch-mlp` backend"
+              " and native .pt export.)")
 
 
-def _report(project: Project, runs: dict, label_kind: str) -> None:
+def _export_best(run: object, stem: Path) -> None:
+    model = run.load_model()  # type: ignore[attr-defined]
+    for fmt in ("onnx", "pt"):
+        if not model.supports_export(fmt):
+            print(f"  {fmt:5} skipped — {model.name} does not support it")
+            continue
+        try:
+            out = export_model(run, fmt, stem.with_suffix(f".{fmt}"))
+            print(f"  {fmt:5} -> {out.name} ({out.stat().st_size} bytes)")
+        except ExportError as exc:
+            print(f"  {fmt:5} unavailable — {exc}")
+
+
+def _best_label(project: Project, runs: dict) -> str:
+    result = compare_runs(project, [r.run_id for r in runs.values()], metric="rmse")
+    return next(label for label, r in runs.items() if r.run_id == result["best"])
+
+
+def _report(project: Project, runs: dict, label_kind: str) -> str:
     label_by_id = {r.run_id: name for name, r in runs.items()}
     result = compare_runs(project, list(label_by_id), metric="rmse")
     print(f"{label_kind:<12}{'test R²':>10}{'test RMSE':>12}")
@@ -180,6 +209,7 @@ def _report(project: Project, runs: dict, label_kind: str) -> None:
     if best_row["test"]["r2"] < 0:
         print("  (all test R² < 0 — data-starved sweep; '<- best' is lowest-RMSE only. "
               "Use more angles and --iters; see this directory's README.)")
+    return label_by_id[result["best"]]
 
 
 if __name__ == "__main__":

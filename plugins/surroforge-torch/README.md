@@ -54,9 +54,12 @@ Because any SurroForge trainer is automatically usable as a `reduced-field` inne
   untouched — so a same-seed refit reproduces within the declared
   `reproduction_tolerance = 1e-4` (an honest float32 band), while a changed seed diverges
   far beyond it.
-- **Exportable.** `export_formats == {"pickle", "onnx"}`; ONNX export uses torch's built-in
-  exporter and bakes input/output standardisation into the graph, so the exported model
-  matches `predict`.
+- **Exportable.** `export_formats == {"pickle", "onnx", "pt"}`. **ONNX** (a framework-agnostic
+  graph) uses torch's built-in exporter and bakes input/output standardisation into the graph, so
+  the exported model matches `predict`. **`pt`** is a native PyTorch checkpoint: the plugin
+  registers a `pt` exporter on Core's `surroforge.exporters` seam, and `to_pt()` writes a
+  `state_dict` + architecture that loads under the safe `torch.load(..., weights_only=True)` path.
+  Use either via `surroforge export --format onnx|pt` or `export_model(run, "onnx"|"pt")`.
 - **Conformant.** `TorchMLPTrainer` passes SurroForge's shipped `check_trainer` suite
   unmodified.
 

@@ -123,7 +123,7 @@ class TorchMLPTrainer(BaseTrainer):
     # honest band (looser than mlp's 1e-6). A changed seed moves predictions by ~1e-2
     # (~100x this band) on the test fixtures, so a real divergence still fails the verdict.
     reproduction_tolerance = 1e-4
-    export_formats = frozenset({"pickle", "onnx"})
+    export_formats = frozenset({"pickle", "onnx", "pt"})
 
     def __init__(
         self,
@@ -190,6 +190,7 @@ class TorchMLPTrainer(BaseTrainer):
         self.random_state = random_state
         self._model: _StandardizedMLP | None = None
         self._n_features: int | None = None
+        self._n_outputs: int | None = None
 
     def _build_net(self, n_in: int, n_out: int) -> nn.Module:
         # Save / seed / restore so weight init is pinned by random_state without
@@ -229,6 +230,7 @@ class TorchMLPTrainer(BaseTrainer):
         # Assign only after a successful fit (build-then-assign), mirroring mlp.
         self._model = model
         self._n_features = x2.shape[1]
+        self._n_outputs = y2.shape[1]
 
     def _optimise(self, model: nn.Module, x: torch.Tensor, y: torch.Tensor) -> None:
         loss_fn = nn.MSELoss()
@@ -341,4 +343,36 @@ class TorchMLPTrainer(BaseTrainer):
                 )
         except Exception as exc:  # torch raises various tracing/conversion errors
             raise ExportError(f"ONNX conversion of the torch-mlp module failed: {exc}") from exc
+        return buffer.getvalue()
+
+    def to_pt(self, n_features: int) -> bytes:
+        """Serialise the fitted module to a native PyTorch ``.pt`` checkpoint.
+
+        Unlike ONNX (a framework-agnostic graph) this is a torch-native artifact: a
+        ``torch.save`` payload carrying the module's ``state_dict`` plus the architecture
+        needed to rebuild it. It deliberately stores the *state dict* (weights + the
+        standardisation buffers), not a pickled module, so it loads under the safe
+        ``torch.load(..., weights_only=True)`` path without importing this package.
+        """
+        if self._model is None:
+            raise TrainerError("Model is not fitted.")
+        # Mirror to_onnx: the module was fitted on a fixed input width, so a mismatched
+        # n_features would describe a checkpoint that cannot be rebuilt correctly.
+        if n_features != self._n_features:
+            raise ExportError(
+                f"PT export was asked for {n_features} input feature(s) but the model was "
+                f"fitted on {self._n_features}. Pass the training feature count."
+            )
+        self._model.eval()
+        assert self._n_outputs is not None  # set together with _model in fit()
+        checkpoint = {
+            "surroforge_torch_pt_version": 1,
+            "state_dict": self._model.state_dict(),
+            "hidden_layer_sizes": list(self.hidden_layer_sizes),
+            "activation": self.activation,
+            "n_features": int(self._n_features),
+            "n_outputs": int(self._n_outputs),
+        }
+        buffer = io.BytesIO()
+        torch.save(checkpoint, buffer)
         return buffer.getvalue()
