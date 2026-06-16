@@ -22,6 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   holds; install with `pip install ./plugins/surroforge-torch`. See `examples/08_torch_mlp.py`
   for the one-line `mlp` ↔ `torch-mlp` switch.
 
+### Added — Examples
+
+- **`examples/09_naca0012_openfoam_surrogate.py`** — a NACA 0012 angle-of-attack study end to end:
+  ingest an OpenFOAM sweep (`read_openfoam_sweep`), then train **two** surrogates — a `reduced-field`
+  POD-NN of the pressure field and a scalar lift-coefficient (`C_L`) model. The lift curve stalls, so
+  the neural surrogate beats a quadratic on both; `torch-mlp` joins when the plugin is present.
+  Self-contained/CI-safe: it fabricates a representative sweep in genuine OpenFOAM format (no solver).
+- **`examples/naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
+  `simpleFoam` over an AoA sweep on the validated `airFoil2D` mesh (rotating the freestream +
+  `forceCoeffs`), and `ingest_and_train.py` builds the same surrogates from the genuine fields + the
+  real `C_L`. Convergence is checked, not assumed: the sweep pins `SIMPLE/residualControl`
+  (`--residual`) so `simpleFoam` stops at convergence and reports any case that hit the iteration
+  cap, and ingestion flags any case whose `C_L` is still swinging over its last writes. Verified
+  against OpenFOAM v2512.
+
 ## [0.2.0] — 2026-06-15
 
 First public release. SurroForge — the open-source **Core** (Apache 2.0) — takes you from a
