@@ -15,8 +15,11 @@ Prerequisites — source your OpenFOAM environment first so ``simpleFoam`` and `
 are available (this script does not run in CI; it needs a real OpenFOAM install):
 
     source /path/to/OpenFOAM/etc/bashrc
-    python examples/naca0012_openfoam/run_sweep.py --angles "-4 0 4 8 12 16" --speeds "20 40"
+    python examples/naca0012_openfoam/run_sweep.py --angles "0 4 8 12" --speeds "20 40" --jobs 8
     python examples/naca0012_openfoam/ingest_and_train.py run
+
+The cases are independent, so ``--jobs N`` solves N of them concurrently (near-linear speed-up
+up to your core count) — a full DoE that is serial-slow finishes in a fraction of the time.
 
 Convergence is checked, not assumed:
   * ``--residual`` (default ``1e-8``) sets OpenFOAM's ``SIMPLE/residualControl`` so ``simpleFoam``
@@ -40,6 +43,7 @@ import os
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # --------------------------------------------------------------------------- #
@@ -163,6 +167,16 @@ def _build_case(base: Path, case: Path, angle_deg: float, speed: float,
     )
 
 
+def _process_case(base: Path, out: Path, i: int, angle: float, speed: float,
+                  iters: int, residual: float) -> int | None:
+    """Build and solve one case (its own directory — independent, so safe to run in parallel)."""
+    case = out / f"case_{i:03d}"
+    if case.exists():
+        shutil.rmtree(case)
+    _build_case(base, case, angle, speed, iters, residual)
+    return _run_simplefoam(case)
+
+
 def _run_simplefoam(case: Path) -> int | None:
     """Run simpleFoam; return the iteration it converged at, or ``None`` if it hit the cap.
 
@@ -195,6 +209,10 @@ def main() -> None:
                         help="SIMPLE residualControl tolerance (solver stops once met)")
     parser.add_argument("--base", default=None, help="airFoil2D base case (else $FOAM_TUTORIALS)")
     parser.add_argument("--out", default="run", help="output sweep directory")
+    parser.add_argument("--jobs", type=int, default=1,
+                        help="number of cases to solve concurrently (each simpleFoam is "
+                             "single-threaded; the cases are independent, so this is a near-"
+                             "linear speed-up up to your core count)")
     args = parser.parse_args()
 
     angles = [float(a) for a in args.angles.replace(",", " ").split()]
@@ -203,27 +221,46 @@ def main() -> None:
         sys.exit('No angles given — pass e.g. --angles "-4 0 4 8 12 16".')
     if not speeds:
         sys.exit('No speeds given — pass e.g. --speeds "20 30 40".')
+    if args.jobs < 1:
+        sys.exit("--jobs must be >= 1.")
     doe = [(a, s) for s in speeds for a in angles]  # 2-D grid, angle-major within each speed
     base = _find_base(args.base)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
+    # Each case is an independent simpleFoam run in its own directory, so the sweep is
+    # embarrassingly parallel: --jobs cases solve concurrently. Results are printed as they
+    # finish (any order); samples.csv is then written in DoE order.
+    results: dict[int, int | None] = {}
+    failed: list[int] = []
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        futures = {
+            pool.submit(_process_case, base, out, i, a, s, args.iters, args.residual): i
+            for i, (a, s) in enumerate(doe)
+        }
+        for done, fut in enumerate(as_completed(futures), start=1):
+            i = futures[fut]
+            angle, speed = doe[i]
+            label = f"[{done}/{len(doe)}] AoA {angle:+.1f}° U {speed:.4g} -> case_{i:03d}"
+            try:
+                conv = fut.result()
+            except SystemExit as exc:  # _run_simplefoam aborts a failed case in its worker
+                failed.append(i)
+                print(f"{label} ... FAILED ({exc})", flush=True)
+                continue
+            results[i] = conv
+            status = (f"converged at iter {conv}" if conv is not None
+                      else f"NOT converged (hit {args.iters}-iter cap)")
+            print(f"{label} ... {status}", flush=True)
+
     rows = ["case,aoa,speed"]
     unconverged: list[tuple[float, float]] = []
     for i, (angle, speed) in enumerate(doe):
-        case = out / f"case_{i:03d}"
-        if case.exists():
-            shutil.rmtree(case)
-        print(f"[{i + 1}/{len(doe)}] AoA {angle:+.1f}° U {speed:.4g} -> {case} ...",
-              end="", flush=True)
-        _build_case(base, case, angle, speed, args.iters, args.residual)
-        converged_at = _run_simplefoam(case)
-        if converged_at is None:
+        if i in failed:
+            continue
+        rows.append(f"case_{i:03d},{angle},{speed}")
+        if results[i] is None:
             unconverged.append((angle, speed))
-            print(f" NOT converged (hit {args.iters}-iter cap)", flush=True)
-        else:
-            print(f" converged at iter {converged_at}", flush=True)
-        rows.append(f"{case.name},{angle},{speed}")
     (out / "samples.csv").write_text("\n".join(rows) + "\n")
 
     print(f"\nDone. {len(doe)} cases under {out}/ ({len(angles)} angles × {len(speeds)} speeds)",
@@ -233,6 +270,9 @@ def main() -> None:
         print(f"\n⚠  {len(unconverged)} case(s) did NOT converge: {listed}\n"
               f"   Raise --iters or loosen --residual; their coefficients/field may be unreliable.",
               end="")
+    if failed:
+        listed = ", ".join(f"({doe[i][0]:+.1f}°, {doe[i][1]:.4g})" for i in failed)
+        print(f"\n✗  {len(failed)} case(s) FAILED to run and were excluded: {listed}", end="")
     print(f"\n— now run:\n    python examples/naca0012_openfoam/ingest_and_train.py {out}")
 
 

@@ -56,7 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   surrogates — `(AoA, speed) → field` and `(AoA, speed) → [Cl, Cd]` — from the genuine fields and
   the real `Cl`/`Cd`. Convergence is checked, not assumed: the sweep pins `SIMPLE/residualControl`
   (`--residual`) so `simpleFoam` stops at convergence and reports any case that hit the iteration
-  cap, and ingestion flags any case whose `Cl` is still swinging over its last writes. Verified
+  cap, and ingestion flags any case whose `Cl` is still swinging over its last writes. The DoE is
+  embarrassingly parallel, so `run_sweep.py --jobs N` solves N independent cases concurrently
+  (near-linear speed-up to the core count — a 100-case sweep ran in ~1 min at `--jobs 12`). Verified
   against OpenFOAM v2512.
 
 ## [0.2.0] — 2026-06-15
