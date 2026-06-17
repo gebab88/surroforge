@@ -67,25 +67,31 @@ shows a still-swinging `Cl`, so it is reported by both stages.
 
 ## Verified (OpenFOAM v2512, macOS/arm64)
 
-The 2-D pipeline was run end-to-end on real `simpleFoam`: cases over an `angle × speed` DoE ran to
-completion, ingestion read **10 720 pressure DOFs/case + the real `Cl` and `Cd`** from
-`forceCoeffs`, both surrogates trained, and all three artifacts exported
-(`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`).
+The 2-D pipeline was run end-to-end on real `simpleFoam`. A **100-case** DoE (25 angles × 4 speeds
+20/40/60/80 m/s, 1° steps) solved in **~64 s at `--jobs 12`** (vs. ~11 min serial); ingestion read
+**10 720 pressure DOFs/case + the real `Cl` and `Cd`** from `forceCoeffs`, both surrogates trained,
+and all three artifacts exported (`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`).
 
-What to expect from the *quality* of the fit (consistent with dense 1-D `Cl` sweeps run earlier,
-where the scalar `torch-mlp` reached R² ≈ 0.998 vs. polynomial ≈ 0.96):
+The *fit quality is regime-dependent* — an honest and instructive result for steady RANS:
 
-- **Scalar coefficient surrogate** `(AoA, speed) → [Cl, Cd]` is the robust real-CFD win — both are
-  smooth, comparable-scale coefficients, and the network beats a quadratic across the stall. This is
-  the headline result; it needs only a modest DoE.
-- The **field** POD-NN surrogate is far more demanding: a 10.7k-DOF field needs a **dense,
-  well-converged** sweep (enough `angle × speed` samples, `--iters 500`+), or POD has too few
-  snapshots and the inner overfits (negative held-out R²). Example 09 — a clean synthetic DoE —
-  shows the converged-data ideal (neural field R² ≈ 1.0).
+- **Attached flow (|AoA| ≲ 11°, fully converged):** the coefficients are smooth (≈linear `Cl`,
+  ≈quadratic `Cd`), so they fit superbly — on the 76 converged cases a degree-2 **polynomial reaches
+  R² ≈ 0.9995** and `mlp` ≈ 0.99. Here the response *is* low-order, so the polynomial is hard to beat
+  and the network has no nonlinearity to exploit.
+- **Across the stall (full sweep):** the neural network's advantage appears precisely because the
+  lift curve bends at stall — on the full sweep the NN beats the quadratic (R² ≈ 0.91 vs. 0.84).
+- **Caveat (why more angles isn't automatically better):** steady RANS **cannot converge the
+  post-stall cases** (here AoA ≳ 12° hit the iteration cap at every speed). Packing the DoE with 1°
+  steps *through* that region adds unconverged, noisy targets rather than signal, which caps the
+  full-sweep R². The two convergence checks flag exactly these cases — use a transient solver there,
+  or keep the DoE in the attached regime, if you need a clean post-stall fit.
+- The **field** POD-NN surrogate (`torch-mlp` inner) reaches R² ≈ 0.93–0.98 on a dense, well-converged
+  sweep, but is data-starved on a coarse one (negative held-out R²). Example 09 — a clean synthetic
+  DoE — shows the converged-data ideal (neural field R² ≈ 1.0).
 
-Takeaway: the **scalar quantity-of-interest surrogate (`(AoA, speed) → [Cl, Cd]`) is the easy,
-robust win on real CFD**; the full-field surrogate is worth it when you have a dense, converged
-sweep.
+Takeaway: the **scalar coefficient surrogate `(AoA, speed) → [Cl, Cd]` is the robust, cheap win**;
+the neural net earns its keep specifically *across the stall*, and the field surrogate is worth it
+on a dense, converged sweep. Coverage and convergence matter more than raw angular resolution.
 
 ## How this maps onto SurroForge
 
