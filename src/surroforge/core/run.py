@@ -253,3 +253,18 @@ class Run:
         self._require()
         _warn_if_foreign_artifact(self.model_path, self.lineage)
         return load_pickle(self.model_path)
+
+    def export(self, fmt: str, output: str | Path | None = None) -> Path:
+        """Export this run's fitted model to ``fmt`` and return the path written.
+
+        The object-level binding of :func:`surroforge.services.export_model`, so the
+        Python API mirrors the ``surroforge export`` CLI (``run = trainer.fit(...);
+        run.export("onnx", "model.onnx")``). ``fmt`` is any registered export format the
+        run's method declares — ``pickle`` and ``onnx`` are built in, ``pt`` is added by
+        the ``surroforge-torch`` plugin; an unsupported pair raises
+        :class:`~surroforge.errors.ExportError`. ``output`` defaults to ``model<ext>``
+        inside the run directory.
+        """
+        from surroforge.services import export_model
+
+        return export_model(self, fmt, output)

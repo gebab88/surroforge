@@ -45,7 +45,7 @@ from surroforge import Project, Trainer
 from surroforge.data import read_openfoam_sweep
 from surroforge.errors import ExportError
 from surroforge.plugins import available_trainers
-from surroforge.services import compare_runs, export_model
+from surroforge.services import compare_runs
 
 # The lbfgs optimiser stops at its iteration cap on the sharp stall nonlinearity; the
 # resulting fits are excellent (see the R² columns the example prints), so silence the
@@ -255,14 +255,14 @@ def main(workdir: Path) -> None:
             print(f"  {fmt:5} skipped — {best_model.name} does not support it")
             continue
         try:
-            out = export_model(best_cl, fmt, workdir / f"cl_surrogate.{fmt}")
+            out = best_cl.export(fmt, workdir / f"cl_surrogate.{fmt}")
             print(f"  {fmt:5} -> {out.name} ({out.stat().st_size} bytes)")
         except ExportError as exc:
             print(f"  {fmt:5} unavailable — {exc}")
     # The field surrogate is reduced-field, which exports to pickle only (a POD basis +
     # inner model, not a single graph); export it that way for completeness.
     field_best = next(r for r in field_runs.values() if r.run_id == field_result["best"])
-    field_out = export_model(field_best, "pickle", workdir / "field_surrogate.pkl")
+    field_out = field_best.export("pickle", workdir / "field_surrogate.pkl")
     print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
 
     if not _HAS_TORCH:

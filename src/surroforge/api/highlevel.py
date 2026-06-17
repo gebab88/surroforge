@@ -44,8 +44,10 @@ class Trainer:
         config) or a :class:`Dataset` obtained from ``project.dataset(name)``,
         which overrides the config's ``data.source``.
 
-        ``export_onnx`` is opt-in (default ``False``); ONNX can also be produced
-        afterwards from the saved model via ``export_model`` / ``surroforge export``.
+        ``export_onnx`` is opt-in (default ``False``); ONNX (or any supported
+        format) can also be produced afterwards from the returned run via
+        ``run.export(fmt, output)`` — the object-level binding of ``export_model``,
+        mirroring ``surroforge export``.
         """
         if isinstance(target, Project):
             return run_training(target, self.config, export_onnx=export_onnx)

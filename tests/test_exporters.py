@@ -61,6 +61,27 @@ def test_export_model_service_default_path(trained_run):
     assert path.is_file()
 
 
+def test_run_export_method_binds_to_service(trained_run):
+    # Run.export is the object-level binding of export_model: same default path/result.
+    path = trained_run.export("pickle")
+    assert path == trained_run.run_dir / "model.pkl"
+    assert path.is_file()
+    restored = load_pickle(path)
+    assert restored is not None
+
+
+def test_run_export_propagates_gate_error(project):
+    # The binding carries the declaration-driven gate: kriging cannot export to ONNX.
+    pytest.importorskip("smt")
+    from surroforge.core.config import parse_config
+    from surroforge.engine import run_training
+    from tests.conftest import poly_config
+
+    run = run_training(project, parse_config(poly_config("kriging")))
+    with pytest.raises(ExportError):
+        run.export("onnx")
+
+
 def test_export_model_service_onnx_for_kriging_errors(project):
     pytest.importorskip("smt")
     from surroforge.core.config import parse_config

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Python API
+
+- **`Run.export(fmt, output=None)`** — an object-level binding of
+  `surroforge.services.export_model`, so the returned run exports itself the way it already
+  loads itself: `run = trainer.fit(project); run.export("onnx", "model.onnx")`. It mirrors the
+  `surroforge export` CLI, carries the declaration-driven format gate (an unsupported
+  method/format pair raises `ExportError`), and reaches plugin formats such as `pt`. The NACA
+  examples now export through `run.export(...)` instead of calling the service function directly.
+
 ### Added — Plugins
 
 - **`surroforge-torch` plugin** (`plugins/surroforge-torch/`, separate distribution): a
