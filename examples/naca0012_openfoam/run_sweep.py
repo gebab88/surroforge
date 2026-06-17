@@ -20,6 +20,8 @@ are available (this script does not run in CI; it needs a real OpenFOAM install)
 
 The cases are independent, so ``--jobs N`` solves N of them concurrently (near-linear speed-up
 up to your core count) — a full DoE that is serial-slow finishes in a fraction of the time.
+Add ``--vtk`` to also write each case's converged field to ``case/VTK/`` (``foamToVTK``) for
+ParaView, generated inline with the sweep (so it is parallelised by ``--jobs`` too).
 
 Convergence is checked, not assumed:
   * ``--residual`` (default ``1e-8``) sets OpenFOAM's ``SIMPLE/residualControl`` so ``simpleFoam``
@@ -168,13 +170,26 @@ def _build_case(base: Path, case: Path, angle_deg: float, speed: float,
 
 
 def _process_case(base: Path, out: Path, i: int, angle: float, speed: float,
-                  iters: int, residual: float) -> int | None:
+                  iters: int, residual: float, vtk: bool) -> int | None:
     """Build and solve one case (its own directory — independent, so safe to run in parallel)."""
     case = out / f"case_{i:03d}"
     if case.exists():
         shutil.rmtree(case)
     _build_case(base, case, angle, speed, iters, residual)
-    return _run_simplefoam(case)
+    converged_at = _run_simplefoam(case)
+    if vtk:
+        _run_foamtovtk(case)  # converged field -> case/VTK/ for ParaView
+    return converged_at
+
+
+def _run_foamtovtk(case: Path) -> None:
+    """Convert the case's latest (converged) time to VTK under ``case/VTK/`` for ParaView.
+
+    A failed conversion is logged but does not fail the case — the CFD result is still valid.
+    """
+    with (case / "log.foamToVTK").open("w") as log:
+        subprocess.run(["foamToVTK", "-latestTime"], cwd=case,
+                       stdout=log, stderr=subprocess.STDOUT, check=False)
 
 
 def _run_simplefoam(case: Path) -> int | None:
@@ -213,6 +228,9 @@ def main() -> None:
                         help="number of cases to solve concurrently (each simpleFoam is "
                              "single-threaded; the cases are independent, so this is a near-"
                              "linear speed-up up to your core count)")
+    parser.add_argument("--vtk", action="store_true",
+                        help="also write each case's converged field to case/VTK/ "
+                             "(foamToVTK -latestTime) for ParaView")
     args = parser.parse_args()
 
     angles = [float(a) for a in args.angles.replace(",", " ").split()]
@@ -223,6 +241,8 @@ def main() -> None:
         sys.exit('No speeds given — pass e.g. --speeds "20 30 40".')
     if args.jobs < 1:
         sys.exit("--jobs must be >= 1.")
+    if args.vtk and shutil.which("foamToVTK") is None:
+        sys.exit("--vtk needs foamToVTK on PATH — source your OpenFOAM environment first.")
     doe = [(a, s) for s in speeds for a in angles]  # 2-D grid, angle-major within each speed
     base = _find_base(args.base)
     out = Path(args.out)
@@ -235,7 +255,7 @@ def main() -> None:
     failed: list[int] = []
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {
-            pool.submit(_process_case, base, out, i, a, s, args.iters, args.residual): i
+            pool.submit(_process_case, base, out, i, a, s, args.iters, args.residual, args.vtk): i
             for i, (a, s) in enumerate(doe)
         }
         for done, fut in enumerate(as_completed(futures), start=1):

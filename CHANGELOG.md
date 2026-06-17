@@ -58,8 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`--residual`) so `simpleFoam` stops at convergence and reports any case that hit the iteration
   cap, and ingestion flags any case whose `Cl` is still swinging over its last writes. The DoE is
   embarrassingly parallel, so `run_sweep.py --jobs N` solves N independent cases concurrently
-  (near-linear speed-up to the core count — a 100-case sweep ran in ~1 min at `--jobs 12`). Verified
-  against OpenFOAM v2512.
+  (near-linear speed-up to the core count — a 100-case sweep ran in ~1 min at `--jobs 12`), and
+  `--vtk` additionally writes each case's converged field to `case/VTK/` (`foamToVTK`) for ParaView,
+  inline with the sweep. Verified against OpenFOAM v2512.
 
 ## [0.2.0] — 2026-06-15
 
