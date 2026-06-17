@@ -39,19 +39,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Examples
 
-- **`examples/09_naca0012_openfoam_surrogate.py`** — a NACA 0012 angle-of-attack study end to end:
-  ingest an OpenFOAM sweep (`read_openfoam_sweep`), then train **two** surrogates — a `reduced-field`
-  POD-NN of the pressure field and a scalar lift-coefficient (`C_L`) model. The lift curve stalls, so
-  the neural surrogate beats a quadratic on both; `torch-mlp` joins when the plugin is present.
-  Self-contained/CI-safe: it fabricates a representative sweep in genuine OpenFOAM format (no solver).
-  Finishes by exporting the best `C_L` surrogate to **ONNX** and, when `torch-mlp` won, a native
-  **`.pt`** checkpoint (the field surrogate to pickle), degrading gracefully when a backend is absent.
+- **`examples/09_naca0012_openfoam_surrogate.py`** — a NACA 0012 study over **angle of attack and
+  freestream speed** end to end: ingest a 2-D OpenFOAM DoE (`read_openfoam_sweep`), then train
+  **two** surrogates — a `reduced-field` POD-NN of the pressure field (`p = Cp(AoA)·q(U)`, so speed
+  scales it via the dynamic pressure) and a scalar `(AoA, speed) → [C_L, C_D]` model (both
+  coefficients carry the stall, with a Reynolds stall drift). The stall makes the neural surrogate
+  beat a quadratic on both; `torch-mlp` joins when the plugin is present. Self-contained/CI-safe (it
+  fabricates the sweep in genuine OpenFOAM format, no solver). Exports one artifact per format —
+  the best coefficient model to **ONNX**, the `torch-mlp` model to a native **`.pt`** checkpoint,
+  the field model to pickle — degrading gracefully when a backend is absent. Pass `--out DIR` to
+  keep them (scratch stays in a temp dir, so the default run leaves nothing behind and re-runs never
+  collide).
 - **`examples/naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
-  `simpleFoam` over an AoA sweep on the validated `airFoil2D` mesh (rotating the freestream +
-  `forceCoeffs`), and `ingest_and_train.py` builds the same surrogates from the genuine fields + the
-  real `C_L`. Convergence is checked, not assumed: the sweep pins `SIMPLE/residualControl`
+  `simpleFoam` over a 2-D `angle × speed` DoE on the validated `airFoil2D` mesh (rotating the
+  freestream + `forceCoeffs`, `--angles`/`--speeds`), and `ingest_and_train.py` builds the same
+  surrogates — `(AoA, speed) → field` and `(AoA, speed) → [Cl, Cd]` — from the genuine fields and
+  the real `Cl`/`Cd`. Convergence is checked, not assumed: the sweep pins `SIMPLE/residualControl`
   (`--residual`) so `simpleFoam` stops at convergence and reports any case that hit the iteration
-  cap, and ingestion flags any case whose `C_L` is still swinging over its last writes. Verified
+  cap, and ingestion flags any case whose `Cl` is still swinging over its last writes. Verified
   against OpenFOAM v2512.
 
 ## [0.2.0] — 2026-06-15

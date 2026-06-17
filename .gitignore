@@ -22,6 +22,12 @@ htmlcov/
 # SurroForge scratch projects used during development
 /scratch/
 
+# Generated example/surrogate artifacts (models, exports) — never committed
+outputs/
+*.onnx
+*.pt
+*.pkl
+
 # BMAD agent framework / tooling (local dev only, not part of the shipped project)
 /.claude/
 /_bmad/

@@ -15,7 +15,7 @@ Prerequisites — source your OpenFOAM environment first so ``simpleFoam`` and `
 are available (this script does not run in CI; it needs a real OpenFOAM install):
 
     source /path/to/OpenFOAM/etc/bashrc
-    python examples/naca0012_openfoam/run_sweep.py --angles "-4 0 4 8 12 16" --iters 500
+    python examples/naca0012_openfoam/run_sweep.py --angles "-4 0 4 8 12 16" --speeds "20 40"
     python examples/naca0012_openfoam/ingest_and_train.py run
 
 Convergence is checked, not assumed:
@@ -187,7 +187,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--angles", default="-4 0 4 8 12 16",
                         help="angles of attack in degrees, space- or comma-separated")
-    parser.add_argument("--speed", type=float, default=25.95, help="freestream speed |U| [m/s]")
+    parser.add_argument("--speeds", default="25.95",
+                        help="freestream speeds |U| [m/s], space- or comma-separated "
+                             "(a 2-D DoE is run over every angle × speed)")
     parser.add_argument("--iters", type=int, default=500, help="steady-state iteration cap")
     parser.add_argument("--residual", type=float, default=1e-8,
                         help="SIMPLE residualControl tolerance (solver stops once met)")
@@ -196,34 +198,41 @@ def main() -> None:
     args = parser.parse_args()
 
     angles = [float(a) for a in args.angles.replace(",", " ").split()]
+    speeds = [float(s) for s in args.speeds.replace(",", " ").split()]
     if not angles:
         sys.exit('No angles given — pass e.g. --angles "-4 0 4 8 12 16".')
+    if not speeds:
+        sys.exit('No speeds given — pass e.g. --speeds "20 30 40".')
+    doe = [(a, s) for s in speeds for a in angles]  # 2-D grid, angle-major within each speed
     base = _find_base(args.base)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    rows = ["case,aoa"]
-    unconverged: list[float] = []
-    for i, angle in enumerate(angles):
-        case = out / f"aoa_{i:03d}"
+    rows = ["case,aoa,speed"]
+    unconverged: list[tuple[float, float]] = []
+    for i, (angle, speed) in enumerate(doe):
+        case = out / f"case_{i:03d}"
         if case.exists():
             shutil.rmtree(case)
-        print(f"[{i + 1}/{len(angles)}] AoA {angle:+.1f}° -> {case} ...", end="", flush=True)
-        _build_case(base, case, angle, args.speed, args.iters, args.residual)
+        print(f"[{i + 1}/{len(doe)}] AoA {angle:+.1f}° U {speed:.4g} -> {case} ...",
+              end="", flush=True)
+        _build_case(base, case, angle, speed, args.iters, args.residual)
         converged_at = _run_simplefoam(case)
         if converged_at is None:
-            unconverged.append(angle)
+            unconverged.append((angle, speed))
             print(f" NOT converged (hit {args.iters}-iter cap)", flush=True)
         else:
             print(f" converged at iter {converged_at}", flush=True)
-        rows.append(f"{case.name},{angle}")
+        rows.append(f"{case.name},{angle},{speed}")
     (out / "samples.csv").write_text("\n".join(rows) + "\n")
 
-    print(f"\nDone. {len(angles)} cases under {out}/", end="")
+    print(f"\nDone. {len(doe)} cases under {out}/ ({len(angles)} angles × {len(speeds)} speeds)",
+          end="")
     if unconverged:
-        listed = ", ".join(f"{a:+.1f}°" for a in unconverged)
+        listed = ", ".join(f"({a:+.1f}°, {s:.4g})" for a, s in unconverged)
         print(f"\n⚠  {len(unconverged)} case(s) did NOT converge: {listed}\n"
-              f"   Raise --iters or loosen --residual; their C_L/field may be unreliable.", end="")
+              f"   Raise --iters or loosen --residual; their coefficients/field may be unreliable.",
+              end="")
     print(f"\n— now run:\n    python examples/naca0012_openfoam/ingest_and_train.py {out}")
 
 
