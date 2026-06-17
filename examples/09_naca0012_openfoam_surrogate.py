@@ -24,7 +24,7 @@ plugin is installed, the PyTorch `torch-mlp` backend is added to the comparison 
 Run it:
 
     python examples/09_naca0012_openfoam_surrogate.py
-    python examples/09_naca0012_openfoam_surrogate.py --out ./ex09_output  # keep the artifacts
+    python examples/09_naca0012_openfoam_surrogate.py --out ./ex09_output   # save the run
 
 **Honest note on the data.** OpenFOAM is not a SurroForge dependency, so this script
 *fabricates* a representative NACA 0012 sweep in genuine OpenFOAM `volScalarField` format
@@ -38,6 +38,7 @@ instead of the synthetic writer below — the surrogate code downstream is ident
 from __future__ import annotations
 
 import argparse
+import shutil
 import tempfile
 import warnings
 from pathlib import Path
@@ -148,10 +149,10 @@ def make_naca_sweep(root: Path, n_cells: int = 120, seed: int = 0) -> Path:
     circulation/lift with stall); at energy 0.999 POD keeps ~3. Returns the cases directory.
     """
     rng = np.random.default_rng(seed)
-    aoa_axis = np.linspace(-6.0, 18.0, 17)  # angle-of-attack axis, degrees
-    speed_axis = np.linspace(20.0, 60.0, 7)  # freestream-speed axis, m/s
+    aoa_axis = np.linspace(-20.0, 20.0, 41)  # angle-of-attack axis: -20°..20°, Δ1°
+    speed_axis = np.array([10.0, 20.0, 40.0, 60.0, 80.0])  # freestream speeds, m/s
     aoa_grid, speed_grid = np.meshgrid(aoa_axis, speed_axis)
-    aoa, speed = aoa_grid.ravel(), speed_grid.ravel()  # 119 (AoA, speed) samples
+    aoa, speed = aoa_grid.ravel(), speed_grid.ravel()  # 41 × 5 = 205 (AoA, speed) samples
 
     modes, _ = np.linalg.qr(rng.standard_normal((n_cells, 4)))  # orthonormal spatial modes
     cp_amp = np.column_stack(  # AoA-dependent, dimensionless pressure-coefficient amplitudes
@@ -200,9 +201,12 @@ def _scalar_candidates() -> list[tuple[str, dict]]:
 
 
 def main(workdir: Path, out_dir: Path | None = None) -> None:
-    # Scratch data (synthetic cases, project, runs) lives under workdir; the trained-model
-    # artifacts go to out_dir when given (a persistent output folder), else alongside it.
+    # The synthetic OpenFOAM cases are scratch (always under the temp workdir). When out_dir is
+    # given, the SurroForge run is saved there: the project (datasets, runs, lineage, models,
+    # POD basis) under <out_dir>/naca, and the exported artifacts alongside it — so the whole run
+    # is inspectable/reproducible (surroforge list/compare/report/reproduce) afterwards.
     export_dir = out_dir if out_dir is not None else workdir
+    project_root = (out_dir / "naca") if out_dir is not None else (workdir / "naca")
     cases = make_naca_sweep(workdir)
     print(f"Wrote {len(list(cases.glob('case_*')))} OpenFOAM cases (AoA × speed DoE)\n")
 
@@ -225,7 +229,9 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
     snapshots.to_csv(csv, index=False)
     print(f"Ingested pressure field 'p' as {len(field_cols)} DOFs across {len(snapshots)} cases")
 
-    project = Project.init(workdir / "naca", name="naca0012")
+    if project_root.exists():
+        shutil.rmtree(project_root)  # --out is this run's output dir; start its project fresh
+    project = Project.init(project_root, name="naca0012")
     project.add_dataset(csv, name="sweep")
 
     base_split = {"test_fraction": 0.25, "seed": 1}
@@ -325,18 +331,22 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
     print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
     if out_dir is not None:
         print(f"\nArtifacts written to {export_dir}/")
+        print(f"Run saved to {project_root}/ — inspect with: "
+              f"surroforge --config-dir {project_root} list")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--out", metavar="DIR", default=None,
-        help="persist the trained-model artifacts (cl_surrogate.onnx/.pt, "
-             "field_surrogate.pkl) to DIR; without it they go to a temp dir and are removed.",
+        help="save the run to DIR: the SurroForge project (DIR/naca, with all runs/lineage/"
+             "models) plus the exported artifacts (coeffs_surrogate.onnx/.pt, "
+             "field_surrogate.pkl); without it everything goes to a temp dir and is removed.",
     )
     args = parser.parse_args()
-    # Scratch always lives in a temp dir (self-contained / CI-safe); --out only keeps the
-    # exported artifacts, so a re-run never collides with an existing project.
+    # The synthetic OpenFOAM cases always live in a temp dir (self-contained / CI-safe); --out
+    # saves the actual run (project + artifacts). A re-run starts DIR/naca fresh, so it never
+    # collides with an existing project.
     out_dir = Path(args.out) if args.out else None
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)

@@ -48,8 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fabricates the sweep in genuine OpenFOAM format, no solver). Exports one artifact per format —
   the best coefficient model to **ONNX**, the `torch-mlp` model to a native **`.pt`** checkpoint,
   the field model to pickle — degrading gracefully when a backend is absent. Pass `--out DIR` to
-  keep them (scratch stays in a temp dir, so the default run leaves nothing behind and re-runs never
-  collide).
+  **save the run** there: the SurroForge project (`DIR/naca` with all runs/lineage/models/POD basis,
+  inspectable via `surroforge --config-dir DIR/naca list`) plus the exported artifacts. Without it
+  everything goes to a temp dir and is removed, so the default run leaves nothing behind and re-runs
+  never collide.
 - **`examples/naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
   `simpleFoam` over a 2-D `angle × speed` DoE on the validated `airFoil2D` mesh (rotating the
   freestream + `forceCoeffs`, `--angles`/`--speeds`), and `ingest_and_train.py` builds the same
