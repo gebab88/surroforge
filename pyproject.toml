@@ -105,6 +105,25 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unused_ignores = false
 
+# mypy is the gate; pyright config is for ad-hoc runs. The downgraded rules below fire only on
+# third-party stub looseness or pyright limitations, never on a real first-party bug:
+#   - reportMissingImports: optional extras (e.g. meshio in [rom]) are lazy-imported.
+#   - reportArgumentType/ReturnType: numpy/scikit-learn stubs type arrays as loose unions.
+#   - reportAttributeAccessIssue: third-party return stubs (skl2onnx/pandas) AND the optional
+#     trainer hooks (reproducibility_diagnostics, …) that are duck-typed behind hasattr — mypy
+#     narrows hasattr and accepts them, pyright does not.
+#   - reportIndexIssue: indexing those loosely-typed third-party returns.
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.10"
+include = ["src", "plugins"]
+reportMissingImports = "warning"
+reportArgumentType = "warning"
+reportReturnType = "warning"
+reportAttributeAccessIssue = "warning"
+reportIndexIssue = "warning"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

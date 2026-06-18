@@ -364,7 +364,8 @@ class TorchMLPTrainer(BaseTrainer):
                 f"fitted on {self._n_features}. Pass the training feature count."
             )
         self._model.eval()
-        assert self._n_outputs is not None  # set together with _model in fit()
+        # Both are set together with _model in fit(); assert so the int() calls below are typed.
+        assert self._n_features is not None and self._n_outputs is not None
         checkpoint = {
             "surroforge_torch_pt_version": 1,
             "state_dict": self._model.state_dict(),
