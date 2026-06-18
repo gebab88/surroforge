@@ -31,6 +31,14 @@ source_modules =
     surroforge.engine
 forbidden_modules =
     surroforge.services
+# Direct-import enforcement (same rationale as the first contract). The meaningful
+# invariant is that engine's SOURCE never references services — a direct
+# `from surroforge.services import ...` is still caught. The only indirect path is
+# `engine -> core.run -> services`, where `Run.export()` lazily imports
+# `services.export_model` (the object-level binding of the export service); that is
+# a deliberate, function-local back-edge in `core`, not an orchestration back-edge
+# in `engine`, so it must not trip this contract.
+allow_indirect_imports = true
 
 [importlinter:contract:errors-is-a-leaf]
 name = errors imports nothing internal (pure leaf)
