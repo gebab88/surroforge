@@ -54,7 +54,7 @@ formats = ["pyarrow>=14.0", "h5py>=3.10"]
 rom = ["meshio>=5.3"]
 # Everything an MVP user might want.
 all = ["smt>=2.0", "skl2onnx>=1.16", "onnx>=1.15", "onnxruntime>=1.17", "pyarrow>=14.0", "h5py>=3.10", "meshio>=5.3"]
-dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "import-linter>=2.0", "build>=1.0", "twine>=5.0"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "pyright>=1.1", "import-linter>=2.0", "build>=1.0", "twine>=5.0"]
 # Documentation site (PRD §13, Story 6.5): MkDocs Material.
 docs = ["mkdocs-material>=9.5"]
 

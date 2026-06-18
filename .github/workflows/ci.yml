@@ -2,7 +2,8 @@ name: CI
 
 # Tier-A invariant gates for SurroForge (see _bmad-output/planning-artifacts/architecture.md).
 # Activates once this project is a git repo pushed to GitHub. Until then the
-# locally-runnable equivalents are: `ruff check`, `mypy src`, `lint-imports`,
+# locally-runnable equivalents are: `ruff check`, `mypy src`,
+# `pyright --pythonpath .venv/bin/python` (config in [tool.pyright]), `lint-imports`,
 # `pytest` (which includes tests/test_architecture.py), and the license scan below.
 
 on:
@@ -32,6 +33,10 @@ jobs:
         run: ruff check src tests
       - name: mypy
         run: mypy src
+      - name: pyright
+        # --pythonpath points at the CI job's interpreter (no .venv here); src only,
+        # matching `mypy src` — the torch plugin needs its own deps, checked locally.
+        run: pyright --pythonpath python src
       - name: import-linter (dependency-direction contracts)
         run: lint-imports
 
