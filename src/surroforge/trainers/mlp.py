@@ -19,7 +19,7 @@ Two domain choices differ from scikit-learn's defaults on purpose:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -192,10 +192,13 @@ class MLPTrainer(BaseTrainer):
             ) from exc
 
         try:
-            onnx_model = convert_sklearn(
+            # skl2onnx's stub types convert_sklearn as returning a (model, topology)
+            # tuple; it returns the ModelProto. cast so the .SerializeToString() call
+            # type-checks against the real return.
+            onnx_model = cast(Any, convert_sklearn(
                 self._model,
                 initial_types=[("input", FloatTensorType([None, n_features]))],
-            )
+            ))
         except Exception as exc:  # skl2onnx raises various conversion errors
             raise ExportError(f"ONNX conversion of the mlp pipeline failed: {exc}") from exc
         return onnx_model.SerializeToString()

@@ -105,13 +105,16 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unused_ignores = false
 
-# mypy is the gate; pyright config is for ad-hoc runs. The downgraded rules below fire only on
-# third-party stub looseness or pyright limitations, never on a real first-party bug:
+# Both mypy and pyright run in CI. mypy is the primary type gate and reports these categories
+# (arg-type / return-value / attr-defined / index) as ERRORS, so it still catches a real
+# first-party bug. The in-tree instances pyright used to flag are now resolved at the source —
+# targeted casts where a scientific-stack stub is simply too loose, and @runtime_checkable
+# Protocols for the optional, duck-typed reduced-field trainer hooks (which pyright narrows but
+# hasattr did not). These rules stay downgraded purely as a backstop, so a future
+# numpy/scikit-learn/skl2onnx/pandas stub bump surfaces as a pyright warning, never a CI failure:
 #   - reportMissingImports: optional extras (e.g. meshio in [rom]) are lazy-imported.
 #   - reportArgumentType/ReturnType: numpy/scikit-learn stubs type arrays as loose unions.
-#   - reportAttributeAccessIssue: third-party return stubs (skl2onnx/pandas) AND the optional
-#     trainer hooks (reproducibility_diagnostics, …) that are duck-typed behind hasattr — mypy
-#     narrows hasattr and accepts them, pyright does not.
+#   - reportAttributeAccessIssue: third-party return stubs (skl2onnx/pandas).
 #   - reportIndexIssue: indexing those loosely-typed third-party returns.
 [tool.pyright]
 venvPath = "."

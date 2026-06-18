@@ -146,7 +146,7 @@ def select_columns(
 
     _require_numeric(frame, [*inputs, *outputs])
 
-    if frame[[*inputs, *outputs]].isnull().any().any():
+    if frame[[*inputs, *outputs]].isnull().to_numpy().any():
         raise DataError("Data contains missing values in the selected columns.")
 
     x = frame[inputs].to_numpy(dtype=float)

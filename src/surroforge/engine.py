@@ -11,7 +11,7 @@ import datetime as _dt
 import hashlib
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol, cast, runtime_checkable
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -53,6 +53,27 @@ class _Log:
 # fingerprint, so lineage.json stays a compact metadata file on large datasets.
 # The holdout split order is deterministic, so the cap is stable across runs.
 _FINGERPRINT_MAX_ROWS = 512
+
+
+# Optional trainer surfaces, gated structurally so the engine stays ROM-agnostic
+# (spine theorem #36 — no reduced_field import here). A reducing trainer exposes
+# these; every scalar trainer does not, so `isinstance` is False and that lineage
+# is untouched. Stated as @runtime_checkable Protocols rather than bare hasattr
+# so the duck-typed surface is both documented (the expected signature) and
+# narrowed by the type checker after the guard.
+@runtime_checkable
+class _SupportsReproducibilityDiagnostics(Protocol):
+    def reproducibility_diagnostics(self, x: np.ndarray) -> dict[str, Any]: ...
+
+
+@runtime_checkable
+class _SupportsResolvedConfigOverrides(Protocol):
+    def resolved_config_overrides(self) -> dict[str, Any] | None: ...
+
+
+@runtime_checkable
+class _SupportsReductionArtifacts(Protocol):
+    def reduction_artifacts(self) -> dict[str, np.ndarray]: ...
 
 
 def run_training(
@@ -100,8 +121,11 @@ def run_training(
 
     # 3. Holdout split + train/test metrics --------------------------------------
     split = config.data.split
-    x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=split.test_fraction, random_state=split.seed, shuffle=True
+    x_train, x_test, y_train, y_test = cast(
+        "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]",
+        train_test_split(
+            x, y, test_size=split.test_fraction, random_state=split.seed, shuffle=True
+        ),
     )
     holdout_model = factory()
     holdout_model.fit(x_train, y_train)
@@ -146,7 +170,7 @@ def run_training(
     # fingerprint above. The basis hash + canonical coefficients are diagnostic, never a
     # verdict gate; the field itself is the verdict (spec-field-rom-fingerprint.md).
     field_extras: dict[str, Any] = {}
-    if hasattr(holdout_model, "reproducibility_diagnostics"):
+    if isinstance(holdout_model, _SupportsReproducibilityDiagnostics):
         diag = holdout_model.reproducibility_diagnostics(x_test)
         coeffs = np.ascontiguousarray(diag["holdout_coefficients"], dtype=np.float64)[
             :_FINGERPRINT_MAX_ROWS
@@ -178,7 +202,7 @@ def run_training(
     # artifact may then hold more/fewer modes than the snapshot rank — a diagnostic
     # asymmetry, not a verdict one.
     canonical_config = config
-    if hasattr(holdout_model, "resolved_config_overrides"):
+    if isinstance(holdout_model, _SupportsResolvedConfigOverrides):
         overrides = holdout_model.resolved_config_overrides()
         if overrides:
             merged = _deep_merge(config.canonical_dict(), overrides)
@@ -213,7 +237,7 @@ def run_training(
     # fingerprint input — reproduce() does not read the store, and the lineage
     # basis_hash above remains the (different) holdout diagnostic.
     basis_file: str | None = None
-    if hasattr(final_model, "reduction_artifacts"):
+    if isinstance(final_model, _SupportsReductionArtifacts):
         artifacts = final_model.reduction_artifacts()
         required = ("basis", "mean", "singular_values")
         missing = [key for key in required if key not in artifacts]

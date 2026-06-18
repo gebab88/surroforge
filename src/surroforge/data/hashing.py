@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 
@@ -37,6 +38,8 @@ def hash_dataframe(frame: pd.DataFrame) -> str:
     for name in frame.columns:
         digest.update(str(name).encode("utf-8"))
         digest.update(str(frame[name].dtype).encode("utf-8"))
-    row_hashes = pd.util.hash_pandas_object(frame, index=False).values
+    # pandas-stubs doesn't expose the public pd.util namespace, so reach it through
+    # an Any-cast; hash_pandas_object is stable public API at runtime.
+    row_hashes = cast(Any, pd).util.hash_pandas_object(frame, index=False).to_numpy()
     digest.update(row_hashes.tobytes())
     return digest.hexdigest()

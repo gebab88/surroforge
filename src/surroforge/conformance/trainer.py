@@ -13,7 +13,7 @@ import hashlib
 import pickle
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -73,7 +73,10 @@ def _make_data(seed: int, n_samples: int, n_features: int) -> tuple[np.ndarray, 
     # A smooth, single-output target every reasonable surrogate can fit; single
     # output keeps SMT methods (Kriging/RBF) inside their MVP envelope.
     y = (x**2).sum(axis=1, keepdims=True) + 0.5 * x[:, :1]
-    return train_test_split(x, y, test_size=0.25, random_state=seed, shuffle=True)
+    return cast(
+        "tuple[np.ndarray, ...]",
+        train_test_split(x, y, test_size=0.25, random_state=seed, shuffle=True),
+    )
 
 
 def _make_field_data(seed: int) -> tuple[np.ndarray, ...]:
@@ -91,7 +94,10 @@ def _make_field_data(seed: int) -> tuple[np.ndarray, ...]:
     x = rng.uniform(-1.0, 1.0, size=(40, 2))
     amps = np.column_stack([5.0 * x[:, 0], 3.0 * x[:, 1], 1.2 * x[:, 0] * x[:, 1]])
     field = amps @ modes.T  # (40, n_dof), exactly rank 3
-    return train_test_split(x, field, test_size=0.25, random_state=seed, shuffle=True)
+    return cast(
+        "tuple[np.ndarray, ...]",
+        train_test_split(x, field, test_size=0.25, random_state=seed, shuffle=True),
+    )
 
 
 def _is_reducer(trainer_cls: Any) -> bool:
@@ -353,7 +359,7 @@ def check_trainer(
                 "reduction_artifacts — incomplete reducer contract"
             )
         coeffs = np.ascontiguousarray(predict_coefficients(xf_test), dtype=np.float64)
-        artifacts = artifacts_fn()
+        artifacts = cast("dict[str, Any]", artifacts_fn())
         basis = np.asarray(artifacts["basis"], dtype=np.float64)  # (n_dof, r)
         mean = np.asarray(artifacts["mean"], dtype=np.float64)  # (1, n_dof)
         r = basis.shape[1]

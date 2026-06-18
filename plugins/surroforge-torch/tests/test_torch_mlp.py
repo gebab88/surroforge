@@ -209,7 +209,7 @@ def test_onnx_round_trip(n_outputs):
     assert isinstance(blob, bytes) and blob
 
     sess = ort.InferenceSession(blob, providers=["CPUExecutionProvider"])
-    onnx_out = sess.run(None, {"input": x.astype(np.float32)})[0]
+    onnx_out = np.asarray(sess.run(None, {"input": x.astype(np.float32)})[0])
     ref = t.predict(x)
     np.testing.assert_allclose(onnx_out.reshape(ref.shape), ref, atol=1e-4)
 
