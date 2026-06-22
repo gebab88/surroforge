@@ -95,8 +95,8 @@ Test first against TestPyPI if unsure: `twine upload --repository testpypi dist/
 
 ## Notes
 
-- **No GPL/LGPL in Core (NFR8).** The `licenses` CI job enforces this; keep new dependencies
-  permissive (Apache/MIT/BSD).
+- **No GPL/LGPL in Core (NFR8).** The `licenses` gate in `scripts/ci.sh` (local CI) enforces this;
+  keep new dependencies permissive (Apache/MIT/BSD).
 - **`surroforge[rom]`** carries the optional **mesh readers** (`meshio`, MIT) as of 0.2.0; POD/SVD
   itself still runs on numpy/scipy (already Core), so `reduced-field` and the ASCII OpenFOAM reader
   work on the base install — only the binary/mesh path needs the extra. See `pyproject.toml`.
