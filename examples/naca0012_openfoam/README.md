@@ -45,7 +45,7 @@ coefficient model to `coeffs_surrogate.onnx`, the torch-mlp coefficient model to
 surrogate to `field_surrogate.pkl` (`reduced-field` is pickle-only).
 
 `run_sweep.py` options: `--angles` (deg) and `--speeds` (|U| m/s), each space/comma-separated — a
-2-D DoE is run over every angle × speed; `--iters` (steady-state *cap*, default 500), `--residual`
+2-D DoE is run over every angle × speed; `--iters` (steady-state *cap*, default 1000), `--residual`
 (residual-convergence tolerance, default `1e-8`), `--out` (sweep dir, default `run`), `--base` (an
 explicit `airFoil2D` case; defaults to `$FOAM_TUTORIALS`).
 
@@ -62,36 +62,52 @@ half-converged data instead of silently using the last iteration:
   unsteady force, so `read_coeffs` checks the **peak-to-peak spread of `Cl` over the last 20
   writes**; any case whose lift is still swinging is flagged before training.
 
-The two agree in practice — e.g. a near-stall, high-AoA case both hits the iteration cap *and*
-shows a still-swinging `Cl`, so it is reported by both stages.
+In this verified run the two are **complementary, not identical**: the near/post-stall cases that
+hit the iteration cap nonetheless show a *settled* `Cl` (the lift plateaus even while the last
+residuals sit just above `1e-8`), so the quantity-level check passes them. Residual non-convergence
+did **not**, here, mean an unsteady force — which is also why the surrogate fit barely changes
+whether those cases are included or not.
 
 ## Verified (OpenFOAM v2512, macOS/arm64)
 
-The 2-D pipeline was run end-to-end on real `simpleFoam`. A **100-case** DoE (25 angles × 4 speeds
-20/40/60/80 m/s, 1° steps) solved in **~64 s at `--jobs 12`** (vs. ~11 min serial); ingestion read
-**10 720 pressure DOFs/case + the real `Cl` and `Cd`** from `forceCoeffs`, both surrogates trained,
-and all three artifacts exported (`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`).
+The 2-D pipeline was run end-to-end on real `simpleFoam`. A **100-case** DoE (25 angles −12…12°,
+4 speeds 20/40/60/80 m/s, 1° steps) solved in a couple of minutes at `--jobs 16` (the post-stall
+cases now run the full 1000-iter cap); ingestion read **10 720 pressure DOFs/case + the real `Cl`
+and `Cd`** from `forceCoeffs`, both surrogates trained, and all three artifacts exported
+(`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`).
 
-The *fit quality is regime-dependent* — an honest and instructive result for steady RANS:
+**Convergence — and why the iteration cap defaults to 1000.** At the default `--residual 1e-8` the
+attached cases reach convergence only at **~520–670 iterations**, so the old `--iters 500` default
+clipped most of them *just short* of the target and falsely flagged them "not converged" (only
+37/100 passed). With **`--iters 1000` (the current default) 90/100 converge**; the 10 that do not
+are the near/post-stall extremes (|AoA| ≳ 11–12°), which steady RANS cannot converge regardless.
+Crucially, the *fit quality barely changes* between the two caps — the clipped cases were already
+physically settled (their `Cl` had plateaued), so "not converged by residual" did **not** mean "bad
+training data" here.
 
-- **Attached flow (|AoA| ≲ 11°, fully converged):** the coefficients are smooth (≈linear `Cl`,
-  ≈quadratic `Cd`), so they fit superbly — on the 76 converged cases a degree-2 **polynomial reaches
-  R² ≈ 0.9995** and `mlp` ≈ 0.99. Here the response *is* low-order, so the polynomial is hard to beat
-  and the network has no nonlinearity to exploit.
-- **Across the stall (full sweep):** the neural network's advantage appears precisely because the
-  lift curve bends at stall — on the full sweep the NN beats the quadratic (R² ≈ 0.91 vs. 0.84).
-- **Caveat (why more angles isn't automatically better):** steady RANS **cannot converge the
-  post-stall cases** (here AoA ≳ 12° hit the iteration cap at every speed). Packing the DoE with 1°
-  steps *through* that region adds unconverged, noisy targets rather than signal, which caps the
-  full-sweep R². The two convergence checks flag exactly these cases — use a transient solver there,
-  or keep the DoE in the attached regime, if you need a clean post-stall fit.
-- The **field** POD-NN surrogate (`torch-mlp` inner) reaches R² ≈ 0.93–0.98 on a dense, well-converged
-  sweep, but is data-starved on a coarse one (negative held-out R²). Example 09 — a clean synthetic
-  DoE — shows the converged-data ideal (neural field R² ≈ 1.0).
+**Fit quality (verified numbers, degree-2 polynomial vs. `mlp` vs. `torch-mlp`, 0.25 held-out test):**
 
-Takeaway: the **scalar coefficient surrogate `(AoA, speed) → [Cl, Cd]` is the robust, cheap win**;
-the neural net earns its keep specifically *across the stall*, and the field surrogate is worth it
-on a dense, converged sweep. Coverage and convergence matter more than raw angular resolution.
+- **Scalar `(AoA, speed) → [Cl, Cd]`** — the **polynomial has the highest R²** (≈ 0.993 on the full
+  sweep, ≈ 0.996 on the 90 converged cases); `mlp` is close (≈ 0.975 / 0.990) and wins the example's
+  RMSE-based "best" pick — in *real* CFD `Cl` and `Cd` sit on different scales, so the RMSE-best and
+  R²-best methods can differ. The `torch-mlp` backend *underfits* this 2-output regression here
+  (R² ≈ 0.50): same hyperparameters as `mlp`, but its full-batch training does not fit on so few
+  points without tuning.
+- **Why the polynomial is hard to beat here (the honest caveat):** steady RANS **cannot converge the
+  post-stall cases**, so the *converged* data is essentially **attached and low-order** (≈linear `Cl`,
+  ≈quadratic `Cd`) — exactly what a quadratic fits best. A neural net's across-stall advantage — which
+  the synthetic example 09 deliberately *can* show — **cannot be demonstrated on converged steady-RANS
+  data**, because the nonlinear post-stall region is precisely the part that will not converge. Use a
+  transient solver there, or keep the DoE in the attached regime.
+- **Field `(AoA, speed) → pressure field` (POD-NN):** the `torch-mlp` inner fits the pressure field
+  superbly (**R² ≈ 0.998**); the `polynomial` inner ≈ 0.97 and the scikit-learn `mlp` inner is weak
+  here (≈ 0.66) — the reverse of the scalar, so on this data neither NN backend dominates both tasks.
+
+Takeaway: the **scalar coefficient surrogate `(AoA, speed) → [Cl, Cd]` is the robust, cheap win**, and
+on converged steady-RANS data a **degree-2 polynomial is a strong baseline** — the post-stall regime
+where a network pulls ahead is exactly what does not converge. The **field** POD-NN fits the pressure
+field very well with a `torch-mlp` inner. Coverage and convergence matter more than raw angular
+resolution.
 
 ## How this maps onto SurroForge
 

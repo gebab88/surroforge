@@ -33,8 +33,11 @@ Convergence is checked, not assumed:
 Notes / honest caveats:
   * ``lRef``/``Aref`` are set to the unit chord (the airFoil2D NACA 0012 has chord 1); adjust if
     your geometry differs. The exact C_L magnitude depends on these and on convergence.
-  * ``--iters`` is the steady-state iteration budget; 500 is a reasonable default for this mesh.
-    A converged case stops early; raise it (or loosen ``--residual``) if cases hit the cap.
+  * ``--iters`` is the steady-state iteration budget; 1000 is the default for this mesh. A
+    converged case stops early — on this mesh the attached cases reach the ``1e-8`` ``--residual``
+    default at ~520-670 iterations, so the cap only bites the near/post-stall cases that cannot
+    converge anyway. (500 is too low: it clips attached cases *just short* of ``1e-8`` and falsely
+    flags them "not converged"; raise ``--iters`` further, or loosen ``--residual``, if needed.)
 """
 
 from __future__ import annotations
@@ -219,7 +222,7 @@ def main() -> None:
     parser.add_argument("--speeds", default="25.95",
                         help="freestream speeds |U| [m/s], space- or comma-separated "
                              "(a 2-D DoE is run over every angle × speed)")
-    parser.add_argument("--iters", type=int, default=500, help="steady-state iteration cap")
+    parser.add_argument("--iters", type=int, default=1000, help="steady-state iteration cap")
     parser.add_argument("--residual", type=float, default=1e-8,
                         help="SIMPLE residualControl tolerance (solver stops once met)")
     parser.add_argument("--base", default=None, help="airFoil2D base case (else $FOAM_TUTORIALS)")
