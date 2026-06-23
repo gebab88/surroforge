@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "surroforge-professional"
+version = "0.1.0"
+description = "Professional report formats for SurroForge."
+readme = { text = "Professional report formats for SurroForge.", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "SurroForge" }]
+keywords = ["surrogate", "surroforge", "reports", "html", "professional"]
+dependencies = [
+    "surroforge",
+    "jinja2>=3.1",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
+
+[project.entry-points."surroforge.reporters"]
+html = "surroforge_professional.reports.html:HtmlReporter"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/surroforge_professional"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
