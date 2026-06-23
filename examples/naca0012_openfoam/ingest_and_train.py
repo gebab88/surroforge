@@ -15,10 +15,18 @@ Core ``mlp``; the PyTorch ``torch-mlp`` backend joins the comparison if the
 it consumes the output ``run_sweep.py`` already produced.
 
     python examples/naca0012_openfoam/ingest_and_train.py run
+    python examples/naca0012_openfoam/ingest_and_train.py run --out ./ex09_real   # save the run
+
+With ``--out`` the SurroForge project (datasets, runs, lineage, POD basis, models) **and** the
+exported artifacts are saved under that directory, so the real run is inspectable/reproducible
+afterwards (``surroforge --config-dir <out>/naca list``); without it the project is built in a temp
+dir and removed, and only the exported artifacts persist (written into the sweep directory).
 """
 
 from __future__ import annotations
 
+import argparse
+import shutil
 import sys
 import tempfile
 import warnings
@@ -109,7 +117,12 @@ def _key(aoa: float, speed: float) -> tuple[float, float]:
     return (round(float(aoa), 6), round(float(speed), 6))
 
 
-def main(run_dir: Path) -> None:
+def main(run_dir: Path, out_dir: Path | None = None) -> None:
+    # With --out the run is saved: the SurroForge project (datasets, runs, lineage, POD basis,
+    # models) under <out_dir>/naca and the exported artifacts alongside it, so it is inspectable
+    # and reproducible afterwards (surroforge --config-dir <out_dir>/naca list). Without it the
+    # project lives in a temp dir and is removed, and the artifacts go into the sweep directory.
+    export_dir = out_dir if out_dir is not None else run_dir
     doe = pd.read_csv(run_dir / "samples.csv").set_index("case")
     snapshots = read_openfoam_sweep(
         run_dir, field="p",
@@ -147,7 +160,15 @@ def main(run_dir: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="surroforge-naca-") as tmp:
         csv = Path(tmp) / "snapshots.csv"
         snapshots.to_csv(csv, index=False)
-        project = Project.init(Path(tmp) / "naca", name="naca0012-cfd")
+        # Persist the project under <out_dir>/naca when --out is given (start it fresh on a re-run);
+        # otherwise build it in the temp dir so it is removed on exit.
+        if out_dir is not None:
+            project_root = out_dir / "naca"
+            if project_root.exists():
+                shutil.rmtree(project_root)
+        else:
+            project_root = Path(tmp) / "naca"
+        project = Project.init(project_root, name="naca0012-cfd")
         project.add_dataset(csv, name="sweep")
 
         split = {"test_fraction": 0.25, "seed": 1}
@@ -185,19 +206,23 @@ def main(run_dir: Path) -> None:
         # (when the plugin is installed), and the field surrogate to pickle (reduced-field only).
         print("\n=== Export ===")
         try:
-            out = best_cl.export("onnx", run_dir / "coeffs_surrogate.onnx")
+            out = best_cl.export("onnx", export_dir / "coeffs_surrogate.onnx")
             print(f"  onnx  -> {out.name} ({out.stat().st_size} bytes)  [best: {best_cl.method}]")
         except ExportError as exc:
             print(f"  onnx  unavailable — {exc}")
         torch_run = cl_runs.get("torch-mlp")
         if torch_run is not None:
-            out = torch_run.export("pt", run_dir / "coeffs_surrogate.pt")
+            out = torch_run.export("pt", export_dir / "coeffs_surrogate.pt")
             print(f"  pt    -> {out.name} ({out.stat().st_size} bytes)  [torch-mlp native]")
         else:
             print("  pt    skipped — install ./plugins/surroforge-torch for the torch-mlp backend")
         field_best = field_runs[_best_label(project, field_runs)]
-        field_out = field_best.export("pickle", run_dir / "field_surrogate.pkl")
+        field_out = field_best.export("pickle", export_dir / "field_surrogate.pkl")
         print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
+        if out_dir is not None:
+            print(f"\nArtifacts written to {export_dir}/")
+            print(f"Run saved to {project_root}/ — inspect with: "
+                  f"surroforge --config-dir {project_root} list")
 
 
 def _best_label(project: Project, runs: dict) -> str:
@@ -221,7 +246,20 @@ def _report(project: Project, runs: dict, label_kind: str) -> str:
 
 
 if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("run")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("run_dir", nargs="?", default="run",
+                        help="sweep directory run_sweep.py produced (samples.csv + case_* dirs)")
+    parser.add_argument(
+        "--out", metavar="DIR", default=None,
+        help="save the run to DIR: the SurroForge project (DIR/naca — runs, lineage, POD "
+             "basis, models) plus the exported artifacts; without it the project goes to a "
+             "temp dir and is removed, and only the artifacts (in the sweep dir) persist.",
+    )
+    args = parser.parse_args()
+    target = Path(args.run_dir)
     if not (target / "samples.csv").is_file():
         sys.exit(f"No sweep found at {target}/ (expected samples.csv). Run run_sweep.py first.")
-    main(target)
+    out_dir = Path(args.out) if args.out else None
+    if out_dir is not None:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    main(target, out_dir)

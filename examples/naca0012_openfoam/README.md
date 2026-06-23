@@ -37,12 +37,18 @@ python examples/naca0012_openfoam/run_sweep.py --angles "-6 0 6 12 16 18" --spee
 
 # 3. Ingest the fields + forceCoeffs and train the surrogates
 python examples/naca0012_openfoam/ingest_and_train.py run
+#    ...or save the whole run (SurroForge project + artifacts) for later inspection:
+python examples/naca0012_openfoam/ingest_and_train.py run --out ./ex09_real
 ```
 
-`ingest_and_train.py` also **exports** the trained surrogates into the sweep directory: the best
-coefficient model to `coeffs_surrogate.onnx`, the torch-mlp coefficient model to
-`coeffs_surrogate.pt` (a native PyTorch checkpoint, when the plugin is installed), and the field
-surrogate to `field_surrogate.pkl` (`reduced-field` is pickle-only).
+`ingest_and_train.py` also **exports** the trained surrogates: the best coefficient model to
+`coeffs_surrogate.onnx`, the torch-mlp coefficient model to `coeffs_surrogate.pt` (a native PyTorch
+checkpoint, when the plugin is installed), and the field surrogate to `field_surrogate.pkl`
+(`reduced-field` is pickle-only). By default these land in the sweep directory and the SurroForge
+project (datasets, runs, lineage, POD basis, models) is built in a temp dir and discarded; pass
+**`--out DIR`** to save the whole run instead — the project to `DIR/naca` plus the artifacts to
+`DIR` — so it stays inspectable and reproducible afterwards
+(`surroforge --config-dir DIR/naca list`), exactly like example 09's `--out`.
 
 `run_sweep.py` options: `--angles` (deg) and `--speeds` (|U| m/s), each space/comma-separated — a
 2-D DoE is run over every angle × speed; `--iters` (steady-state *cap*, default 1000), `--residual`
