@@ -129,7 +129,8 @@ class Project:
                 f"Unsupported data format '{source.suffix}'. "
                 f"Supported: {sorted(SUPPORTED_SUFFIXES)}"
             )
-        name = name or source.stem
+        name = source.stem if name is None else name
+        _validate_dataset_name(name)
         metadata = self.metadata
         existing = {d["name"] for d in metadata.get("datasets", [])}
         if name in existing:
@@ -142,6 +143,11 @@ class Project:
         # Copy into the project's data/ dir unless the file is already inside it.
         self.data_dir.mkdir(parents=True, exist_ok=True)
         dest = self.data_dir / f"{name}{source.suffix.lower()}"
+        if not dest.resolve(strict=False).is_relative_to(self.data_dir.resolve()):
+            raise DataError(
+                f"Invalid dataset name '{name}': backing file would be written "
+                "outside the project's data/ directory."
+            )
         if source.resolve() != dest.resolve():
             shutil.copy2(source, dest)
 
@@ -237,3 +243,11 @@ class Project:
 
 def _now_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _validate_dataset_name(name: str) -> None:
+    if name in {"", ".", ".."} or "/" in name or "\\" in name:
+        raise DataError(
+            f"Invalid dataset name '{name}': dataset name must be a plain filename stem, "
+            "not a path."
+        )

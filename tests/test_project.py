@@ -55,6 +55,22 @@ def test_add_duplicate_dataset_name_raises(project, sample_csv):
         project.add_dataset(sample_csv, name="beam")
 
 
+@pytest.mark.parametrize(
+    "bad_name",
+    ["../escaped", "../../escaped", "sub/dir", r"sub\dir", ".", "..", ""],
+)
+def test_add_dataset_rejects_path_like_names(tmp_path, bad_name):
+    external = tmp_path / "external.csv"
+    make_samples().to_csv(external, index=False)
+    project = Project.init(tmp_path / "p", name="p")
+
+    with pytest.raises(DataError, match="dataset name"):
+        project.add_dataset(external, name=bad_name)
+
+    assert not (tmp_path / "escaped.csv").exists()
+    assert project.datasets() == []
+
+
 def test_add_unsupported_format_raises(project, tmp_path):
     bad = tmp_path / "data.txt"
     bad.write_text("not a table")
