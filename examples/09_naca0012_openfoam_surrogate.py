@@ -45,9 +45,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike
 from sklearn.exceptions import ConvergenceWarning
 
 from surroforge import Project, Trainer
+from surroforge.core.run import Run
 from surroforge.data import read_openfoam_sweep
 from surroforge.errors import ExportError
 from surroforge.plugins import available_trainers
@@ -95,12 +97,12 @@ RHO = 1.0  # freestream density (incompressible; matches the real template's rho
 SPEED_REF = 30.0  # reference freestream speed [m/s] at which the stall angle is ~14°
 
 
-def dynamic_pressure(speed: np.ndarray) -> np.ndarray:
+def dynamic_pressure(speed: ArrayLike) -> np.ndarray:
     """Freestream dynamic pressure q = ½·ρ·U² — what the pressure field scales with."""
     return 0.5 * RHO * np.asarray(speed, dtype=float) ** 2
 
 
-def naca0012_cl(aoa_deg: np.ndarray, speed: np.ndarray) -> np.ndarray:
+def naca0012_cl(aoa_deg: ArrayLike, speed: ArrayLike) -> np.ndarray:
     """NACA 0012 lift coefficient C_L(AoA, U): thin-airfoil-linear, then a smooth stall.
 
     `2*pi*sin(alpha)` is the thin-airfoil slope; the sigmoid rolls lift off past the stall
@@ -116,14 +118,14 @@ def naca0012_cl(aoa_deg: np.ndarray, speed: np.ndarray) -> np.ndarray:
     return linear * not_stalled
 
 
-def _stall_fraction(aoa_deg: np.ndarray, speed: np.ndarray) -> np.ndarray:
+def _stall_fraction(aoa_deg: ArrayLike, speed: ArrayLike) -> np.ndarray:
     """0 (fully attached) → 1 (fully separated), with the same Reynolds stall drift as C_L."""
     aoa_deg = np.asarray(aoa_deg, dtype=float)
     stall_deg = 14.0 + 2.0 * np.log(np.asarray(speed, dtype=float) / SPEED_REF)
     return 1.0 - 1.0 / (1.0 + np.exp((np.abs(aoa_deg) - stall_deg) / 1.5))
 
 
-def naca0012_cd(aoa_deg: np.ndarray, speed: np.ndarray) -> np.ndarray:
+def naca0012_cd(aoa_deg: ArrayLike, speed: ArrayLike) -> np.ndarray:
     """NACA 0012 drag coefficient C_D(AoA, U): a simple drag polar with a post-stall rise.
 
     `cd0 + k·C_L²` is the classic parasitic-plus-drag-due-to-lift polar; a separation term
@@ -239,7 +241,7 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
 
     # 2. Field surrogate (POD-NN): (AoA, speed) -> full pressure field, one reduced-field per inner.
     print("\n=== Field surrogate: (AoA, speed) -> pressure field (POD + inner) ===")
-    field_runs: dict[str, object] = {}
+    field_runs: dict[str, Run] = {}
     for label, inner in _inner_candidates():
         field_runs[label] = Trainer.from_dict(
             {
@@ -274,7 +276,7 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
     # 3. Scalar surrogate: (AoA, speed) -> [C_L, C_D]. Both coefficients share the stall
     #    nonlinearity and sit on a comparable scale, so one network fits both well.
     print("\n=== Scalar surrogate: (AoA, speed) -> [C_L, C_D] ===")
-    cl_runs: dict[str, object] = {}
+    cl_runs: dict[str, Run] = {}
     for label, model in _scalar_candidates():
         cl_runs[label] = Trainer.from_dict(
             {
