@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from surroforge.core.run import Run
 from surroforge.reporters.base import BaseReporter
+from surroforge_professional.license import require_license
 
 
 class HtmlReporter(BaseReporter):
@@ -11,4 +12,5 @@ class HtmlReporter(BaseReporter):
     extension = ".html"
 
     def render(self, run: Run) -> str:
+        require_license()
         return "<!doctype html>\n<title>SurroForge Report</title>\n"
