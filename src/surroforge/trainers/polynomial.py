@@ -41,8 +41,18 @@ class PolynomialTrainer(BaseTrainer):
                 f"Unknown hyperparameter(s) for polynomial: {sorted(extra)}. "
                 "Supported: degree, include_bias, interaction_only."
             )
+        if not isinstance(degree, int) or isinstance(degree, bool):
+            raise TrainerError(f"polynomial 'degree' must be an int >= 1; got {degree!r}.")
         if degree < 1:
             raise TrainerError("polynomial 'degree' must be >= 1.")
+        if not isinstance(include_bias, bool):
+            raise TrainerError(
+                f"polynomial 'include_bias' must be a bool; got {include_bias!r}."
+            )
+        if not isinstance(interaction_only, bool):
+            raise TrainerError(
+                f"polynomial 'interaction_only' must be a bool; got {interaction_only!r}."
+            )
         super().__init__(
             degree=degree, include_bias=include_bias, interaction_only=interaction_only
         )

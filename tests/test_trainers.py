@@ -47,6 +47,24 @@ def test_polynomial_bad_degree_raises():
         PolynomialTrainer(degree=0)
 
 
+@pytest.mark.parametrize("bad", ["two", 2.5, True])
+def test_polynomial_non_integer_degree_raises(bad):
+    with pytest.raises(TrainerError, match="degree"):
+        PolynomialTrainer(degree=bad)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "field"),
+    [
+        ({"include_bias": "yes"}, "include_bias"),
+        ({"interaction_only": 1}, "interaction_only"),
+    ],
+)
+def test_polynomial_non_boolean_flags_raise(kwargs, field):
+    with pytest.raises(TrainerError, match=field):
+        PolynomialTrainer(**kwargs)
+
+
 def test_predict_before_fit_raises():
     with pytest.raises(TrainerError):
         PolynomialTrainer().predict(np.zeros((2, 1)))

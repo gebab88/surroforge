@@ -63,6 +63,21 @@ def test_train_validate_list(tmp_path):
     assert "rmse" in result.output
 
 
+def test_train_invalid_polynomial_degree_clean_error(tmp_path):
+    root = _init_project_with_data(tmp_path)
+    raw = poly_config("polynomial")
+    raw["model"]["degree"] = "two"
+    cfg = root / "configs" / "bad-poly.yaml"
+    cfg.write_text(yaml.safe_dump(raw))
+
+    result = runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert "degree" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_export_and_report(tmp_path):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
