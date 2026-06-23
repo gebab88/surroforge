@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from surroforge.core.run import Run
 from surroforge.errors import PluginError
+from surroforge.validators.metrics import two_source_split
 
 
 def fmt(value: Any) -> str:
@@ -67,6 +69,100 @@ def _metric_rows(metrics: dict[str, Any], metric_names: list[str]) -> list[dict[
     return rows
 
 
+def _per_fold(metric_record: Any) -> list[Any] | None:
+    if not isinstance(metric_record, dict):
+        return None
+    values = metric_record.get("per_fold")
+    if values is None or isinstance(values, (str, bytes)):
+        return None
+    try:
+        per_fold = list(values)
+    except TypeError:
+        return None
+    return per_fold or None
+
+
+def _component_stats(fold_splits: list[dict[str, float]], component: str) -> tuple[float, float]:
+    values = [split[component] for split in fold_splits]
+    mean = math.fsum(values) / len(values)
+    variance = math.fsum((value - mean) ** 2 for value in values) / len(values)
+    return mean, math.sqrt(variance)
+
+
+def _two_source_context(
+    config: Any, metrics: dict[str, Any], lineage: dict[str, Any]
+) -> dict[str, Any] | None:
+    field_names = ("energy_l2", "truncation_error")
+    if not set(field_names) <= set(config.validation.metrics):
+        return None
+
+    train = metrics.get("train")
+    test = metrics.get("test")
+    cv = metrics.get("cross_validation")
+    if not all(isinstance(section, dict) for section in (train, test, cv)):
+        return None
+    if not all(metric in train and metric in test for metric in field_names):
+        return None
+    if not all(metric in cv for metric in field_names):
+        return None
+
+    energy_folds = _per_fold(cv["energy_l2"])
+    truncation_folds = _per_fold(cv["truncation_error"])
+    if (
+        energy_folds is None
+        or truncation_folds is None
+        or len(energy_folds) != len(truncation_folds)
+    ):
+        return None
+
+    try:
+        train_split = two_source_split(train["energy_l2"], train["truncation_error"])
+        test_split = two_source_split(test["energy_l2"], test["truncation_error"])
+        fold_splits = [
+            two_source_split(energy, truncation)
+            for energy, truncation in zip(energy_folds, truncation_folds, strict=True)
+        ]
+        cv_mean: dict[str, float] = {}
+        cv_std: dict[str, float] = {}
+        for component in ("total", "truncation", "surrogate"):
+            cv_mean[component], cv_std[component] = _component_stats(fold_splits, component)
+    except (ArithmeticError, KeyError, TypeError, ValueError):
+        return None
+
+    rows = []
+    for component, label in (
+        ("total", "total field error"),
+        ("truncation", "truncation floor"),
+        ("surrogate", "surrogate error"),
+    ):
+        rows.append(
+            {
+                "label": label,
+                "train": train_split[component],
+                "test": test_split[component],
+                "cv_mean": cv_mean[component],
+                "cv_std": cv_std[component],
+                "train_fmt": fmt(train_split[component]),
+                "test_fmt": fmt(test_split[component]),
+                "cv_mean_fmt": fmt(cv_mean[component]),
+                "cv_std_fmt": fmt(cv_std[component]),
+            }
+        )
+
+    reduction = lineage.get("reduction")
+    if not isinstance(reduction, dict):
+        reduction = {}
+    energy_captured = reduction.get("energy_captured")
+
+    return {
+        "rows": rows,
+        "reduction_rank": reduction.get("rank"),
+        "energy_captured": energy_captured,
+        "energy_captured_fmt": fmt(energy_captured) if energy_captured is not None else None,
+        "truncation_per_fold": ", ".join(fmt(value) for value in truncation_folds),
+    }
+
+
 def build_context(run: Run) -> dict[str, Any]:
     config = run.config
     metrics = run.metrics
@@ -102,7 +198,7 @@ def build_context(run: Run) -> dict[str, Any]:
         ],
         "metric_rows": metric_rows,
         "cv_folds": cv.get("folds", config.validation.cross_validation.folds),
-        "two_source": None,
+        "two_source": _two_source_context(config, metrics, lineage),
         "config_yaml": config.to_yaml(),
         "python_version": lineage.get("python_version", ""),
         "surroforge_version": lineage.get("surroforge_version", ""),

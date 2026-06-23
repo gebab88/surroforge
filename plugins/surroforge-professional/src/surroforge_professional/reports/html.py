@@ -252,6 +252,29 @@ _TEMPLATE = _ENV.from_string(
     {% if two_source %}
     <section aria-labelledby="field-rom-details">
       <h2 id="field-rom-details">Field-ROM Details</h2>
+      <table>
+        <thead>
+          <tr><th>Error source</th><th>Train</th><th>Test</th><th>CV mean</th><th>CV std</th></tr>
+        </thead>
+        <tbody>
+          {% for row in two_source.rows %}
+          <tr>
+            <td>{{ row.label }}</td>
+            <td class="mono">{{ row.train_fmt }}</td>
+            <td class="mono">{{ row.test_fmt }}</td>
+            <td class="mono">{{ row.cv_mean_fmt }}</td>
+            <td class="mono">{{ row.cv_std_fmt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if two_source.reduction_rank is not none %}
+      <p><span class="label">Reduction rank</span><span class="value mono">{{ two_source.reduction_rank }}</span></p>
+      {% endif %}
+      {% if two_source.energy_captured_fmt is not none %}
+      <p><span class="label">Energy captured</span><span class="value mono">{{ two_source.energy_captured_fmt }}</span></p>
+      {% endif %}
+      <p><span class="label">Per-fold truncation floors</span><span class="value mono">{{ two_source.truncation_per_fold }}</span></p>
     </section>
     {% endif %}
 
