@@ -44,6 +44,8 @@ def _metric_rows(metrics: dict[str, Any], metric_names: list[str]) -> list[dict[
 
     rows: list[dict[str, Any]] = []
     for metric in metric_names:
+        if metric not in cv:
+            raise PluginError(f"HTML report requires cross-validation metric {metric!r}.")
         cv_metric = _require_dict(cv, metric, "metrics['cross_validation']")
         train_value = _require_key(train, metric, "metrics['train']")
         test_value = _require_key(test, metric, "metrics['test']")

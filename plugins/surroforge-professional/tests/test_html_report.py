@@ -40,6 +40,10 @@ def test_html_reports_metrics_and_lineage(licensed, trained_run):
     assert f"surroforge reproduce {trained_run.run_id}" in text
     for metric in trained_run.config.validation.metrics:
         assert f">{metric}<" in text
+    rmse = trained_run.metrics["cross_validation"]["rmse"]
+    assert f">{trained_run.metrics['train']['rmse']:.5g}<" in text
+    assert f">{trained_run.metrics['test']['rmse']:.5g}<" in text
+    assert f">{rmse['mean']:.5g}<" in text
     for column in trained_run.config.data.inputs + trained_run.config.data.outputs:
         assert column in text
 
@@ -56,6 +60,15 @@ def test_missing_required_train_metrics_fail_clearly(licensed, trained_run):
     trained_run.__dict__["metrics"] = {"test": {}, "cross_validation": {}}
 
     with pytest.raises(PluginError, match=r"metrics\['train'\]"):
+        HtmlReporter().render(trained_run)
+
+
+def test_missing_cross_validation_metric_fails_clearly(licensed, trained_run):
+    metrics = dict(trained_run.metrics)
+    metrics["cross_validation"] = {"folds": 5}
+    trained_run.__dict__["metrics"] = metrics
+
+    with pytest.raises(PluginError, match="cross-validation metric 'rmse'"):
         HtmlReporter().render(trained_run)
 
 
