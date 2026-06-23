@@ -35,6 +35,10 @@ outputs/
 # Claude Code local project memory (machine-specific, not part of the shipped project)
 /CLAUDE.md
 
+# Superpowers local workspaces and brainstorming artifacts
+/.worktrees/
+/.superpowers/
+
 # Machine-specific local OpenFOAM setup note for the real NACA 0012 run (personal install path)
 /examples/naca0012_openfoam/LOCAL_SETUP.md
 
