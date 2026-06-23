@@ -138,6 +138,43 @@ def test_predict_missing_column_clean_error(tmp_path):
     assert "Traceback" not in result.output
 
 
+def test_predict_non_numeric_input_clean_error(tmp_path):
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    bad = tmp_path / "bad.csv"
+    frame = make_samples(n=2, seed=9).drop(columns=["max_stress"])
+    frame["width"] = frame["width"].astype(object)
+    frame.loc[0, "width"] = "wide"
+    frame.to_csv(bad, index=False)
+    result = runner.invoke(
+        app, ["--config-dir", str(root), "predict", "run-001", "--input", str(bad)]
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert "Non-numeric input columns" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_predict_missing_value_clean_error(tmp_path):
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    bad = tmp_path / "bad.csv"
+    frame = make_samples(n=2, seed=9).drop(columns=["max_stress"])
+    frame.loc[0, "width"] = None
+    frame.to_csv(bad, index=False)
+    result = runner.invoke(
+        app, ["--config-dir", str(root), "predict", "run-001", "--input", str(bad)]
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert "missing values" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_compare_cli(tmp_path):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)

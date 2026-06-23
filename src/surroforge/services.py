@@ -440,7 +440,19 @@ def predict_with_run(run: Run, frame: pd.DataFrame, *, field: bool = False) -> p
     if missing:
         raise DataError(f"Input file is missing required columns: {missing}")
 
-    x = frame[inputs].to_numpy(dtype=float)
+    input_frame = frame[inputs]
+    non_numeric = [
+        c for c in inputs if not pd.api.types.is_numeric_dtype(input_frame[c])
+    ]
+    if non_numeric:
+        raise DataError(
+            f"Non-numeric input columns: {non_numeric}. "
+            "Surrogate predictions require numeric input data."
+        )
+    if input_frame.isnull().to_numpy().any():
+        raise DataError("Input file contains missing values in required input columns.")
+
+    x = input_frame.to_numpy(dtype=float)
     model = run.load_model()
     if not field and hasattr(model, "predict_coefficients"):
         coefficients = np.asarray(model.predict_coefficients(x), dtype=float)
