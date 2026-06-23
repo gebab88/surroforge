@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from surroforge.data.hashing import hash_dataframe, hash_file
@@ -33,6 +34,37 @@ def test_hash_stable_across_reload(tmp_path):
     parquet = tmp_path / "d.parquet"
     frame.to_parquet(parquet, index=False)
     assert hash_dataframe(load_table(parquet)) == hash_dataframe(frame)
+
+
+def test_load_hdf5_column_group_round_trips(tmp_path):
+    h5py = pytest.importorskip("h5py")
+    path = tmp_path / "d.h5"
+    expected = pd.DataFrame({"f10": [10.0, 11.0], "f2": [2.0, 3.0]})
+
+    with h5py.File(path, "w", track_order=True) as handle:
+        for column in expected.columns:
+            handle.create_dataset(column, data=expected[column].to_numpy())
+
+    loaded = load_table(path)
+
+    pd.testing.assert_frame_equal(loaded, expected)
+    assert list(loaded.columns) == ["f10", "f2"]
+
+
+def test_load_hdf5_rejects_non_column_group_without_pandas_fallback(tmp_path, monkeypatch):
+    h5py = pytest.importorskip("h5py")
+    path = tmp_path / "nested.h5"
+    with h5py.File(path, "w") as handle:
+        group = handle.create_group("nested")
+        group.create_dataset("a", data=[1.0, 2.0])
+
+    def _read_hdf_should_not_be_called(*args, **kwargs):
+        raise AssertionError("pd.read_hdf should not be called")
+
+    monkeypatch.setattr(pd, "read_hdf", _read_hdf_should_not_be_called)
+
+    with pytest.raises(DataError, match="root-level 1-D dataset"):
+        load_table(path)
 
 
 def test_hash_file_differs_from_content_hash(tmp_path):

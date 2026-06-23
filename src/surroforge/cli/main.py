@@ -127,8 +127,7 @@ def _save_frame(frame, path: Path) -> None:
     elif suffix in {".parquet", ".pq"}:
         frame.to_parquet(path, index=False)
     elif suffix in {".h5", ".hdf5"}:
-        # Raw h5py column group, NOT frame.to_hdf: pandas HDF needs pytables,
-        # which ships in no extra (Story R4.1).
+        # Raw h5py column group, matching surroforge.data.loader's HDF5 reader.
         try:
             import h5py
         except ImportError as exc:

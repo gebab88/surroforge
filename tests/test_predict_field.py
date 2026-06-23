@@ -26,7 +26,7 @@ from surroforge.cli.main import _save_frame, app
 from surroforge.core.config import parse_config
 from surroforge.core.project import Project
 from surroforge.core.run import Run
-from surroforge.data.loader import expand_field_columns
+from surroforge.data.loader import expand_field_columns, load_table
 from surroforge.engine import run_training
 from surroforge.errors import DataError, ProjectError, TrainerError
 from surroforge.persistence import read_json, write_json
@@ -276,6 +276,9 @@ def test_cli_field_writes_hdf5_column_group(field_run):
         assert list(fh.keys()) == ["p0", "p1", *(f"f{j}" for j in range(N_DOF))]
         for j in (0, N_DOF - 1):
             assert np.array_equal(fh[f"f{j}"][...], preds[:, j])
+    loaded = load_table(out)
+    assert list(loaded.columns) == ["p0", "p1", *(f"f{j}" for j in range(N_DOF))]
+    assert np.array_equal(loaded[f"f{N_DOF - 1}"].to_numpy(), preds[:, N_DOF - 1])
 
 
 # --- h5 writer degradation & validation (AC 2; review patches) -------------------------------

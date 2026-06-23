@@ -50,15 +50,51 @@ def _read_with_optional(path: Path, reader: str, fmt: str, extra: str) -> pd.Dat
 
 def _read_hdf(path: Path) -> pd.DataFrame:
     try:
-        frame = pd.read_hdf(path)
+        import h5py
     except ImportError as exc:  # pragma: no cover - depends on environment
         raise DataError(
-            "Reading HDF5 files requires the 'h5py'/'tables' package. "
+            "Reading HDF5 column-group files requires the 'h5py' backend. "
             "Install it with: pip install 'surroforge[formats]'"
         ) from exc
-    if not isinstance(frame, pd.DataFrame):
-        raise DataError(f"HDF5 file {path} does not contain a single table.")
-    return frame
+
+    try:
+        with h5py.File(path, "r") as handle:
+            names = list(handle.keys())
+            if not names:
+                raise DataError(f"HDF5 file {path} contains no datasets.")
+            datasets = []
+            for name in names:
+                member = handle[name]
+                if not isinstance(member, h5py.Dataset):
+                    raise DataError(
+                        f"HDF5 file {path} is not a SurroForge column-group table: "
+                        f"root member '{name}' is not a dataset. Expected one "
+                        "root-level 1-D dataset per column."
+                    )
+                datasets.append(member)
+
+            arrays: dict[str, np.ndarray] = {}
+            n_rows: int | None = None
+            for name, dataset in zip(names, datasets, strict=True):
+                array = np.asarray(dataset)
+                if array.ndim != 1:
+                    raise DataError(
+                        f"HDF5 file {path} is not a SurroForge column-group table: "
+                        f"dataset '{name}' is {array.ndim}-D. Expected one "
+                        "root-level 1-D dataset per column."
+                    )
+                if n_rows is None:
+                    n_rows = int(array.shape[0])
+                elif int(array.shape[0]) != n_rows:
+                    raise DataError(
+                        f"HDF5 column datasets have inconsistent lengths: "
+                        f"'{name}' has {array.shape[0]} row(s), expected {n_rows}."
+                    )
+                arrays[str(name)] = array
+    except OSError as exc:
+        raise DataError(f"Could not read HDF5 file {path}: {exc}") from exc
+
+    return pd.DataFrame(arrays)
 
 
 def infer_schema(frame: pd.DataFrame) -> dict[str, str]:
