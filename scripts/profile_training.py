@@ -26,13 +26,15 @@ import pstats
 import shutil
 import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
 
 import surroforge
-from surroforge.core.config import parse_config
+from surroforge.core.config import ExperimentConfig, parse_config
 from surroforge.core.project import Project
 from surroforge.engine import run_training
 
@@ -45,6 +47,10 @@ MAX_OWN_CODE_SHARE = float(os.environ.get("SF_PROFILE_MAX_SHARE", "0.10"))
 
 _SF_PKG_DIR = os.path.dirname(os.path.abspath(surroforge.__file__)).replace("\\", "/")
 _ONNX_PKGS = {"skl2onnx", "onnx", "onnxconverter_common", "onnxruntime"}
+_ProfileStats = Mapping[
+    tuple[str, int, str],
+    tuple[int, int, float, float, Mapping[Any, Any]],
+]
 
 
 def have(pkg: str) -> bool:
@@ -88,7 +94,7 @@ def make_dataset(n: int, d: int, seed: int, path: Path) -> None:
     pd.DataFrame(cols).to_csv(path, index=False)
 
 
-def config(method: str, csv: Path, d: int, folds: int) -> object:
+def config(method: str, csv: Path, d: int, folds: int) -> ExperimentConfig:
     model = {"method": method, "degree": 2} if method == "polynomial" else {"method": method}
     return parse_config(
         {
@@ -121,7 +127,8 @@ def profile_method(method: str, n: int, d: int, folds: int, seed: int, root: Pat
     pr.disable()
 
     buckets: dict[str, float] = {}
-    for (filename, _lineno, _func), values in pstats.Stats(pr).stats.items():
+    stats = cast("_ProfileStats", vars(pstats.Stats(pr))["stats"])
+    for (filename, _lineno, _func), values in stats.items():
         name = bucket_for(filename)
         buckets[name] = buckets.get(name, 0.0) + values[2]
     total = sum(buckets.values()) or 1e-12
