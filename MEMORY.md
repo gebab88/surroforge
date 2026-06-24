@@ -7,8 +7,9 @@ Code allein ersichtlich ist: Architektur, Befehle, Konventionen und Entscheidung
 
 CLI-Werkzeug (mit spiegelgleicher Python-API) zum Erstellen, Validieren und
 Verwalten von **Surrogate-Modellen** aus tabellarischen FEM/CFD-Simulationsdaten.
-Open Core unter Apache 2.0. Maßgeblich ist `PRD.md`; implementiert ist **Phase 1
-(MVP)** aus PRD-Abschnitt 9.1.
+Open Core unter Apache 2.0. Maßgeblich ist `PRD.md`; **Phase 1 (MVP)** ist umgesetzt,
+und der aktuelle Stand geht bereits darüber hinaus: Field-ROM/OpenFOAM-Erweiterungen,
+`mlp`, ein PyTorch-Plugin und ein erster Professional-HTML-Reporter sind vorhanden.
 
 **Kernversprechen:** vom Solver-Output zum validierten, reproduzierbaren
 Surrogate-Modell — Daten, Konfiguration und Modelle sauber versioniert.
@@ -19,10 +20,12 @@ Surrogate-Modell — Daten, Konfiguration und Modelle sauber versioniert.
   Das System-`/usr/bin/python3` ist 3.9 und erfüllt die Anforderung `>=3.10` nicht.
 - **Installieren:** `.venv/bin/pip install -e '.[all,dev]'`
 - **CLI:** `.venv/bin/surroforge --help`
-- **Tests:** `.venv/bin/python -m pytest` (116 Tests)
+- **Tests Core:** `.venv/bin/python -m pytest tests` (aktuell 430 gesammelt)
+- **Tests Plugins:** `.venv/bin/python -m pytest plugins/surroforge-professional/tests`
+  und `.venv/bin/python -m pytest plugins/surroforge-torch/tests`
 - **Lint/Typen:** `.venv/bin/ruff check src tests` · `.venv/bin/mypy src`
 
-Status: ruff sauber, mypy ohne Befunde, 116 Tests grün.
+Vor Release die Gates aus `RELEASING.md` frisch ausführen.
 
 ## Architektur (src-Layout)
 
@@ -30,13 +33,13 @@ Status: ruff sauber, mypy ohne Befunde, 116 Tests grün.
 src/surroforge/
 ├── cli/main.py      # Typer-CLI; alle Befehle aus PRD 4.2; _guard rendert Fehler sauber
 ├── core/            # config (Pydantic), project, run, dataset
-├── data/            # loader (CSV/Parquet/HDF5), hashing (SHA-256)
-├── trainers/        # base + polynomial (sklearn), kriging/rbf (SMT)
-├── validators/      # metrics (RMSE/R²/MAE), cross_validation (k-fold)
-├── exporters/       # base, pickle (immer), onnx
-├── reporters/       # base, markdown (Jinja2)
+├── data/            # loader (CSV/Parquet/HDF5), OpenFOAM/mesh readers, hashing
+├── trainers/        # base + polynomial, kriging/rbf, mlp, reduced-field
+├── validators/      # metrics (RMSE/R²/MAE + field metrics), cross_validation
+├── exporters/       # base, pickle (immer), onnx; pt kommt über surroforge-torch
+├── reporters/       # base, markdown; html kommt über surroforge-professional
 ├── persistence/     # store: atomare I/O, Run-IDs, Environment-Capture
-├── plugins/         # registry: Entry-Points + Builtin-Fallback
+├── plugins/         # registry/gate/seam: Entry-Points + Builtin-Fallback
 ├── api/highlevel.py # Project, Trainer (PRD 4.10)
 ├── engine.py        # run_training: Orchestrator (Daten→Split→CV→Final-Modell→Persistenz)
 └── services.py      # reproduce / compare / predict / export / report
@@ -53,12 +56,16 @@ Daten** (das gespeicherte Artefakt) und schreibt `runs/<id>/` mit `config.snapsh
 - **Plugin-Registry:** Trainer/Exporter/Reporter werden über Entry-Point-Gruppen
   (`surroforge.trainers|exporters|reporters`) entdeckt. Eine Builtin-Fallback-Tabelle
   sorgt dafür, dass ein Source-Checkout ohne `pip install` ebenfalls funktioniert.
-  Die kommerziellen Editionen sollen später denselben Mechanismus nutzen.
-- **Optionale Backends lazy:** SMT (Kriging/RBF) und ONNX werden erst zur Laufzeit
-  importiert; die Methoden erscheinen in der Registry auch ohne installiertes SMT
-  und scheitern erst beim `fit`/`export` mit klarer Meldung.
-- **Kriging/RBF sind im MVP single-output** (SMT-Limitierung). Multi-Output ist
-  laut PRD ohnehin Phase 2 (Professional).
+  Externe/kommerzielle Pakete nutzen denselben Mechanismus (`surroforge-torch`,
+  `surroforge-professional`).
+- **Optionale Backends lazy:** SMT (Kriging/RBF), ONNX, meshio und schwere Plugin-Backends
+  werden erst zur Laufzeit bzw. über Extras/Plugins geladen; fehlende Backends scheitern
+  beim `fit`/`export`/Importpfad mit klarer Meldung.
+- **Kriging/RBF sind single-output** (SMT-Limitierung). Multi-Output ist über `mlp`,
+  `torch-mlp` und Feld-ROM-Pfade abgedeckt, nicht über SMT.
+- **Professional-HTML ist Plugin-only:** Core bleibt Markdown-only. Der HTML-Reporter lebt
+  in `plugins/surroforge-professional/`, registriert `html` per Entry Point und nutzt in v1
+  nur eine lokale Lizenzprüfung (`SURROFORGE_PRO_LICENSE` oder Datei), keine Online-Aktivierung.
 - **Reproduzierbarkeit:** Jeder Lauf speichert einen *Prediction-Fingerprint*
   (SHA-256 über Vorhersagen auf den Trainingsinputs). `reproduce` vergleicht ihn
   → Polynom reproduziert bit-identisch. Daten-Hash: bei registrierten Datensätzen
@@ -80,18 +87,20 @@ Daten** (das gespeicherte Artefakt) und schreibt `runs/<id>/` mit `config.snapsh
 
 ## Teststruktur
 
-Pro Modul eine Datei (`test_config`, `test_data`, `test_metrics`,
-`test_cross_validation`, `test_trainers`, `test_exporters`, `test_reporters`,
-`test_persistence`, `test_project`, `test_training`, `test_reproduce`,
-`test_plugins`, `test_api`, `test_cli`) plus `test_scenarios.py` für die drei
-PRD-Akzeptanzszenarien (Greenfield, Methodenvergleich, Reproduktion).
-`tests/conftest.py` liefert Fixtures: `sample_csv`, `project` (mit Datensatz „beam"),
-`trained_run`, sowie `make_samples()`/`poly_config()`.
+Core-Tests liegen unter `tests/` und decken Konfiguration, Daten, Training, Export,
+Reports, Reproduktion, Plugins, CLI/API, Field-ROM, OpenFOAM, Conformance und die drei
+PRD-Akzeptanzszenarien (Greenfield, Methodenvergleich, Reproduktion) ab.
+Plugin-Tests liegen plugin-lokal unter `plugins/*/tests/`. `tests/conftest.py` liefert
+Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sowie
+`make_samples()`/`poly_config()`.
 
-## Offene Punkte / Out of Scope (MVP)
+## Offene Punkte / Nächste Schritte
 
-- Noch **kein Git-Repo** initialisiert.
-- Phase 2/3 (GP/RF/Boosting/NN, HTML/PDF-Reports, Active Learning, Multi-Fidelity,
-  DoE, Lizenzmechanik) sind bewusst nicht enthalten — siehe PRD 9.2/9.3.
-- ONNX-Export nur für Methoden mit `supports_onnx=True` (aktuell Polynom);
-  SMT-Modelle exportieren als Pickle.
+- Git ist initialisiert; `main` läuft gegen `origin/main`.
+- `docs/superpowers/plans/2026-06-23-professional-html-reports.md` ist bewusst ein
+  lokales, ungetracktes Arbeitsartefakt, solange es nicht explizit promoted wird.
+- Phase 2 ist begonnen (`surroforge-torch`, `surroforge-professional`, OpenFOAM/Field-ROM),
+  aber nicht vollständig: offen sind laut PRD u. a. GP/RF/Boosting-Methoden,
+  erweiterte Run-Vergleiche, echte Lizenz-Aktivierung, DoE-Modul und Support-Infrastruktur.
+- Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
+  schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
