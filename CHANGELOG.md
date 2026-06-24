@@ -36,6 +36,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is installed). `torch-mlp.to_pt()` writes a `state_dict` + architecture checkpoint that loads
   under the safe `torch.load(..., weights_only=True)` path; `surroforge export --format pt` (or
   `export_model(run, "pt")`) produces it, and a non-torch method refuses `pt` with a clear error.
+- **`surroforge-professional` plugin** (`plugins/surroforge-professional/`, separate distribution):
+  the first **Professional-edition** plugin and the first real use of the Core↔commercial seam — it
+  registers an `html` reporter on Core's `surroforge.reporters` entry point only, so Core still ships
+  Markdown alone and gains `html` only while the plugin is installed. Rendering is gated by a **local
+  Professional license** (`SURROFORGE_PRO_LICENSE`, or `~/.surroforge/professional.lic`); a missing
+  licence raises a `PluginError` with an actionable message before any run data is read, and there is
+  no online activation in v1. The reporter renders a **single self-contained HTML file** — embedded
+  CSS, **no JavaScript, no external/network assets**, and every dynamic value autoescaped (XSS-safe).
+  Scalar reports carry an Executive Summary, a Quality Snapshot of metric cards, Data And Model,
+  Validation Details, and a Reproducibility Appendix (run id, experiment, method, data/config hashes,
+  prediction fingerprint, train/test/CV metrics, hyperparameters, dependencies, the full config YAML,
+  and the `surroforge reproduce <run-id>` line). A **Field-ROM Details** section (the two-source
+  truncation-vs-surrogate error split) appears only when complete `energy_l2`/`truncation_error`
+  metrics and lineage are present. Produced via `surroforge report <run> --format html` or
+  `generate_report(project, run, fmt="html")` (written to `reports/<run-id>.html`); install with
+  `pip install ./plugins/surroforge-professional`.
 
 ### Added — Examples
 
