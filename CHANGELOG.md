@@ -52,6 +52,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metrics and lineage are present. Produced via `surroforge report <run> --format html` or
   `generate_report(project, run, fmt="html")` (written to `reports/<run-id>.html`); install with
   `pip install ./plugins/surroforge-professional`.
+- **`surroforge-autoencoder` plugin** (`plugins/surroforge-autoencoder/`, separate distribution):
+  a **PyTorch autoencoder** field surrogate registered as the `autoencoder-field` method through the
+  `surroforge.trainers` entry point only — **never** Core's `_BUILTIN`, so Core stays PyTorch-free.
+  It is the **nonlinear counterpart to `reduced-field`**: instead of a linear POD basis it trains an
+  encoder/decoder MLP to learn a nonlinear latent representation of the (standardised) field
+  snapshots, then fits an ordinary SurroForge **inner trainer** (default `mlp`, e.g. `torch-mlp`) to
+  map inputs such as `(aoa, speed)` to latent coordinates; prediction runs input → inner model →
+  latent → decoder → field. Hyperparameters cover `latent_dim`, `encoder_hidden_layer_sizes`
+  (the `decoder_hidden_layer_sizes` default to the reverse), `activation`, `alpha` (weight decay),
+  `max_iter`, `tol`, `learning_rate_init`, `random_state`, and the nested `inner` spec; field
+  mean/std standardisation is baked into the model. Deterministic by construction (seeded weight
+  init that restores the global RNG state; honest float32 `reproduction_tolerance = 1e-4`) and
+  exports to pickle. Apache-2.0 (PyTorch is BSD-3 → NFR8 holds); install with
+  `pip install ./plugins/surroforge-autoencoder`.
 
 ### Added — Examples
 
