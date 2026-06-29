@@ -10,7 +10,7 @@ from surroforge.errors import PluginError
 LICENSE_ENV = "SURROFORGE_PRO_LICENSE"
 LICENSE_FILE = Path("~/.surroforge/professional.lic")
 LICENSE_ERROR = (
-    "Professional license required for HTML reports. Set SURROFORGE_PRO_LICENSE "
+    "Professional license required. Set SURROFORGE_PRO_LICENSE "
     "or install ~/.surroforge/professional.lic."
 )
 

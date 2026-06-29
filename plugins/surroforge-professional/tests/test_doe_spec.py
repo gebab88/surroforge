@@ -100,3 +100,8 @@ def test_bounds_require_lo_below_hi(tmp_path):
 def test_empty_levels_rejected(tmp_path):
     with pytest.raises(DoeError, match="non-empty"):
         load_spec(_write(tmp_path, "design: lhs\nsamples: 4\nfactors: [{name: a, type: discrete, levels: []}]\n"))
+
+
+def test_zero_factors_rejected(tmp_path):
+    with pytest.raises(DoeError, match="at least one factor"):
+        load_spec(_write(tmp_path, "design: lhs\nsamples: 4\nfactors: []\n"))

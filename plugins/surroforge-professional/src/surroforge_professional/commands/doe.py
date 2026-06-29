@@ -18,7 +18,7 @@ doe_app = typer.Typer(
 
 @doe_app.callback()
 def _doe_callback() -> None:
-    """Design-of-experiments commands (Professional)."""
+    """Generate design-of-experiments sample tables (Professional)."""
 
 
 @doe_app.command("run")

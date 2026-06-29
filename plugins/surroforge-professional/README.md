@@ -57,9 +57,12 @@ factors:
 surroforge doe run doe.yaml --out ./design
 ```
 
-This writes `design/samples.csv` (a `case` column plus one column per factor —
-exactly what `surroforge data add-openfoam --samples` consumes) and
-`design/doe.manifest.json` (a reproducibility record). LHS/Sobol need the extra:
+This writes `design/samples.csv` (a `case` column plus one column per factor)
+and `design/doe.manifest.json` (a reproducibility record). For specs with
+**numeric factors only** (continuous/discrete), the CSV is directly consumable
+by `surroforge data add-openfoam --samples`. Specs that include **categorical**
+factors produce string columns that `add-openfoam` cannot ingest — encode them
+(e.g. one-hot or label) before passing to that command. LHS/Sobol need the extra:
 `pip install 'surroforge-professional[doe]'`.
 
 ## Python API

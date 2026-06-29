@@ -72,9 +72,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   spec.yaml` reads a Pydantic-validated YAML spec (numeric continuous/discrete and
   categorical factors), samples it by **full-factorial**, **Latin Hypercube**, **Sobol**,
   or **random** (LHS/Sobol via the optional `scipy` extra `surroforge-professional[doe]`,
-  imported lazily), and writes `samples.csv` (a `case` column plus one column per factor —
-  exactly what `surroforge data add-openfoam --samples` consumes) plus a reproducibility
-  `doe.manifest.json`. License-gated like the HTML reporter; deterministic per `seed`.
+  imported lazily), and writes `samples.csv` (a `case` column plus one column per factor)
+  plus a reproducibility `doe.manifest.json`. For **numeric factors only**
+  (continuous/discrete), the CSV is directly consumable by
+  `surroforge data add-openfoam --samples`; specs with **categorical** factors produce
+  string columns that ingest rejects — encode them before passing to that command.
+  License-gated like the HTML reporter; deterministic per `seed`.
 
 ### Added — Examples
 
