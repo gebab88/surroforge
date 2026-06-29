@@ -2,6 +2,8 @@
 
 from surroforge.plugins import gate
 from surroforge.plugins.registry import (
+    available_command_names,
+    available_commands,
     available_exporters,
     available_reporters,
     available_trainers,
@@ -19,6 +21,8 @@ __all__ = [
     "PLUGIN_API_VERSION",
     "SUPPORTED_API_VERSIONS",
     "PluginMetadata",
+    "available_command_names",
+    "available_commands",
     "available_exporters",
     "available_reporters",
     "available_trainers",

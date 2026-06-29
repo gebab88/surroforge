@@ -25,6 +25,7 @@ from surroforge.plugins.seam import (
 TRAINER_GROUP = "surroforge.trainers"
 EXPORTER_GROUP = "surroforge.exporters"
 REPORTER_GROUP = "surroforge.reporters"
+COMMAND_GROUP = "surroforge.commands"
 
 _BUILTIN: dict[str, dict[str, str]] = {
     TRAINER_GROUP: {
@@ -139,3 +140,26 @@ def available_exporters() -> list[str]:
 
 def available_reporters() -> list[str]:
     return sorted(_names(REPORTER_GROUP))
+
+
+def available_command_names() -> list[str]:
+    return sorted(_entry_points_grouped(COMMAND_GROUP))
+
+
+def available_commands() -> list[tuple[str, Any]]:
+    """Plugin-contributed CLI sub-apps registered under ``surroforge.commands``.
+
+    Each entry point is expected to load a ``typer.Typer`` instance. Discovery is
+    kept separate from :func:`_resolve` (which is trainer/exporter/reporter-shaped
+    and consults the ``_BUILTIN`` table); Core ships no built-in plugin commands.
+    """
+    loaded: list[tuple[str, Any]] = []
+    for name, candidates in sorted(_entry_points_grouped(COMMAND_GROUP).items()):
+        if len(candidates) > 1:
+            raise PluginError(
+                f"Ambiguous command '{name}': it is registered by multiple plugins "
+                f"({', '.join(sorted(ep.value for ep in candidates))}). Uninstall or "
+                "rename one — SurroForge will not pick a provider for you."
+            )
+        loaded.append((name, candidates[0].load()))
+    return loaded
