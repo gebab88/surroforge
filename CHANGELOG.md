@@ -66,6 +66,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   init that restores the global RNG state; honest float32 `reproduction_tolerance = 1e-4`) and
   exports to pickle. Apache-2.0 (PyTorch is BSD-3 → NFR8 holds); install with
   `pip install ./plugins/surroforge-autoencoder`.
+- **DoE generator (`surroforge doe`)** — the `surroforge-professional` plugin adds a
+  design-of-experiments generator on a new generic Core command seam (entry-point group
+  `surroforge.commands`, the first plugin-contributed CLI command). `surroforge doe run
+  spec.yaml` reads a Pydantic-validated YAML spec (numeric continuous/discrete and
+  categorical factors), samples it by **full-factorial**, **Latin Hypercube**, **Sobol**,
+  or **random** (LHS/Sobol via the optional `scipy` extra `surroforge-professional[doe]`,
+  imported lazily), and writes `samples.csv` (a `case` column plus one column per factor —
+  exactly what `surroforge data add-openfoam --samples` consumes) plus a reproducibility
+  `doe.manifest.json`. License-gated like the HTML reporter; deterministic per `seed`.
 
 ### Added — Examples
 
