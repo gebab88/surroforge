@@ -104,3 +104,6 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
   erweiterte Run-Vergleiche, echte Lizenz-Aktivierung, DoE-Modul und Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
+- Produktvalidierung/Interviews/Pilotkunden sind für die aktuelle Engineering-Queue
+  nur **Nice to have**; nicht als blockierende Vorarbeit für Release oder Phase-2-Features
+  behandeln.
