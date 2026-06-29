@@ -97,10 +97,10 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
 ## Offene Punkte / Nächste Schritte
 
 - Git ist initialisiert; `main` läuft gegen `origin/main`.
-- `docs/superpowers/plans/2026-06-23-professional-html-reports.md` ist bewusst ein
-  lokales, ungetracktes Arbeitsartefakt, solange es nicht explizit promoted wird.
-- Phase 2 ist begonnen (`surroforge-torch`, `surroforge-professional`, OpenFOAM/Field-ROM),
-  aber nicht vollständig: offen sind laut PRD u. a. GP/RF/Boosting-Methoden,
+- Implementierungspläne liegen als getrackte Artefakte unter `docs/superpowers/plans/`
+  (`2026-06-23-professional-html-reports.md`, `2026-06-25-autoencoder-field-plugin.md`).
+- Phase 2 ist begonnen (`surroforge-torch`, `surroforge-professional`, `surroforge-autoencoder`,
+  OpenFOAM/Field-ROM), aber nicht vollständig: offen sind laut PRD u. a. GP/RF/Boosting-Methoden,
   erweiterte Run-Vergleiche, echte Lizenz-Aktivierung, DoE-Modul und Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
