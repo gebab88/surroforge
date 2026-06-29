@@ -23,7 +23,7 @@ from surroforge.core.run import FieldCoverageWarning, ProvenanceWarning, Run
 from surroforge.data import SUPPORTED_SUFFIXES, load_table, read_openfoam_sweep
 from surroforge.engine import run_training
 from surroforge.errors import DataError, SurroForgeError
-from surroforge.plugins import get_trainer
+from surroforge.plugins import available_commands, get_trainer
 
 app = typer.Typer(
     help="SurroForge — surrogate models for FEM/CFD simulation data.",
@@ -546,6 +546,23 @@ def _render_warnings() -> None:
             default_showwarning(message, category, filename, lineno, file, line)
 
     warnings.showwarning = show
+
+
+def _mount_plugin_commands(target, commands) -> None:
+    """Mount plugin-contributed Typer sub-apps under the root CLI.
+
+    Each sub-app's command callbacks are wrapped with :func:`_guard` so a plugin
+    raising a :class:`SurroForgeError` renders as a clean ``Error: ...`` line even
+    under Typer's test runner (which bypasses :func:`main`'s top-level handler).
+    """
+    for name, sub_app in commands:
+        for command in getattr(sub_app, "registered_commands", []):
+            if command.callback is not None:
+                command.callback = _guard(command.callback)
+        target.add_typer(sub_app, name=name)
+
+
+_mount_plugin_commands(app, available_commands())
 
 
 def main() -> None:
