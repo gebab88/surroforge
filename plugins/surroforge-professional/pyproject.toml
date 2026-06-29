@@ -19,9 +19,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
+doe = ["scipy>=1.10"]
 
 [project.entry-points."surroforge.reporters"]
 html = "surroforge_professional.reports.html:HtmlReporter"
+
+[project.entry-points."surroforge.commands"]
+doe = "surroforge_professional.commands.doe:doe_app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/surroforge_professional"]

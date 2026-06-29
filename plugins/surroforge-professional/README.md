@@ -39,6 +39,29 @@ The report is written to:
 reports/run-001.html
 ```
 
+## DoE Generation
+
+Generate a design-of-experiments sample table from a YAML spec:
+
+```yaml
+# doe.yaml
+design: lhs            # full-factorial | lhs | sobol | random
+samples: 50
+seed: 1
+factors:
+  - {name: aoa, type: continuous, bounds: [-5, 16]}
+  - {name: speed, type: discrete, levels: [20, 40, 60, 80, 100]}
+```
+
+```bash
+surroforge doe run doe.yaml --out ./design
+```
+
+This writes `design/samples.csv` (a `case` column plus one column per factor —
+exactly what `surroforge data add-openfoam --samples` consumes) and
+`design/doe.manifest.json` (a reproducibility record). LHS/Sobol need the extra:
+`pip install 'surroforge-professional[doe]'`.
+
 ## Python API
 
 ```python
