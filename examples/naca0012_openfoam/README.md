@@ -41,14 +41,23 @@ python examples/naca0012_openfoam/ingest_and_train.py run
 python examples/naca0012_openfoam/ingest_and_train.py run --out ./ex09_real
 ```
 
+The VTKHDF export needs `h5py` (`pip install 'surroforge[formats]'` or
+`pip install 'surroforge[all]'`).
+
 `ingest_and_train.py` also **exports** the trained surrogates: the best coefficient model to
 `coeffs_surrogate.onnx`, the torch-mlp coefficient model to `coeffs_surrogate.pt` (a native PyTorch
 checkpoint, when the plugin is installed), and the field surrogate to `field_surrogate.pkl`
-(`reduced-field` is pickle-only). By default these land in the sweep directory and the SurroForge
-project (datasets, runs, lineage, POD basis, models) is built in a temp dir and discarded; pass
-**`--out DIR`** to save the whole run instead — the project to `DIR/naca` plus the artifacts to
-`DIR` — so it stays inspectable and reproducible afterwards
-(`surroforge --config-dir DIR/naca list`), exactly like example 09's `--out`.
+(`reduced-field` is pickle-only). It then evaluates the best field surrogate on every original
+case in `samples.csv` and writes VTKHDF output to
+`surrogate_vtk/surrogate_fields.vtkhdf`, plus a `samples.csv` mapping file for the time-step to
+case/AoA/speed assignment. Open the `.vtkhdf` file in ParaView; the surrogate pressure field is
+written as cell data `p`.
+
+By default these outputs land in the sweep directory and the SurroForge project (datasets, runs,
+lineage, POD basis, models) is built in a temp dir and discarded; pass **`--out DIR`** to save the
+whole run instead — the project to `DIR/naca` plus the artifacts and `DIR/surrogate_vtk/` — so it
+stays inspectable and reproducible afterwards (`surroforge --config-dir DIR/naca list`), exactly
+like example 09's `--out`.
 
 `run_sweep.py` options: `--angles` (deg) and `--speeds` (|U| m/s), each space/comma-separated — a
 2-D DoE is run over every angle × speed; `--iters` (steady-state *cap*, default 1000), `--residual`
@@ -76,11 +85,12 @@ whether those cases are included or not.
 
 ## Verified (OpenFOAM v2512, macOS/arm64)
 
-The 2-D pipeline was run end-to-end on real `simpleFoam`. A **100-case** DoE (25 angles −12…12°,
-4 speeds 20/40/60/80 m/s, 1° steps) solved in a couple of minutes at `--jobs 16` (the post-stall
-cases now run the full 1000-iter cap); ingestion read **10 720 pressure DOFs/case + the real `Cl`
-and `Cd`** from `forceCoeffs`, both surrogates trained, and all three artifacts exported
-(`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`).
+The 2-D pipeline was run end-to-end on real `simpleFoam`. A **110-case** DoE (22 angles −5…16°,
+5 speeds 20/40/60/80/100 m/s, 1° angle steps) solved at `--jobs 16`; ingestion read **10 720
+pressure DOFs/case + the real `Cl` and `Cd`** from `forceCoeffs`, both surrogates trained, all
+three model artifacts exported (`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`), and the best
+field surrogate wrote a **110-step VTKHDF pressure-field time series** under
+`surrogate_vtk/surrogate_fields.vtkhdf` for ParaView.
 
 **Convergence — and why the iteration cap defaults to 1000.** At the default `--residual 1e-8` the
 attached cases reach convergence only at **~520–670 iterations**, so the old `--iters 500` default

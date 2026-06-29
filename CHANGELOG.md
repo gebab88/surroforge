@@ -78,7 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   embarrassingly parallel, so `run_sweep.py --jobs N` solves N independent cases concurrently
   (near-linear speed-up to the core count — a 100-case sweep ran in ~1 min at `--jobs 12`), and
   `--vtk` additionally writes each case's converged field to `case/VTK/` (`foamToVTK`) for ParaView,
-  inline with the sweep. Verified against OpenFOAM v2512.
+  inline with the sweep. After training, `ingest_and_train.py` now evaluates the best field
+  surrogate on every original `samples.csv` case and writes a single VTKHDF time series
+  `surrogate_vtk/surrogate_fields.vtkhdf`, using the original VTU meshes as the geometry source and
+  writing the surrogate pressure as cell field `p`. Verified against OpenFOAM v2512.
 
 ## [0.2.0] — 2026-06-15
 
