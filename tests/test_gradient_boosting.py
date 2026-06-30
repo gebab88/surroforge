@@ -146,3 +146,27 @@ def test_declares_capabilities():
     assert isinstance(tol, float) and np.isfinite(tol) and tol > 0.0
     t = GradientBoostingTrainer()
     assert t.supports_export("pickle") and not t.supports_export("onnx")
+
+
+# --- works as a reduced-field inner ------------------------------------------
+
+def test_reduced_field_inner_end_to_end():
+    """gradient-boosting serves as a per-mode inner surrogate with no ROM-specific
+    change, reconstructing a smooth low-rank field on a holdout."""
+    from surroforge.trainers.reduced_field import ReducedFieldTrainer
+
+    rng = np.random.default_rng(0)
+    p = rng.uniform(-1.0, 1.0, (200, 2))
+    phi, _ = np.linalg.qr(rng.standard_normal((30, 3)))  # 3 orthonormal spatial modes
+    amps = np.column_stack([p[:, 0], p[:, 1] ** 2, p[:, 0] * p[:, 1]]) * np.array([5.0, 2.0, 1.0])
+    field = amps @ phi.T
+
+    t = ReducedFieldTrainer(
+        reduction={"basis": "pod", "energy": 0.999},
+        inner={"method": "gradient-boosting", "max_iter": 200},
+    )
+    t.fit(p[:150], field[:150])
+    recon = t.predict(p[150:])
+    assert recon.shape == field[150:].shape
+    score = r2_score(field[150:], recon)
+    assert score > 0.85, f"POD-boosting reconstruction R²={score:.3f}"

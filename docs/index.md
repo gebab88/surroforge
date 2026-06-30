@@ -39,6 +39,7 @@ Phase 1 (MVP).
 | Kriging (Gaussian process) | `kriging` | SMT | `surroforge[smt]` |
 | Radial Basis Functions | `rbf` | SMT | `surroforge[smt]` |
 | Polynomial regression | `polynomial` | scikit-learn | (core) |
+| Gradient boosting | `gradient-boosting` | scikit-learn | (core) |
 
 Cross-validation is k-fold; the standard metrics are RMSE, R², and MAE.
 

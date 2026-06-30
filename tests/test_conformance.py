@@ -14,6 +14,7 @@ import pytest
 from surroforge.conformance import ConformanceError, check_trainer
 from surroforge.errors import TrainerError
 from surroforge.trainers.base import BaseTrainer
+from surroforge.trainers.gradient_boosting import GradientBoostingTrainer
 from surroforge.trainers.kriging import KrigingTrainer
 from surroforge.trainers.mlp import MLPTrainer
 from surroforge.trainers.polynomial import PolynomialTrainer
@@ -34,6 +35,7 @@ BUILTINS = [
     pytest.param(RBFTrainer, id="rbf", marks=_needs_smt),
     # MLP is scikit-learn-backed (Core), so it is conformant without any extra.
     pytest.param(MLPTrainer, id="mlp"),
+    pytest.param(GradientBoostingTrainer, id="gradient-boosting"),
     # Default inner is polynomial, so reduced-field is conformant without SMT.
     pytest.param(ReducedFieldTrainer, id="reduced-field"),
 ]

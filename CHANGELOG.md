@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   method/format pair raises `ExportError`), and reaches plugin formats such as `pt`. The NACA
   examples now export through `run.export(...)` instead of calling the service function directly.
 
+### Added — Methods
+
+- **`gradient-boosting` method** — a tree-ensemble surrogate backed by scikit-learn's
+  `HistGradientBoostingRegressor`, the boosting counterpart to `mlp`. It is a Core builtin
+  (scikit-learn is already Core → **no new dependency**), needs no input scaling, supports
+  single- and multi-output targets (the latter via `MultiOutputRegressor`, one booster per
+  target), runs with `early_stopping=False` for a deterministic small-DOE fit, is persisted
+  via **pickle**, passes the `check_trainer` conformance suite, and works as a `reduced-field`
+  inner. Select it with `model.method: gradient-boosting`; hyperparameters: `learning_rate`,
+  `max_iter`, `max_leaf_nodes`, `max_depth`, `min_samples_leaf`, `l2_regularization`,
+  `random_state`. (ONNX export is not offered: the current `skl2onnx`/`onnx` stack cannot
+  convert tree-ensemble regressors.)
+
 ### Added — Plugins
 
 - **`surroforge-torch` plugin** (`plugins/surroforge-torch/`, separate distribution): a
