@@ -40,6 +40,7 @@ Phase 1 (MVP).
 | Radial Basis Functions | `rbf` | SMT | `surroforge[smt]` |
 | Polynomial regression | `polynomial` | scikit-learn | (core) |
 | Gradient boosting | `gradient-boosting` | scikit-learn | (core) |
+| Random forest | `random-forest` | scikit-learn | (core) |
 
 Cross-validation is k-fold; the standard metrics are RMSE, R², and MAE.
 
