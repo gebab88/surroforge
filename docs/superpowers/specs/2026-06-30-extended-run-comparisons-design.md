@@ -90,7 +90,7 @@ JSON-serializable (Cycle 2 consumes it):
     "best_per_metric": {"rmse": "run-003", "r2": "run-001", "mae": "run-003"},
     "config_diff": {                        # differing canonical-config leaf paths only; {} if identical
         "model.method": {"run-001": "mlp", "run-003": "random-forest"},
-        "model.hyperparameters.n_estimators": {"run-001": "<absent>", "run-003": 300},
+        "model.n_estimators": {"run-001": "<absent>", "run-003": 300},
         "data.split.seed": {"run-001": 42, "run-003": 7},
     },
     "lineage_summary": {
@@ -121,7 +121,7 @@ JSON-serializable (Cycle 2 consumes it):
 ### Config diff
 
 `config_diff` is a deep-diff over each run's `run.config.canonical_dict()`. A leaf path
-(dotted, e.g. `model.hyperparameters.n_estimators`) is included **only** when the runs do
+(dotted, e.g. `model.n_estimators`) is included **only** when the runs do
 not all agree on it. A run lacking the key contributes the sentinel string `"<absent>"`.
 Identical configs across all runs → `config_diff == {}`. Values are taken verbatim from
 the canonical dict (already JSON-friendly scalars / small structures).
@@ -176,7 +176,7 @@ Test metrics
 Configuration differences
   field                                 run-003          run-001
   model.method                          random-forest    mlp
-  model.hyperparameters.n_estimators    300              —
+  model.n_estimators    300              —
 ```
 
 (`<absent>` renders as `—`.) If `config_diff` is empty: `Configurations are identical.`
