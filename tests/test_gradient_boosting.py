@@ -141,8 +141,8 @@ def test_same_seed_reproduces_within_tolerance():
 
 
 def test_declares_capabilities():
-    assert GradientBoostingTrainer.export_formats == frozenset({"pickle", "onnx"})
+    assert GradientBoostingTrainer.export_formats == frozenset({"pickle"})
     tol = GradientBoostingTrainer.reproduction_tolerance
     assert isinstance(tol, float) and np.isfinite(tol) and tol > 0.0
     t = GradientBoostingTrainer()
-    assert t.supports_export("onnx") and t.supports_export("pickle")
+    assert t.supports_export("pickle") and not t.supports_export("onnx")

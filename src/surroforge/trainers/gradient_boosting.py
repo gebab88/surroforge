@@ -13,7 +13,9 @@ from ``mlp``:
   sklearn's ``DataConversionWarning``).
 
 ``early_stopping`` is disabled so there is no internal validation split and the fit is
-deterministic for the small-DOE regime. Like ``mlp`` it exports to ONNX via ``skl2onnx``.
+deterministic for the small-DOE regime. The model is persisted via pickle (the universal
+artifact format); ONNX export is not offered, because the current ``skl2onnx``/``onnx``
+stack cannot convert tree-ensemble regressors (``mlp``/``polynomial`` still export to ONNX).
 """
 
 from __future__ import annotations
@@ -54,9 +56,10 @@ class GradientBoostingTrainer(BaseTrainer):
     # Declares a small honest tolerance (like mlp) rather than 0.0 to absorb any
     # thread/platform float differences in histogram summation.
     reproduction_tolerance = 1e-6
-    # Backed by scikit-learn → exports to ONNX via skl2onnx (HistGradientBoosting and the
-    # MultiOutputRegressor wrapper both convert).
-    export_formats = frozenset({"pickle", "onnx"})
+    # Pickle-only: skl2onnx's TreeEnsembleRegressor converter emits numpy bool/uint32
+    # attributes that onnx>=1.21 rejects, so tree-ensemble ONNX export is unavailable in
+    # this stack. ONNX can be re-added once skl2onnx/onnx convert tree ensembles cleanly.
+    export_formats = frozenset({"pickle"})
 
     def __init__(
         self,

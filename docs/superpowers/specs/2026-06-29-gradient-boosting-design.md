@@ -6,7 +6,16 @@ Add a gradient-boosting surrogate method to SurroForge Core, rounding out the
 Phase 2 "extended methods" (alongside the existing `mlp`). It is a Core builtin —
 not a plugin — because it is backed by scikit-learn, which is already a Core
 dependency (BSD → NFR8), so it adds **no new dependency**. The method mirrors
-`mlp` in structure, reproducibility model, and ONNX export.
+`mlp` in structure and reproducibility model.
+
+> **Revised during implementation (2026-06-29):** the originally-planned ONNX export
+> was dropped — `skl2onnx`'s `TreeEnsembleRegressor` converter emits numpy bool/uint32
+> attributes that the installed `onnx>=1.21` rejects, so tree-ensemble ONNX export is
+> unavailable in this stack (`mlp`/`polynomial` still export to ONNX — only tree
+> ensembles are affected). `gradient-boosting` is therefore **pickle-only**; ONNX can be
+> re-added as a follow-up once the `skl2onnx`/`onnx` stack converts tree ensembles cleanly.
+> The sections below are kept as written; treat every "pickle + ONNX" / `to_onnx`
+> statement as superseded by pickle-only.
 
 ## User-Facing Configuration
 

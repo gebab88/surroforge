@@ -6,7 +6,16 @@
 
 **Architecture:** A new Core builtin trainer `GradientBoostingTrainer(BaseTrainer)` in `src/surroforge/trainers/gradient_boosting.py`, mirroring `src/surroforge/trainers/mlp.py`. No new dependency (scikit-learn is already Core). Tree ensembles are scale-invariant, so there is no input scaler; multi-output uses `MultiOutputRegressor` (one booster per target); `early_stopping=False` makes the fit deterministic. Registered in the `_BUILTIN` table and exercised by the existing `check_trainer` conformance suite.
 
-**Tech Stack:** Python 3.10+, scikit-learn (`HistGradientBoostingRegressor`, `MultiOutputRegressor`), skl2onnx (optional, ONNX export), pytest.
+**Tech Stack:** Python 3.10+, scikit-learn (`HistGradientBoostingRegressor`, `MultiOutputRegressor`), pytest.
+
+> **REVISION (2026-06-29, during execution): pickle-only.** ONNX export was dropped after
+> Task 1. The installed `skl2onnx 1.20.0` + `onnx 1.21.0` cannot convert `HistGradientBoosting`
+> (the `TreeEnsembleRegressor` converter emits numpy bool/uint32 attributes that onnx 1.21
+> rejects; `mlp`/`polynomial` ONNX still works — only tree ensembles are affected). Therefore:
+> `export_formats = frozenset({"pickle"})`; **Task 2 (ONNX Export) is VOID — skip it entirely**
+> (no `to_onnx`, no ONNX tests); the Task 3 CHANGELOG says pickle, not ONNX. Every "pickle + ONNX"
+> / `to_onnx` mention below is superseded. ONNX may return as a follow-up once the stack converts
+> tree ensembles cleanly.
 
 ## Global Constraints
 
@@ -587,11 +596,12 @@ In `CHANGELOG.md`, under `## [Unreleased]`, add a new subsection immediately aft
   `HistGradientBoostingRegressor`, the boosting counterpart to `mlp`. It is a Core builtin
   (scikit-learn is already Core → **no new dependency**), needs no input scaling, supports
   single- and multi-output targets (the latter via `MultiOutputRegressor`, one booster per
-  target), runs with `early_stopping=False` for a deterministic small-DOE fit, exports to
-  **pickle and ONNX** (skl2onnx), passes the `check_trainer` conformance suite, and works as
-  a `reduced-field` inner. Select it with `model.method: gradient-boosting`; hyperparameters:
-  `learning_rate`, `max_iter`, `max_leaf_nodes`, `max_depth`, `min_samples_leaf`,
-  `l2_regularization`, `random_state`.
+  target), runs with `early_stopping=False` for a deterministic small-DOE fit, is persisted
+  via **pickle**, passes the `check_trainer` conformance suite, and works as a `reduced-field`
+  inner. Select it with `model.method: gradient-boosting`; hyperparameters: `learning_rate`,
+  `max_iter`, `max_leaf_nodes`, `max_depth`, `min_samples_leaf`, `l2_regularization`,
+  `random_state`. (ONNX export is not offered: the current `skl2onnx`/`onnx` stack cannot
+  convert tree-ensemble regressors.)
 ```
 
 - [ ] **Step 6: Add gradient-boosting to the docs method list if one exists**
