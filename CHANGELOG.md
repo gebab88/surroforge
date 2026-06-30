@@ -39,6 +39,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `model.method: random-forest`; hyperparameters: `n_estimators`, `max_depth`,
   `max_leaf_nodes`, `min_samples_leaf`, `max_features`, `random_state`.
 
+### Added — Reports
+
+- **Interactive HTML visualizations** — the `surroforge-professional` `html` reporter now
+  embeds four interactive charts: a **parity** plot (predicted vs. actual), a **residual**
+  plot, **per-fold cross-validation** values, and a **train/test/CV-mean** metric
+  comparison. Rendered with **uPlot** (MIT, ~51 KB) vendored and inlined — the report stays
+  a single self-contained file with **no network/external assets** and remains XSS-safe
+  (chart data is numeric and `<`-escaped in its JSON block). Multi-output models get a
+  dropdown to switch the parity/residual plots between output columns; hovering shows exact
+  values, drag-zoom and double-click-reset are available. Charts degrade gracefully: runs
+  trained before this release (no holdout actuals) and field/ROM runs simply omit the
+  parity/residual plots while keeping the CV and comparison charts. To support the parity
+  plot, Core now persists out-of-sample **holdout actuals** alongside the prediction
+  fingerprint, exposed as **`Run.holdout_actual`** — additive lineage that feeds no hash
+  and does not affect `reproduce()`.
+
 ### Added — Plugins
 
 - **`surroforge-torch` plugin** (`plugins/surroforge-torch/`, separate distribution): a

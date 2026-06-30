@@ -44,6 +44,10 @@ Phase 1 (MVP).
 
 Cross-validation is k-fold; the standard metrics are RMSE, R², and MAE.
 
+The Professional HTML report includes interactive charts — parity, residual, per-fold
+cross-validation, and a train/test/CV-mean comparison — rendered with inlined uPlot, so
+the report stays a single self-contained file.
+
 ## Where to next
 
 <div class="grid cards" markdown>
