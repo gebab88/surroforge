@@ -56,3 +56,35 @@ def trained_run(project):
         }
     )
     return run_training(project, config)
+
+
+@pytest.fixture
+def multi_sample_csv(tmp_path):
+    rng = np.random.default_rng(1)
+    n = 80
+    a = rng.uniform(0.0, 1.0, n)
+    b = rng.uniform(0.0, 1.0, n)
+    df = pd.DataFrame({"a": a, "b": b, "y1": 2 * a + b, "y2": a - 3 * b + 0.5})
+    path = tmp_path / "multi.csv"
+    df.to_csv(path, index=False)
+    return path
+
+
+@pytest.fixture
+def multi_run(tmp_path, multi_sample_csv):
+    proj = Project.init(tmp_path / "mproj", name="multi-professional")
+    proj.add_dataset(multi_sample_csv, name="multi")
+    config = parse_config(
+        {
+            "experiment": "multi-output",
+            "data": {
+                "source": "multi",
+                "inputs": ["a", "b"],
+                "outputs": ["y1", "y2"],
+                "split": {"test_fraction": 0.25, "seed": 7},
+            },
+            "model": {"method": "polynomial", "degree": 1},
+            "validation": {"cross_validation": 4, "metrics": ["rmse", "r2"]},
+        }
+    )
+    return run_training(proj, config)
