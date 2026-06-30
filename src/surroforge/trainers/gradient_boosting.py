@@ -5,8 +5,7 @@ A tree-ensemble surrogate, the boosting counterpart to ``mlp``. Backed by scikit
 from ``mlp``:
 
 * **No input scaler.** Tree ensembles are scale-invariant, so the estimator is used
-  directly rather than wrapped in a ``StandardScaler`` pipeline — simpler model, simpler
-  ONNX graph.
+  directly rather than wrapped in a ``StandardScaler`` pipeline — a simpler model.
 * **Multi-output via a per-target wrapper.** ``HistGradientBoostingRegressor`` is
   single-output, so >1 target is fitted with ``MultiOutputRegressor`` (one independent
   booster per column); a single target uses the bare regressor on a 1-D vector (avoiding
