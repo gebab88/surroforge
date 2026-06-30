@@ -2,12 +2,31 @@
 
 from __future__ import annotations
 
+from importlib.resources import files
+
 from jinja2 import Environment
 
 from surroforge.core.run import Run
 from surroforge.reporters.base import BaseReporter
 from surroforge_professional.license import require_license
 from surroforge_professional.reports.context import build_context
+
+
+def _asset(name: str) -> str:
+    return (files("surroforge_professional.reports") / "assets" / name).read_text(
+        encoding="utf-8"
+    )
+
+
+_UPLOT_JS = _asset("uplot.min.js")
+_UPLOT_CSS = _asset("uplot.min.css")
+# Carry the MIT licence inline with the bundled library (its terms require the notice to
+# travel with the Software). Neutralise any "--" so it can't terminate the HTML comment.
+_UPLOT_LICENSE_COMMENT = (
+    "<!-- uPlot v1.6.32 (MIT License)\n"
+    + _asset("uplot.LICENSE").replace("--", "- -")
+    + "\n-->"
+)
 
 
 _ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
@@ -152,12 +171,23 @@ _TEMPLATE = _ENV.from_string(
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       overflow-wrap: anywhere;
     }
+    .sf-chart {
+      margin: 8px 0 22px;
+      width: 100%;
+    }
+    .sf-select {
+      display: inline-block;
+      font-size: 0.9rem;
+      margin: 6px 0 10px;
+    }
+    .sf-select select { margin-left: 6px; }
     @media (max-width: 720px) {
       main { padding: 22px 16px 36px; }
       table { display: block; overflow-x: auto; }
       th, td { white-space: nowrap; }
     }
   </style>
+  {% if charts %}<style>{{ uplot_css|safe }}</style>{% endif %}
 </head>
 <body>
   <main>
@@ -196,6 +226,33 @@ _TEMPLATE = _ENV.from_string(
         {% endfor %}
       </div>
     </section>
+
+    {% if charts %}
+    <section aria-labelledby="visualizations">
+      <h2 id="visualizations">Visualizations</h2>
+      {% if charts.parity %}
+      <h3>Predicted vs. actual</h3>
+      {% if charts.outputs|length > 1 %}
+      <label class="sf-select">Output
+        <select id="sf-output">
+          {% for name in charts.outputs %}<option value="{{ loop.index0 }}">{{ name }}</option>{% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <div id="sf-parity" class="sf-chart"></div>
+      <h3>Residuals</h3>
+      <div id="sf-residual" class="sf-chart"></div>
+      {% endif %}
+      {% if charts.cv %}
+      <h3>Cross-validation by fold</h3>
+      <div id="sf-cv" class="sf-chart"></div>
+      {% endif %}
+      {% if charts.metric_comparison %}
+      <h3>Train / test / CV-mean</h3>
+      <div id="sf-cmp" class="sf-chart"></div>
+      {% endif %}
+    </section>
+    {% endif %}
 
     <section aria-labelledby="data-and-model">
       <h2 id="data-and-model">Data And Model</h2>
@@ -296,7 +353,133 @@ _TEMPLATE = _ENV.from_string(
       <pre>{{ config_yaml }}</pre>
       <h3>Reproduce</h3>
       <p><code>{{ reproduce_command }}</code></p>
+      {% if charts %}
+      <h3>Visualization Library</h3>
+      <p>Interactive charts rendered with uPlot (MIT License), bundled inline.</p>
+      {% endif %}
     </section>
+    {% if charts %}
+    <script type="application/json" id="sf-charts">{{ charts_json|safe }}</script>
+    {{ uplot_license_comment|safe }}
+    <script>{{ uplot_js|safe }}</script>
+    <script>
+    (function () {
+      var holder = document.getElementById('sf-charts');
+      if (!holder || typeof uPlot === 'undefined') return;
+      var data;
+      try { data = JSON.parse(holder.textContent); } catch (err) { return; }
+
+      var palette = ['#2056a3', '#1f8a5b', '#b1432f', '#7a4fb5', '#b58a1f'];
+
+      function dims(node) {
+        var w = node.clientWidth || 640;
+        return { width: w, height: Math.max(220, Math.round(w * 0.58)) };
+      }
+      function mount(node, opts, series) {
+        if (!node) return null;
+        var d = dims(node);
+        opts.width = d.width; opts.height = d.height;
+        var u = new uPlot(opts, series, node);
+        window.addEventListener('resize', function () {
+          var n = dims(node); u.setSize({ width: n.width, height: n.height });
+        });
+        return u;
+      }
+      function scatter(label, color) {
+        return {
+          label: label, stroke: color, fill: color,
+          paths: function () { return null; },
+          points: { show: true, size: 6 }
+        };
+      }
+      function refline(label) {
+        return { label: label, stroke: '#9aa7bd', width: 1 };
+      }
+
+      if (data.parity) {
+        var sel = document.getElementById('sf-output');
+        var uP = null, uR = null;
+        function ordered(col, byPredicted) {
+          var a = data.parity.actual[col], p = data.parity.predicted[col];
+          var order = a.map(function (_, i) { return i; });
+          order.sort(function (i, j) {
+            return byPredicted ? (p[i] - p[j]) : (a[i] - a[j]);
+          });
+          return {
+            a: order.map(function (i) { return a[i]; }),
+            p: order.map(function (i) { return p[i]; })
+          };
+        }
+        function draw(col) {
+          var par = ordered(col, false);
+          if (uP) uP.destroy();
+          uP = mount(document.getElementById('sf-parity'), {
+            scales: { x: { time: false } },
+            axes: [{ label: 'actual' }, { label: 'predicted' }],
+            series: [{}, scatter('predicted', palette[0]), refline('y = x')]
+          }, [par.a, par.p, par.a]);
+
+          var res = ordered(col, true);
+          var resid = res.p.map(function (v, i) { return v - res.a[i]; });
+          var zero = res.p.map(function () { return 0; });
+          if (uR) uR.destroy();
+          uR = mount(document.getElementById('sf-residual'), {
+            scales: { x: { time: false } },
+            axes: [{ label: 'predicted' }, { label: 'residual' }],
+            series: [{}, scatter('residual', palette[2]), refline('zero')]
+          }, [res.p, resid, zero]);
+        }
+        draw(0);
+        if (sel) sel.addEventListener('change', function () {
+          draw(parseInt(sel.value, 10) || 0);
+        });
+      }
+
+      if (data.cv) {
+        var cvSeries = [data.cv.folds];
+        var cvOpts = [{}];
+        data.cv.metrics.forEach(function (m, i) {
+          cvSeries.push(data.cv.per_fold[m]);
+          cvOpts.push({
+            label: m, stroke: palette[i % palette.length], width: 2,
+            points: { show: true, size: 5 }
+          });
+        });
+        mount(document.getElementById('sf-cv'), {
+          scales: { x: { time: false } },
+          axes: [
+            { label: 'fold', values: function (u, vals) {
+                return vals.map(function (v) { return 'fold ' + v; });
+            } },
+            {}
+          ],
+          series: cvOpts
+        }, cvSeries);
+      }
+
+      if (data.metric_comparison) {
+        var mc = data.metric_comparison;
+        var xs = mc.metrics.map(function (_, i) { return i; });
+        var bars = uPlot.paths.bars({ size: [0.6, 60] });
+        mount(document.getElementById('sf-cmp'), {
+          scales: { x: { time: false } },
+          axes: [
+            { label: 'metric', values: function (u, vals) {
+                return vals.map(function (v) { return mc.metrics[v] != null ? mc.metrics[v] : ''; });
+            } },
+            {}
+          ],
+          series: [
+            {},
+            { label: 'train', stroke: palette[0], fill: palette[0], paths: bars },
+            { label: 'test', stroke: palette[1], fill: palette[1], paths: bars },
+            { label: 'CV mean', stroke: palette[4], fill: palette[4], paths: bars }
+          ]
+        }, [xs, mc.train, mc.test, mc.cv_mean]);
+      }
+    })();
+    </script>
+    {% endif %}
   </main>
 </body>
 </html>
@@ -310,4 +493,9 @@ class HtmlReporter(BaseReporter):
 
     def render(self, run: Run) -> str:
         require_license()
-        return _TEMPLATE.render(**build_context(run))
+        return _TEMPLATE.render(
+            **build_context(run),
+            uplot_js=_UPLOT_JS,
+            uplot_css=_UPLOT_CSS,
+            uplot_license_comment=_UPLOT_LICENSE_COMMENT,
+        )

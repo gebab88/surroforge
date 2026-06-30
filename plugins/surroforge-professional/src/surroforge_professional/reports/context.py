@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import math
 from typing import Any
 
 from surroforge.core.run import Run
 from surroforge.errors import PluginError
 from surroforge.validators.metrics import two_source_split
+
+from surroforge_professional.reports.charts import build_charts
 
 
 def fmt(value: Any) -> str:
@@ -163,6 +166,17 @@ def _two_source_context(
     }
 
 
+def _charts_json(charts: dict[str, Any] | None) -> str:
+    """Serialize chart data for the in-page JSON block.
+
+    Every ``<`` becomes its ``\\u003c`` escape so the payload can never break out of
+    the surrounding ``<script>`` element (XSS-safe; the data is numeric regardless).
+    """
+    if not charts:
+        return "{}"
+    return json.dumps(charts, allow_nan=False).replace("<", "\\u003c")
+
+
 def build_context(run: Run) -> dict[str, Any]:
     config = run.config
     metrics = run.metrics
@@ -177,6 +191,8 @@ def build_context(run: Run) -> dict[str, Any]:
     dependencies = lineage.get("dependencies", [])
     if not isinstance(dependencies, list):
         dependencies = [str(dependencies)]
+
+    charts = build_charts(run)
 
     return {
         "run_id": run.run_id,
@@ -206,5 +222,7 @@ def build_context(run: Run) -> dict[str, Any]:
         "seed": run.seed,
         "test_fraction": config.data.split.test_fraction,
         "reproduce_command": f"surroforge reproduce {run.run_id}",
+        "charts": charts,
+        "charts_json": _charts_json(charts),
         "fmt": fmt,
     }

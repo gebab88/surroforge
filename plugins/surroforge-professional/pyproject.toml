@@ -30,6 +30,9 @@ doe = "surroforge_professional.commands.doe:doe_app"
 [tool.hatch.build.targets.wheel]
 packages = ["src/surroforge_professional"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/surroforge_professional/reports/assets" = "surroforge_professional/reports/assets"
+
 [tool.ruff]
 line-length = 100
 

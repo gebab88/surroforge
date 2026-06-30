@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -18,14 +20,17 @@ def test_html_contains_required_sections(licensed, trained_run):
     for heading in (
         "Executive Summary",
         "Quality Snapshot",
+        "Visualizations",
         "Data And Model",
         "Validation Details",
         "Reproducibility Appendix",
     ):
         assert heading in text
-    assert "<script" not in text.lower()
-    assert "https://" not in text
-    assert "http://" not in text
+    # uPlot is inlined; the report must still load NO external resource.
+    assert 'src="http' not in text
+    assert 'href="http' not in text
+    assert "@import" not in text
+    assert "url(http" not in text.lower()
 
 
 def test_html_reports_metrics_and_lineage(licensed, trained_run):
@@ -101,6 +106,9 @@ def test_dynamic_report_values_are_escaped(licensed):
     run = SimpleNamespace(
         run_id="run-hostile",
         config=config,
+        reduction={},
+        holdout_actual=[],
+        holdout_fingerprint=[],
         metrics={
             "train": {"rmse": 1.0},
             "test": {"rmse": 2.0},
@@ -125,7 +133,49 @@ def test_dynamic_report_values_are_escaped(licensed):
 
     text = HtmlReporter().render(run)
 
-    assert "<script" not in text.lower()
-    assert "<b>" not in text
-    assert "&lt;script&gt;" in text
-    assert "&lt;b&gt;" in text
+    # The injected markup must be neutralized everywhere it could land.
+    assert "<script>alert(1)</script>" not in text
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in text
+    assert "<b>beam</b>" not in text
+    assert "&lt;b&gt;beam&lt;/b&gt;" in text
+    # uPlot's own <script> is expected, but no external resource may load.
+    assert 'src="http' not in text
+    assert 'href="http' not in text
+
+
+def test_html_embeds_chart_data_and_uplot(licensed, trained_run):
+    text = HtmlReporter().render(trained_run)
+
+    assert 'id="sf-charts"' in text
+    assert "uPlot" in text                       # the library is inlined
+    assert 'id="sf-parity"' in text
+    assert 'id="sf-residual"' in text
+    assert 'id="sf-cv"' in text
+    assert 'id="sf-cmp"' in text
+
+    match = re.search(
+        r'<script type="application/json" id="sf-charts">(.*?)</script>', text, re.S
+    )
+    assert match is not None
+    payload = json.loads(match.group(1))
+    assert "parity" in payload
+    assert "cv" in payload
+    assert "metric_comparison" in payload
+
+
+def test_html_single_output_has_no_selector(licensed, trained_run):
+    text = HtmlReporter().render(trained_run)
+    assert 'id="sf-output"' not in text
+
+
+def test_html_multi_output_has_output_selector(licensed, multi_run):
+    text = HtmlReporter().render(multi_run)
+    assert 'id="sf-output"' in text
+    assert ">y1<" in text
+    assert ">y2<" in text
+
+
+def test_uplot_mit_attribution_present(licensed, trained_run):
+    text = HtmlReporter().render(trained_run)
+    assert "uPlot" in text
+    assert "MIT" in text
