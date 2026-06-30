@@ -34,6 +34,7 @@ _BUILTIN: dict[str, dict[str, str]] = {
         "rbf": "surroforge.trainers.rbf:RBFTrainer",
         "mlp": "surroforge.trainers.mlp:MLPTrainer",
         "gradient-boosting": "surroforge.trainers.gradient_boosting:GradientBoostingTrainer",
+        "random-forest": "surroforge.trainers.random_forest:RandomForestTrainer",
         "reduced-field": "surroforge.trainers.reduced_field:ReducedFieldTrainer",
     },
     EXPORTER_GROUP: {
