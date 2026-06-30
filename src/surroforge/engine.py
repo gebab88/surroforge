@@ -163,6 +163,12 @@ def run_training(
     ]
     prediction_hash = _prediction_fingerprint(holdout_fingerprint)
 
+    # Holdout *actuals* row-aligned with the fingerprint above (same split, same
+    # [:_FINGERPRINT_MAX_ROWS] slice over the same x_test row order), so the
+    # Professional report can plot predicted-vs-actual. Inert to every hash and to
+    # reproduce(), which keys on holdout_fingerprint — this is report-only data.
+    holdout_actual = np.ascontiguousarray(y_test, dtype=np.float64)[:_FINGERPRINT_MAX_ROWS]
+
     # Field-primary reproducibility diagnostics (Story R2.3): a reducing trainer exposes
     # an optional hook; scalar trainers do not, so their lineage is unchanged and the
     # engine stays ROM-agnostic (spine theorem #36 — no reduced_field import here). The
@@ -294,6 +300,7 @@ def run_training(
         "seed": split.seed,
         "prediction_hash": prediction_hash,
         "holdout_fingerprint": holdout_fingerprint.tolist(),
+        "holdout_actual": holdout_actual.tolist(),
         # Recorded so reproduce() judges this run against the tolerance the method
         # declared at train time, surviving later changes to the trainer (Story 5.4).
         "reproduction_tolerance": float(final_model.reproduction_tolerance),

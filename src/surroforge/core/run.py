@@ -141,6 +141,17 @@ class Run:
         """
         return self.lineage.get("holdout_fingerprint", [])
 
+    @property
+    def holdout_actual(self) -> list[Any]:
+        """Out-of-sample holdout actual targets, row-aligned with :attr:`holdout_fingerprint`.
+
+        Persisted next to the prediction fingerprint so the Professional HTML report can
+        plot predicted-vs-actual. Inert to the reproduce verdict (which keys on the
+        fingerprint) and to every hash. Empty list for runs trained before this was
+        recorded.
+        """
+        return self.lineage.get("holdout_actual", [])
+
     # Field-run diagnostics (Story R2.3) — empty/blank for scalar runs ----------
 
     @property

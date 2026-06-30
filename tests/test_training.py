@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from surroforge.core.config import parse_config
+from surroforge.core.project import Project
 from surroforge.engine import run_training
 from surroforge.errors import DataError
 from tests.conftest import poly_config
@@ -95,3 +97,49 @@ def test_onnx_exported_when_requested(project):
     run = run_training(project, parse_config(poly_config("polynomial")), export_onnx=True)
     assert run.has_onnx()
     assert run.lineage["onnx_exported"] is True
+
+
+def test_holdout_actual_persisted_and_aligned_with_fingerprint(project):
+    run = run_training(project, parse_config(poly_config("polynomial")))
+    actual = np.asarray(run.holdout_actual, dtype=float)
+    pred = np.asarray(run.holdout_fingerprint, dtype=float)
+    assert "holdout_actual" in run.lineage
+    assert actual.shape == pred.shape          # same rows AND same columns
+    assert actual.ndim == 2 and actual.shape[1] == 1
+    assert np.isfinite(actual).all()
+
+
+def test_holdout_actual_absent_returns_empty_list(project):
+    run = run_training(project, parse_config(poly_config("polynomial")))
+    run.lineage.pop("holdout_actual")          # simulate a pre-feature run
+    assert run.holdout_actual == []
+
+
+def test_holdout_actual_multi_output_shape(tmp_path):
+    rng = np.random.default_rng(1)
+    n = 60
+    a = rng.uniform(0.0, 1.0, n)
+    b = rng.uniform(0.0, 1.0, n)
+    df = pd.DataFrame({"a": a, "b": b, "y1": 2 * a + b, "y2": a - 3 * b + 0.5})
+    csv = tmp_path / "multi.csv"
+    df.to_csv(csv, index=False)
+    proj = Project.init(tmp_path / "p", name="multi")
+    proj.add_dataset(csv, name="multi")
+    cfg = parse_config(
+        {
+            "experiment": "multi",
+            "data": {
+                "source": "multi",
+                "inputs": ["a", "b"],
+                "outputs": ["y1", "y2"],
+                "split": {"test_fraction": 0.25, "seed": 1},
+            },
+            "model": {"method": "polynomial", "degree": 1},
+            "validation": {"cross_validation": 4, "metrics": ["rmse", "r2"]},
+        }
+    )
+    run = run_training(proj, cfg)
+    actual = np.asarray(run.holdout_actual, dtype=float)
+    pred = np.asarray(run.holdout_fingerprint, dtype=float)
+    assert actual.shape == pred.shape
+    assert actual.shape[1] == 2
