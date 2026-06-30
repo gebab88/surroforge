@@ -55,7 +55,7 @@ def test_multi_output_via_wrapper():
 
 
 def test_single_output_emits_no_dataconversion_warning():
-    """Pass a 1-D target for a single output so sklearn does not warn."""
+    """fit() must extract a 1-D target for a single output so sklearn does not warn."""
     x, y = _nonlinear_problem(n=80)
     t = GradientBoostingTrainer(max_iter=50)
     with warnings.catch_warnings():

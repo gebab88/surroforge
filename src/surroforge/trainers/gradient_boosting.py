@@ -1,8 +1,8 @@
 """Gradient-boosting surrogate — scikit-learn HistGradientBoostingRegressor (PRD 4.6).
 
-The boosting counterpart to ``mlp`` and the second tree-free... no: a tree-ensemble
-method. Backed by scikit-learn (already Core, BSD → NFR8), so it adds **no new
-dependency**. Two deliberate differences from ``mlp``:
+A tree-ensemble surrogate, the boosting counterpart to ``mlp``. Backed by scikit-learn
+(already Core, BSD → NFR8), so it adds **no new dependency**. Two deliberate differences
+from ``mlp``:
 
 * **No input scaler.** Tree ensembles are scale-invariant, so the estimator is used
   directly rather than wrapped in a ``StandardScaler`` pipeline — simpler model, simpler
