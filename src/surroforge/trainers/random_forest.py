@@ -19,7 +19,7 @@ made ``gradient-boosting`` pickle-only).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -149,3 +149,36 @@ class RandomForestTrainer(BaseTrainer):
             raise TrainerError("Model is not fitted.")
         preds = self._model.predict(self._as_2d(x))
         return self._as_2d(preds)
+
+    def to_onnx(self, n_features: int) -> bytes:
+        from surroforge.errors import ExportError
+
+        if self._model is None:
+            raise TrainerError("Model is not fitted.")
+        # The model was fitted on a fixed input width; a mismatched n_features would
+        # build a graph that silently mispredicts at inference, so refuse it.
+        trained = int(self._model.n_features_in_)
+        if n_features != trained:
+            raise ExportError(
+                f"ONNX export was asked for {n_features} input feature(s) but the model was "
+                f"fitted on {trained}. Pass the training feature count."
+            )
+        try:
+            from skl2onnx import convert_sklearn
+            from skl2onnx.common.data_types import FloatTensorType
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise ExportError(
+                "ONNX export requires the 'onnx' extra. "
+                "Install it with: pip install 'surroforge[onnx]'"
+            ) from exc
+
+        try:
+            onnx_model = cast(Any, convert_sklearn(
+                self._model,
+                initial_types=[("input", FloatTensorType([None, n_features]))],
+            ))
+        except Exception as exc:  # skl2onnx raises various conversion errors
+            raise ExportError(
+                f"ONNX conversion of the random-forest model failed: {exc}"
+            ) from exc
+        return onnx_model.SerializeToString()

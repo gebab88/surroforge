@@ -168,3 +168,58 @@ def test_declares_capabilities():
     assert isinstance(tol, float) and np.isfinite(tol) and tol > 0.0
     t = RandomForestTrainer()
     assert t.supports_export("onnx") and t.supports_export("pickle")
+
+
+# --- ONNX export -------------------------------------------------------------
+
+import importlib.util  # noqa: E402
+import sys  # noqa: E402
+
+from surroforge.errors import ExportError  # noqa: E402
+
+_needs_onnx = pytest.mark.skipif(
+    importlib.util.find_spec("skl2onnx") is None
+    or importlib.util.find_spec("onnxruntime") is None,
+    reason="requires the 'onnx' optional backend (skl2onnx + onnxruntime)",
+)
+
+
+@_needs_onnx
+@pytest.mark.parametrize("n_outputs", [1, 2])
+def test_onnx_round_trip(n_outputs):
+    import onnxruntime as ort
+
+    x, y1 = _nonlinear_problem(n=160)
+    y = y1 if n_outputs == 1 else np.column_stack([y1[:, 0], x[:, 0] * x[:, 1]])
+    t = RandomForestTrainer(n_estimators=40)
+    t.fit(x, y)
+
+    blob = t.to_onnx(n_features=2)
+    assert isinstance(blob, bytes) and blob
+
+    sess = ort.InferenceSession(blob, providers=["CPUExecutionProvider"])
+    onnx_out = sess.run(None, {"input": x.astype(np.float32)})[0]
+    ref = t.predict(x)
+    np.testing.assert_allclose(onnx_out.reshape(ref.shape), ref, atol=1e-3)
+
+
+def test_onnx_export_hint_when_backend_missing(monkeypatch):
+    x, y = _nonlinear_problem(n=60)
+    t = RandomForestTrainer(n_estimators=20)
+    t.fit(x, y)
+    monkeypatch.setitem(sys.modules, "skl2onnx", None)
+    with pytest.raises(ExportError, match=r"surroforge\[onnx\]"):
+        t.to_onnx(n_features=2)
+
+
+def test_onnx_export_before_fit_raises():
+    with pytest.raises(TrainerError, match="not fitted"):
+        RandomForestTrainer().to_onnx(n_features=2)
+
+
+def test_onnx_export_rejects_wrong_feature_count():
+    x, y = _nonlinear_problem(n=60)  # 2 input features
+    t = RandomForestTrainer(n_estimators=20)
+    t.fit(x, y)
+    with pytest.raises(ExportError, match="fitted on 2"):
+        t.to_onnx(n_features=5)
