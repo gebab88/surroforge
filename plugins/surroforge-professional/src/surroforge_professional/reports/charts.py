@@ -8,6 +8,7 @@ is plottable the whole section is dropped (``build_charts`` returns ``None``).
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import numpy as np
@@ -71,9 +72,12 @@ def _cv(run: Run) -> dict[str, Any] | None:
         kept.append(name)
         n_folds = max(n_folds, len(flat))
         try:
-            mean[name] = float(rec["mean"])
+            candidate = float(rec["mean"])
         except (TypeError, ValueError, KeyError):
-            mean[name] = float(np.mean(flat))
+            candidate = None
+        if candidate is None or not math.isfinite(candidate):
+            candidate = float(np.mean(flat))
+        mean[name] = candidate
     if not kept:
         return None
     return {
@@ -106,6 +110,8 @@ def _metric_comparison(run: Run) -> dict[str, Any] | None:
             eval_ = float(test[name])
             mval = float(cvrec["mean"])
         except (TypeError, ValueError, KeyError):
+            continue
+        if not all(math.isfinite(v) for v in (tval, eval_, mval)):
             continue
         kept.append(name)
         tr.append(tval)

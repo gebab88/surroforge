@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import math
 from types import SimpleNamespace
 
 from surroforge.core.config import parse_config
@@ -110,3 +112,29 @@ def test_returns_none_when_nothing_plottable():
         metrics={"train": {}, "test": {}, "cross_validation": {}},
     )
     assert build_charts(run) is None
+
+
+def test_non_finite_metric_mean_is_dropped_from_comparison():
+    metrics = _metrics()
+    metrics["cross_validation"]["r2"]["mean"] = float("nan")
+    run = _fake(actual=[[1.0]], predicted=[[1.0]], metrics=metrics)
+    charts = build_charts(run)
+    assert "r2" not in charts["metric_comparison"]["metrics"]
+    assert "rmse" in charts["metric_comparison"]["metrics"]
+    assert all(math.isfinite(v) for v in charts["metric_comparison"]["cv_mean"])
+
+
+def test_charts_json_safe_after_nan_metric():
+    from surroforge_professional.reports.context import _charts_json
+    metrics = _metrics()
+    metrics["cross_validation"]["r2"]["mean"] = float("nan")
+    run = _fake(actual=[[1.0]], predicted=[[1.0]], metrics=metrics)
+    out = _charts_json(build_charts(run))   # must not raise
+    json.loads(out)                          # valid JSON
+
+
+def test_charts_json_escapes_angle_brackets():
+    from surroforge_professional.reports.context import _charts_json
+    out = _charts_json({"outputs": ["<script>x</script>"]})
+    assert "<" not in out
+    assert "\\u003c" in out
