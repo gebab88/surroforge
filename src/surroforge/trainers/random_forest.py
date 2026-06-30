@@ -13,8 +13,8 @@ A bagged tree-ensemble method, completing the Phase 2 extended methods alongside
 
 A fixed integer ``random_state`` makes the forest deterministic (bootstrap and feature
 subsampling are seeded). Like ``mlp``/``gradient-boosting`` it exports to ONNX via
-``skl2onnx`` (the RandomForest converter is unaffected by the tree-ensemble issue that
-made ``gradient-boosting`` pickle-only).
+``skl2onnx`` (the RandomForest converter is unaffected by the ``HistGradientBoosting``
+converter issue that made ``gradient-boosting`` pickle-only).
 """
 
 from __future__ import annotations

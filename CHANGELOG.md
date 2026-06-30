@@ -33,8 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `kriging`, and `gradient-boosting`). It is a Core builtin (scikit-learn is already Core →
   **no new dependency**), needs no input scaling, is **natively multi-output** (no
   `MultiOutputRegressor` wrapper), exports to **pickle and ONNX** (skl2onnx — the
-  RandomForest converter is unaffected by the tree-ensemble issue that kept
-  `gradient-boosting` pickle-only), passes the `check_trainer` conformance suite, and works
+  RandomForest converter is unaffected by the `HistGradientBoosting` converter issue that
+  kept `gradient-boosting` pickle-only), passes the `check_trainer` conformance suite, and works
   as a `reduced-field` inner. A fixed integer `random_state` makes it reproducible. Select it
   with `model.method: random-forest`; hyperparameters: `n_estimators`, `max_depth`,
   `max_leaf_nodes`, `min_samples_leaf`, `max_features`, `random_state`.
