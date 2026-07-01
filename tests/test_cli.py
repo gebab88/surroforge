@@ -197,6 +197,10 @@ def test_compare_cli(tmp_path):
     runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
     result = runner.invoke(app, ["--config-dir", str(root), "compare", "--runs", "run-001,run-002"])
     assert result.exit_code == 0, result.output
+    assert "Ranking by test rmse" in result.output
+    assert "Test metrics" in result.output
+    assert "Configurations are identical." in result.output  # two identical-config runs
+    assert "Lineage" in result.output
     assert "run-001" in result.output
     assert "Best by test rmse" in result.output
 

@@ -359,28 +359,119 @@ def validate(run_id: str = typer.Argument(..., help="Run id to validate.")) -> N
 @_guard
 def compare(
     runs: str = typer.Option(..., "--runs", "-r", help="Comma-separated run ids."),
-    metric: str = typer.Option("rmse", "--metric", "-m", help="Metric used to pick the best run."),
+    metric: str = typer.Option("rmse", "--metric", "-m", help="Metric used to rank runs."),
 ) -> None:
-    """Compare several training runs side by side (PRD 4.2)."""
+    """Compare several training runs side by side (PRD 4.1)."""
     project = _project()
     run_ids = [r.strip() for r in runs.split(",") if r.strip()]
-    result = services.compare_runs(project, run_ids, metric=metric)
-    header = f"  {'run':<12}{'method':<14}" + "".join(f"{m:>12}" for m in _metric_cols(result))
-    _info(header)
-    for row in result["rows"]:
-        line = f"  {row['run_id']:<12}{row['method']:<14}"
-        line += "".join(f"{_fmt(row['test'].get(m)):>12}" for m in _metric_cols(result))
-        _info(line)
-    if result["best"]:
-        _success(f"Best by test {result['metric']}: {result['best']}")
-
-
-def _metric_cols(result) -> list[str]:
-    return list(result["rows"][0]["test"].keys()) if result["rows"] else []
+    _render_comparison(services.compare_runs(project, run_ids, metric=metric))
 
 
 def _fmt(value) -> str:
     return f"{value:.5g}" if isinstance(value, (int, float)) else "-"
+
+
+def _fmt_cv(mean, std) -> str:
+    if not isinstance(mean, (int, float)):
+        return "-"
+    if isinstance(std, (int, float)):
+        return f"{mean:.4g}±{std:.2g}"
+    return f"{mean:.4g}"
+
+
+def _abbrev(value, n: int = 8) -> str:
+    text = str(value) if value is not None else "-"
+    return f"{text[:n]}…" if len(text) > n else text
+
+
+def _render_comparison(result) -> None:
+    _render_ranking_table(result)
+    _render_test_metrics(result)
+    _render_config_diff(result)
+    _render_lineage(result)
+    for warning in result["warnings"]:
+        _info(f"Warning: {warning}")
+    if result["best"] is not None:
+        best_test = _best_test_value(result)
+        _success(f"Best by test {result['metric']}: {result['best']} ({_fmt(best_test)})")
+
+
+def _best_test_value(result):
+    for entry in result["runs"]:
+        if entry["run_id"] == result["best"]:
+            record = entry["metrics"].get(result["metric"], {})
+            return record.get("test")
+    return None
+
+
+def _render_ranking_table(result) -> None:
+    metric = result["metric"]
+    _info(f"Ranking by test {metric} ({len(result['runs'])} runs)")
+    _info(
+        f"  {'rank':<5}{'run':<12}{'method':<16}{'train':>11}{'test':>11}"
+        f"{'cv(mean±std)':>18}{'Δtest':>11}"
+    )
+    ranked = sorted((e for e in result["runs"] if e["rank"] is not None), key=lambda e: e["rank"])
+    unranked = [e for e in result["runs"] if e["rank"] is None]
+    for entry in ranked + unranked:
+        record = entry["metrics"].get(metric, {})
+        rank = str(entry["rank"]) if entry["rank"] is not None else "-"
+        delta = "—" if entry["delta"] in (None, 0.0) else f"+{_fmt(entry['delta'])}"
+        _info(
+            f"  {rank:<5}{entry['run_id']:<12}{entry['method']:<16}"
+            f"{_fmt(record.get('train')):>11}{_fmt(record.get('test')):>11}"
+            f"{_fmt_cv(record.get('cv_mean'), record.get('cv_std')):>18}{delta:>11}"
+        )
+
+
+def _render_test_metrics(result) -> None:
+    names = result["metric_names"]
+    best = result["best_per_metric"]
+    _info("Test metrics")
+    _info(f"  {'run':<12}" + "".join(f"{m:>12}" for m in names))
+    for entry in result["runs"]:
+        cells = []
+        for name in names:
+            value = entry["metrics"].get(name, {}).get("test")
+            text = _fmt(value)
+            if best.get(name) == entry["run_id"] and isinstance(value, (int, float)):
+                text += "*"
+            cells.append(f"{text:>12}")
+        _info(f"  {entry['run_id']:<12}" + "".join(cells))
+
+
+def _render_config_diff(result) -> None:
+    _info("Configuration differences")
+    diff = result["config_diff"]
+    if not diff:
+        _info("  Configurations are identical.")
+        return
+    run_ids = [entry["run_id"] for entry in result["runs"]]
+    _info(f"  {'field':<40}" + "".join(f"{rid:>16}" for rid in run_ids))
+    for path in sorted(diff):
+        values = diff[path]
+        cells = "".join(f"{_fmt_diff(values.get(rid)):>16}" for rid in run_ids)
+        _info(f"  {path:<40}{cells}")
+
+
+def _fmt_diff(value) -> str:
+    return "—" if value in (None, "<absent>") else str(value)
+
+
+def _render_lineage(result) -> None:
+    _info("Lineage")
+    _info(f"  {'run':<12}{'seed':>6}  {'data_hash':<11}{'config_hash':<12}{'created':<22}")
+    for entry in result["runs"]:
+        lineage = entry["lineage"]
+        _info(
+            f"  {entry['run_id']:<12}{str(lineage['seed']):>6}  "
+            f"{_abbrev(lineage['data_hash']):<11}{_abbrev(lineage['config_hash']):<12}"
+            f"{str(entry['created_at'])[:21]:<22}"
+        )
+    summary = result["lineage_summary"]
+    if summary["same_data"]:
+        shared = next(iter(summary["data_hash_groups"]))
+        _info(f"  All runs share the same data (data_hash {_abbrev(shared)}).")
 
 
 @app.command()

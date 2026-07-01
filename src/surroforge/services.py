@@ -15,6 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from surroforge.comparison import build_comparison
 from surroforge.core.canonicalize import degenerate_clusters, max_principal_angle
 from surroforge.core.project import Project
 from surroforge.core.run import FieldCoverageWarning, Run
@@ -384,41 +385,16 @@ def assert_reproducible(
 
 # --- Compare -----------------------------------------------------------------
 
-# Whether a smaller value is better, per metric (drives "best run" selection).
-_LOWER_IS_BETTER = {"rmse": True, "mae": True, "r2": False}
-
-
 def compare_runs(project: Project, run_ids: list[str], *, metric: str = "rmse") -> dict[str, Any]:
-    """Tabulate test/CV metrics across runs and pick the best by ``metric`` (PRD 4.1)."""
+    """Compare runs by an extended metric / config / lineage view (PRD 4.1).
+
+    Loads the runs and delegates to :func:`surroforge.comparison.build_comparison`, whose
+    structured result the CLI renders and the Professional HTML comparison report consumes.
+    """
     if not run_ids:
         raise DataError("Provide at least one run id to compare.")
     runs = [project.run(rid) for rid in run_ids]
-
-    rows: list[dict[str, Any]] = []
-    for run in runs:
-        metrics = run.metrics
-        cv = metrics["cross_validation"]
-        names = run.config.validation.metrics
-        rows.append(
-            {
-                "run_id": run.run_id,
-                "method": run.method,
-                "test": {m: metrics["test"].get(m) for m in names},
-                "cv_mean": {m: cv[m]["mean"] for m in names if m in cv},
-            }
-        )
-
-    best = _select_best(rows, metric)
-    return {"metric": metric, "rows": rows, "best": best}
-
-
-def _select_best(rows: list[dict[str, Any]], metric: str) -> str | None:
-    candidates = [r for r in rows if r["test"].get(metric) is not None]
-    if not candidates:
-        return None
-    lower_better = _LOWER_IS_BETTER.get(metric, True)
-    chosen = (min if lower_better else max)(candidates, key=lambda r: r["test"][metric])
-    return chosen["run_id"]
+    return build_comparison(runs, metric=metric)
 
 
 # --- Predict -----------------------------------------------------------------
