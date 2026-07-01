@@ -62,9 +62,9 @@ def test_scenario_method_comparison(tmp_path):
 
     result = compare_runs(project, run_ids, metric="rmse")
     assert result["best"] in run_ids
-    assert len(result["rows"]) == 3
+    assert len(result["runs"]) == 3
     # Every row carries the requested metrics.
-    assert set(result["rows"][0]["test"]) == {"rmse", "r2", "mae"}
+    assert set(result["runs"][0]["metrics"]) == {"rmse", "r2", "mae"}
 
 
 def test_scenario_reproduction(tmp_path):

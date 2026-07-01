@@ -85,7 +85,7 @@ High-level verbs shared by the CLI and API:
 |---|---|
 | `reproduce(project, run_id) -> ReproduceResult` | Re-run from the config snapshot and compare fingerprints. |
 | `assert_reproducible(result, *, tolerance=None)` | Raise `ReproducibilityError` unless verifiably reproduced (uses the run's declared tolerance by default). |
-| `compare_runs(project, run_ids, *, metric="rmse") -> dict` | Tabulate test/CV metrics and pick the best run. |
+| `compare_runs(project, run_ids, *, metric="rmse") -> dict` | Rank runs by a metric with per-run train/test/CV, best-per-metric, a config/hyperparameter diff, a lineage summary, and warnings (`runs`/`best`/`config_diff`/`lineage_summary`/`warnings`). |
 | `predict_with_run(run, frame) -> DataFrame` | Predict for an in-memory dataframe. |
 | `predict_from_file(run, path) -> DataFrame` | Predict for a data file. |
 | `export_model(run, fmt, output=None) -> Path` | Export to `pickle`/`onnx`/a plugin format (clear `ExportError` for unsupported pairs). |

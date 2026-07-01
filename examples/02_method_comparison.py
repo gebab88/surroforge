@@ -83,12 +83,12 @@ def main(workdir: Path) -> None:
 
     result = compare_runs(project, run_ids, metric="rmse")
     print(f"{'run':<10}{'method':<14}{'test RMSE':>12}{'test R²':>10}{'CV RMSE':>12}")
-    for row in result["rows"]:
+    for row in result["runs"]:
         marker = "  <- best" if row["run_id"] == result["best"] else ""
         print(
             f"{row['run_id']:<10}{row['method']:<14}"
-            f"{row['test']['rmse']:>12.4g}{row['test']['r2']:>10.4f}"
-            f"{row['cv_mean']['rmse']:>12.4g}{marker}"
+            f"{row['metrics']['rmse']['test']:>12.4g}{row['metrics']['r2']['test']:>10.4f}"
+            f"{row['metrics']['rmse']['cv_mean']:>12.4g}{marker}"
         )
     print(f"\nBest by {result['metric']}: {result['best']}")
 

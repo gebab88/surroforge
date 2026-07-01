@@ -91,12 +91,12 @@ def main(workdir: Path) -> None:
     label_by_id = {r.run_id: name for name, r in runs.items()}
     result = compare_runs(project, list(label_by_id), metric="rmse")
     print(f"{'backend':<22}{'method':<12}{'test R²':>10}{'test RMSE':>12}{'CV RMSE':>12}")
-    for row in result["rows"]:
+    for row in result["runs"]:
         marker = "  <- best" if row["run_id"] == result["best"] else ""
         print(
             f"{label_by_id[row['run_id']]:<22}{row['method']:<12}"
-            f"{row['test']['r2']:>10.4f}{row['test']['rmse']:>12.4g}"
-            f"{row['cv_mean']['rmse']:>12.4g}{marker}"
+            f"{row['metrics']['r2']['test']:>10.4f}{row['metrics']['rmse']['test']:>12.4g}"
+            f"{row['metrics']['rmse']['cv_mean']:>12.4g}{marker}"
         )
 
     if _HAS_TORCH:

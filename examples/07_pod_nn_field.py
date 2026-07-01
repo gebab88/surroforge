@@ -104,11 +104,11 @@ def main(workdir: Path) -> None:
     result = compare_runs(project, list(inner_by_id), metric="rmse")
     print(f"Field width: {runs['pod-mlp'].metrics['n_outputs']} DOFs, intrinsic rank 3\n")
     print(f"{'inner':<12}{'test R²':>10}{'test RMSE':>12}")
-    for row in result["rows"]:
+    for row in result["runs"]:
         marker = "  <- best" if row["run_id"] == result["best"] else ""
         print(
-            f"{inner_by_id[row['run_id']]:<12}{row['test']['r2']:>10.4f}"
-            f"{row['test']['rmse']:>12.4g}{marker}"
+            f"{inner_by_id[row['run_id']]:<12}{row['metrics']['r2']['test']:>10.4f}"
+            f"{row['metrics']['rmse']['test']:>12.4g}{marker}"
         )
 
     mlp_run = runs["pod-mlp"]

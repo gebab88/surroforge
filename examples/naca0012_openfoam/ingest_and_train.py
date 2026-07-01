@@ -585,12 +585,12 @@ def _report(project: Project, runs: dict, label_kind: str) -> str:
     label_by_id = {r.run_id: name for name, r in runs.items()}
     result = compare_runs(project, list(label_by_id), metric="rmse")
     print(f"{label_kind:<12}{'test R²':>10}{'test RMSE':>12}")
-    for row in result["rows"]:
+    for row in result["runs"]:
         marker = "  <- best" if row["run_id"] == result["best"] else ""
-        print(f"{label_by_id[row['run_id']]:<12}{row['test']['r2']:>10.4f}"
-              f"{row['test']['rmse']:>12.4g}{marker}")
-    best_row = next(r for r in result["rows"] if r["run_id"] == result["best"])
-    if best_row["test"]["r2"] < 0:
+        print(f"{label_by_id[row['run_id']]:<12}{row['metrics']['r2']['test']:>10.4f}"
+              f"{row['metrics']['rmse']['test']:>12.4g}{marker}")
+    best_row = next(r for r in result["runs"] if r["run_id"] == result["best"])
+    if best_row["metrics"]["r2"]["test"] < 0:
         print("  (all test R² < 0 — data-starved sweep; '<- best' is lowest-RMSE only. "
               "Use more angles and --iters; see this directory's README.)")
     return label_by_id[result["best"]]

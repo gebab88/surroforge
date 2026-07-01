@@ -263,11 +263,11 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
     inner_by_id = {r.run_id: label for label, r in field_runs.items()}
     field_result = compare_runs(project, list(inner_by_id), metric="rmse")
     print(f"{'inner':<12}{'test R²':>10}{'test RMSE':>12}")
-    for row in field_result["rows"]:
+    for row in field_result["runs"]:
         marker = "  <- best" if row["run_id"] == field_result["best"] else ""
         print(
-            f"{inner_by_id[row['run_id']]:<12}{row['test']['r2']:>10.4f}"
-            f"{row['test']['rmse']:>12.4g}{marker}"
+            f"{inner_by_id[row['run_id']]:<12}{row['metrics']['r2']['test']:>10.4f}"
+            f"{row['metrics']['rmse']['test']:>12.4g}{marker}"
         )
     modes_kept = next(iter(field_runs.values())).load_model().rank
     print(f"POD kept {modes_kept} modes (energy 0.999); the neural inner captures the stall the")
@@ -293,9 +293,12 @@ def main(workdir: Path, out_dir: Path | None = None) -> None:
         ).fit(project)
     cl_result = compare_runs(project, [r.run_id for r in cl_runs.values()], metric="rmse")
     print(f"{'method':<12}{'test R²':>10}{'test RMSE':>12}")
-    for row in cl_result["rows"]:
+    for row in cl_result["runs"]:
         marker = "  <- best" if row["run_id"] == cl_result["best"] else ""
-        print(f"{row['method']:<12}{row['test']['r2']:>10.4f}{row['test']['rmse']:>12.4g}{marker}")
+        print(
+            f"{row['method']:<12}{row['metrics']['r2']['test']:>10.4f}"
+            f"{row['metrics']['rmse']['test']:>12.4g}{marker}"
+        )
 
     # 4. Use the best scalar surrogate to predict [C_L, C_D] at a few (AoA, speed) points.
     best_cl = next(r for r in cl_runs.values() if r.run_id == cl_result["best"])
