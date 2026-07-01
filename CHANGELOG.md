@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `surroforge export` CLI, carries the declaration-driven format gate (an unsupported
   method/format pair raises `ExportError`), and reaches plugin formats such as `pt`. The NACA
   examples now export through `run.export(...)` instead of calling the service function directly.
+- **Extended run comparisons** — `surroforge compare` now prints a ranking table
+  (train/test/CV mean±std with deltas to the best), an all-test-metrics table with the
+  best run per metric marked, a configuration/hyperparameter **diff** (only the fields
+  that differ between runs, derived from each run's canonical config), and a **lineage**
+  block flagging whether the runs share the same data. Heterogeneous comparisons (different
+  metric sets, datasets, experiments, or columns) emit warnings rather than failing. The
+  structured result is available via `surroforge.comparison.build_comparison(runs, metric=...)`
+  / `services.compare_runs(...)`. Run selection is unchanged (`--runs a,b,c`).
 
 ### Added — Methods
 
