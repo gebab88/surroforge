@@ -138,3 +138,57 @@ def build_charts(run: Run) -> dict[str, Any] | None:
     if comparison is not None:
         charts["metric_comparison"] = comparison
     return charts
+
+
+def _finite(value: Any) -> float | None:
+    if isinstance(value, (int, float)) and math.isfinite(value):
+        return float(value)
+    return None
+
+
+def build_comparison_charts(comparison: dict[str, Any]) -> dict[str, Any] | None:
+    """Cross-run chart arrays from a ``build_comparison`` result, or ``None``.
+
+    Lists are parallel to ``runs``; a value a run lacks becomes ``None`` (uPlot
+    renders a gap). Metrics with no finite value in any run are dropped; if no
+    metric survives, the whole chart payload is ``None``.
+    """
+    entries = comparison.get("runs")
+    metric_names = comparison.get("metric_names")
+    if not isinstance(entries, list) or not isinstance(metric_names, list):
+        return None
+    runs: list[str] = []
+    per_run: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or "run_id" not in entry:
+            return None
+        runs.append(str(entry["run_id"]))
+        metrics = entry.get("metrics")
+        per_run.append(metrics if isinstance(metrics, dict) else {})
+
+    per_metric: dict[str, dict[str, list[float | None]]] = {}
+    kept: list[str] = []
+    for name in metric_names:
+        series: dict[str, list[float | None]] = {
+            "train": [], "test": [], "cv_mean": [], "cv_std": []
+        }
+        for metrics in per_run:
+            record = metrics.get(name)
+            record = record if isinstance(record, dict) else {}
+            for key, values in series.items():
+                values.append(_finite(record.get(key)))
+        if any(v is not None for v in series["train"] + series["test"] + series["cv_mean"]):
+            kept.append(str(name))
+            per_metric[str(name)] = series
+    if not runs or not kept:
+        return None
+
+    best = comparison.get("best")
+    best_per_metric = comparison.get("best_per_metric")
+    return {
+        "runs": runs,
+        "metrics": kept,
+        "best": best if isinstance(best, str) else None,
+        "best_per_metric": best_per_metric if isinstance(best_per_metric, dict) else {},
+        "per_metric": per_metric,
+    }

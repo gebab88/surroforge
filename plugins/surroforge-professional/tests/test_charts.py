@@ -146,3 +146,75 @@ def test_charts_json_escapes_angle_brackets():
     out = _charts_json({"outputs": ["<script>x</script>"]})
     assert "<" not in out
     assert "\\u003c" in out
+
+
+def _comparison_entry(run_id, **metric_values):
+    return {
+        "run_id": run_id,
+        "metrics": {
+            name: {"train": v, "test": v, "cv_mean": v, "cv_std": 0.01}
+            for name, v in metric_values.items()
+        },
+    }
+
+
+def _comparison(entries, metric_names, best="r1", best_per_metric=None):
+    return {
+        "metric": "rmse",
+        "metric_names": metric_names,
+        "runs": entries,
+        "best": best,
+        "best_per_metric": best_per_metric or {},
+    }
+
+
+def test_comparison_charts_shape():
+    from surroforge_professional.reports.charts import build_comparison_charts
+
+    charts = build_comparison_charts(
+        _comparison(
+            [_comparison_entry("r1", rmse=0.2, r2=0.9), _comparison_entry("r2", rmse=0.3, r2=0.8)],
+            ["rmse", "r2"],
+            best_per_metric={"rmse": "r1", "r2": "r1"},
+        )
+    )
+    assert charts is not None
+    assert charts["runs"] == ["r1", "r2"]
+    assert charts["metrics"] == ["rmse", "r2"]
+    assert charts["best"] == "r1"
+    assert charts["best_per_metric"] == {"rmse": "r1", "r2": "r1"}
+    assert charts["per_metric"]["rmse"]["test"] == [0.2, 0.3]
+    assert charts["per_metric"]["rmse"]["cv_std"] == [0.01, 0.01]
+
+
+def test_comparison_charts_missing_metric_becomes_none_hole():
+    from surroforge_professional.reports.charts import build_comparison_charts
+
+    charts = build_comparison_charts(
+        _comparison(
+            [_comparison_entry("r1", rmse=0.2), _comparison_entry("r2")], ["rmse"]
+        )
+    )
+    assert charts is not None
+    assert charts["per_metric"]["rmse"]["test"] == [0.2, None]
+
+
+def test_comparison_charts_none_when_nothing_plottable():
+    from surroforge_professional.reports.charts import build_comparison_charts
+
+    entry = {"run_id": "r1", "metrics": {"rmse": {"train": None, "test": None,
+                                                  "cv_mean": None, "cv_std": None}}}
+    assert build_comparison_charts(_comparison([entry], ["rmse"])) is None
+
+
+def test_comparison_charts_never_raises_on_garbage():
+    from surroforge_professional.reports.charts import build_comparison_charts
+
+    assert build_comparison_charts({}) is None
+    assert build_comparison_charts({"runs": "junk", "metric_names": ["rmse"]}) is None
+    assert build_comparison_charts(
+        {"runs": [{"run_id": "r1", "metrics": "junk"}], "metric_names": ["rmse"]}
+    ) is None
+    assert build_comparison_charts(
+        _comparison([_comparison_entry("r1", rmse=float("nan"))], ["rmse"])
+    ) is None
