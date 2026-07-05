@@ -524,8 +524,8 @@ def generate_comparison_report(
     comparison reporter registered under ``format`` (e.g. the Professional HTML
     comparison report).
     """
-    comparison = compare_runs(project, run_ids, metric=metric)
     reporter = get_comparison_reporter(format)()
+    comparison = compare_runs(project, run_ids, metric=metric)
     text = reporter.render(comparison)
     if output is None:
         output = project.reports_dir / f"comparison{reporter.extension}"
