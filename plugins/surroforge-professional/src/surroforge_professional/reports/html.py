@@ -28,16 +28,9 @@ _UPLOT_LICENSE_COMMENT = (
     + "\n-->"
 )
 
-
-_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
-_TEMPLATE = _ENV.from_string(
-    """<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SurroForge Report</title>
-  <style>
+# Shared page styling for the Professional reports. The comparison report embeds the
+# same block, so the two documents render with one visual language and cannot drift.
+_BASE_CSS = """
     :root {
       color-scheme: light;
       --ink: #172033;
@@ -186,7 +179,18 @@ _TEMPLATE = _ENV.from_string(
       table { display: block; overflow-x: auto; }
       th, td { white-space: nowrap; }
     }
-  </style>
+"""
+
+
+_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
+_TEMPLATE = _ENV.from_string(
+    """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SurroForge Report</title>
+  <style>{{ base_css|safe }}</style>
   {% if charts %}<style>{{ uplot_css|safe }}</style>{% endif %}
 </head>
 <body>
@@ -495,6 +499,7 @@ class HtmlReporter(BaseReporter):
         require_license()
         return _TEMPLATE.render(
             **build_context(run),
+            base_css=_BASE_CSS,
             uplot_js=_UPLOT_JS,
             uplot_css=_UPLOT_CSS,
             uplot_license_comment=_UPLOT_LICENSE_COMMENT,

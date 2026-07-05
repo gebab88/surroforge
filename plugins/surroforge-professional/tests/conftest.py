@@ -59,6 +59,24 @@ def trained_run(project):
 
 
 @pytest.fixture
+def second_run(project):
+    config = parse_config(
+        {
+            "experiment": "beam-professional-html-2",
+            "data": {
+                "source": "beam",
+                "inputs": ["length", "width", "load"],
+                "outputs": ["max_stress"],
+                "split": {"test_fraction": 0.2, "seed": 42},
+            },
+            "model": {"method": "polynomial", "degree": 1},
+            "validation": {"cross_validation": 5, "metrics": ["rmse", "r2", "mae"]},
+        }
+    )
+    return run_training(project, config)
+
+
+@pytest.fixture
 def multi_sample_csv(tmp_path):
     rng = np.random.default_rng(1)
     n = 80

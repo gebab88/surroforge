@@ -27,6 +27,9 @@ html = "surroforge_professional.reports.html:HtmlReporter"
 [project.entry-points."surroforge.commands"]
 doe = "surroforge_professional.commands.doe:doe_app"
 
+[project.entry-points."surroforge.comparison_reporters"]
+html = "surroforge_professional.reports.comparison:HtmlComparisonReporter"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/surroforge_professional"]
 
