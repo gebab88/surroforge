@@ -44,7 +44,12 @@ surroforge train --config configs/polynomial.yaml   # -> run-002
 
 ```bash
 surroforge compare --runs run-001,run-002 --metric rmse
+surroforge compare --runs run-001,run-002 --format html -o comparison.html   # Professional plugin
 ```
+
+With the Professional plugin installed, `--format html` writes a self-contained
+interactive comparison report (`reports/comparison.html` by default) instead of the
+terminal tables.
 
 This prints a table of each run's **test** metrics side by side and names the best
 run by the chosen metric:

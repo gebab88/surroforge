@@ -45,6 +45,7 @@ surroforge train --config configs/kriging.yaml
 surroforge list
 surroforge validate run-001
 surroforge compare --runs run-001,run-002
+surroforge compare --runs run-001,run-002 --format html   # Professional: interactive HTML report
 surroforge reproduce run-001
 
 # 5. Use the model
