@@ -45,3 +45,32 @@ def test_generate_report_custom_output(project, trained_run, tmp_path):
     path, _ = generate_report(project, trained_run, output=dest)
     assert path == dest
     assert dest.is_file()
+
+
+class _StubComparisonReporter:
+    name = "stub"
+    extension = ".stub"
+
+    def render(self, comparison):
+        return f"comparison of {len(comparison['runs'])} runs by {comparison['metric']}"
+
+
+def test_generate_comparison_report_writes_under_reports_dir(project, trained_run, monkeypatch):
+    import surroforge.services as services
+
+    monkeypatch.setattr(services, "get_comparison_reporter", lambda name: _StubComparisonReporter)
+    path = services.generate_comparison_report(
+        project, [trained_run.run_id], metric="rmse", format="stub"
+    )
+    assert path == project.reports_dir / "comparison.stub"
+    assert path.read_text() == "comparison of 1 runs by rmse"
+
+
+def test_generate_comparison_report_custom_output(project, trained_run, tmp_path, monkeypatch):
+    import surroforge.services as services
+
+    monkeypatch.setattr(services, "get_comparison_reporter", lambda name: _StubComparisonReporter)
+    dest = tmp_path / "nested" / "cmp.stub"
+    path = services.generate_comparison_report(project, [trained_run.run_id], output=dest)
+    assert path == dest
+    assert dest.is_file()

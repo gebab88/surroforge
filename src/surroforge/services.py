@@ -28,7 +28,7 @@ from surroforge.errors import (
     ReproducibilityError,
     TrainerError,
 )
-from surroforge.plugins import get_exporter, get_reporter
+from surroforge.plugins import get_comparison_reporter, get_exporter, get_reporter
 from surroforge.validators.metrics import FIELD_ENERGY_FLOOR
 
 # --- Reproduce ---------------------------------------------------------------
@@ -508,3 +508,28 @@ def generate_report(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(text)
     return output, text
+
+
+def generate_comparison_report(
+    project: Project,
+    run_ids: list[str],
+    *,
+    metric: str = "rmse",
+    format: str = "html",
+    output: str | Path | None = None,
+) -> Path:
+    """Render a multi-run comparison report and write it under ``reports/`` (PRD 4.1).
+
+    Builds the comparison via :func:`compare_runs` and renders it with the
+    comparison reporter registered under ``format`` (e.g. the Professional HTML
+    comparison report).
+    """
+    comparison = compare_runs(project, run_ids, metric=metric)
+    reporter = get_comparison_reporter(format)()
+    text = reporter.render(comparison)
+    if output is None:
+        output = project.reports_dir / f"comparison{reporter.extension}"
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(text)
+    return output

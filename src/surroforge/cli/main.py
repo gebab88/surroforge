@@ -360,11 +360,29 @@ def validate(run_id: str = typer.Argument(..., help="Run id to validate.")) -> N
 def compare(
     runs: str = typer.Option(..., "--runs", "-r", help="Comma-separated run ids."),
     metric: str = typer.Option("rmse", "--metric", "-m", help="Metric used to rank runs."),
+    format: str = typer.Option(
+        "terminal",
+        "--format",
+        "-f",
+        help="Output format: 'terminal' prints tables; anything else is resolved as a "
+        "comparison-reporter plugin (e.g. 'html' from surroforge-professional).",
+    ),
+    output: Path = typer.Option(
+        None, "--output", "-o", help="Destination file (needs a file-producing --format)."
+    ),
 ) -> None:
     """Compare several training runs side by side (PRD 4.1)."""
     project = _project()
     run_ids = [r.strip() for r in runs.split(",") if r.strip()]
-    _render_comparison(services.compare_runs(project, run_ids, metric=metric))
+    if format == "terminal":
+        if output is not None:
+            raise DataError("--output needs a file-producing --format (e.g. --format html).")
+        _render_comparison(services.compare_runs(project, run_ids, metric=metric))
+        return
+    path = services.generate_comparison_report(
+        project, run_ids, metric=metric, format=format, output=output
+    )
+    _success(f"Wrote {format} comparison report to {path}")
 
 
 def _fmt(value) -> str:

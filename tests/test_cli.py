@@ -248,6 +248,42 @@ def test_verbose_mode_shows_progress(tmp_path):
     assert "·" in result.output  # per-step progress bullets
 
 
+def test_compare_format_html_calls_service(tmp_path, monkeypatch):
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    calls = {}
+
+    def fake_generate(project, run_ids, *, metric="rmse", format="html", output=None):
+        calls.update(run_ids=run_ids, metric=metric, format=format, output=output)
+        out = root / "reports" / "comparison.html"
+        out.write_text("<!doctype html>")
+        return out
+
+    monkeypatch.setattr("surroforge.services.generate_comparison_report", fake_generate)
+    result = runner.invoke(
+        app, ["--config-dir", str(root), "compare", "--runs", "run-001", "-f", "html"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "comparison.html" in result.output
+    assert calls == {"run_ids": ["run-001"], "metric": "rmse", "format": "html", "output": None}
+
+
+def test_compare_terminal_with_output_errors(tmp_path):
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+    result = runner.invoke(
+        app,
+        ["--config-dir", str(root), "compare", "--runs", "run-001", "--output", "x.html"],
+    )
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert "--format" in result.output
+    assert "Traceback" not in result.output
+
+
 # --- data add-openfoam (Story R5.2) --------------------------------------------------
 
 
