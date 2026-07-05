@@ -150,13 +150,14 @@ access.
    config hash / parent per run.
 
 **Chart block per metric** (uPlot, vendored assets): x-axis = the runs; **three bar
-series** — train, test, CV mean — as grouped bars, rendered by adapting the custom
-bar-draw path the single-run init script already uses (adapted, not reinvented).
-**±std as whiskers** on the CV-mean bar, drawn in the same draw pass; exact values
-(incl. ±std) additionally in the tooltip/legend readout. Documented fallback if whisker
-drawing turns out disproportionately complex during implementation: ±std in the tooltip
-only — the information is never lost. **Best marking**: the per-metric best run's bar
-group (`best_per_metric`) gets an accent colour + "best" badge under the run label.
+series** — train, test, CV mean — as **layered bars** (train widest, test medium, CV
+mean narrowest on top, widest drawn first so all three stay readable), reusing the
+stock `uPlot.paths.bars` the single-run report already ships. (Approved deviation
+2026-07-05: true side-by-side grouping needs uPlot's `disp`-offset demo math — browser
+JS nothing in this pipeline can test — so the layered overlay was chosen.)
+**±std as whiskers** on the CV-mean bar, drawn in a `draw` hook; exact values
+(incl. ±std) additionally in the legend readout. **Best marking**: a "best" chip in
+the chart heading plus a `★` suffix on that run's x-axis label (`best_per_metric`).
 Missing values → `null` (uPlot leaves a gap), no fake zero bars.
 
 **Degenerate cases**: 1 run → page renders normally (single-row ranking);
