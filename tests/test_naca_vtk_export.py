@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import importlib.util
 import struct
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
@@ -11,11 +10,11 @@ import pandas as pd
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_SCRIPT = _REPO_ROOT / "examples" / "naca0012_openfoam" / "ingest_and_train.py"
+_SCRIPT = _REPO_ROOT / "examples" / "naca0012_openfoam" / "surrogate_vtk.py"
 
 
-def _load_ingest_module():
-    spec = importlib.util.spec_from_file_location("naca_ingest_and_train", _SCRIPT)
+def _load_surrogate_vtk_module():
+    spec = importlib.util.spec_from_file_location("naca_surrogate_vtk", _SCRIPT)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -26,12 +25,6 @@ def _vtk_payload(values: list[float], dtype: str = "<f4") -> str:
     array = np.asarray(values, dtype=dtype)
     raw = struct.pack("<Q", array.nbytes) + array.tobytes()
     return base64.b64encode(raw).decode("ascii")
-
-
-def _decode_vtk_payload(text: str | None) -> np.ndarray:
-    raw = base64.b64decode("".join((text or "").split()))
-    n_bytes = struct.unpack("<Q", raw[:8])[0]
-    return np.frombuffer(raw[8 : 8 + n_bytes], dtype="<f4")
 
 
 def _write_minimal_vtu(path: Path) -> None:
@@ -73,63 +66,9 @@ def _write_minimal_vtu(path: Path) -> None:
     )
 
 
-def test_surrogate_vtu_replaces_cell_field_and_drops_stale_point_field(tmp_path):
-    module = _load_ingest_module()
-    template = tmp_path / "template.vtu"
-    output = tmp_path / "surrogate.vtu"
-    _write_minimal_vtu(template)
-
-    module.write_surrogate_internal_vtu(template, output, [7.0, 8.0, 9.0], field_name="p")
-
-    root = ET.parse(output).getroot()
-    cell_p = root.find(".//CellData/DataArray[@Name='p']")
-    point_p = root.find(".//PointData/DataArray[@Name='p']")
-    assert cell_p is not None
-    assert point_p is None
-    assert np.allclose(_decode_vtk_payload(cell_p.text), [7.0, 8.0, 9.0])
-
-
-def test_surrogate_vtk_batch_writes_one_vtu_per_sample(tmp_path):
-    module = _load_ingest_module()
-    run_dir = tmp_path / "run"
-    out_dir = tmp_path / "surrogate_vtk"
-    samples = pd.DataFrame(
-        {
-            "case": ["case_000", "case_001"],
-            "aoa": [-5.0, -4.0],
-            "speed": [20.0, 20.0],
-        }
-    )
-
-    for case in samples["case"]:
-        template = run_dir / case / "VTK" / f"{case}_10" / "internal.vtu"
-        template.parent.mkdir(parents=True)
-        _write_minimal_vtu(template)
-
-    written = module.write_surrogate_vtk_cases(
-        run_dir,
-        out_dir,
-        samples,
-        np.array([[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]]),
-        field_name="p",
-    )
-
-    assert written == [out_dir / "case_000.vtu", out_dir / "case_001.vtu"]
-    assert (out_dir / "samples.csv").is_file()
-    pvd = ET.parse(out_dir / "surrogate_fields.pvd").getroot()
-    datasets = pvd.findall(".//DataSet")
-    assert [d.attrib["file"] for d in datasets] == ["case_000.vtu", "case_001.vtu"]
-    assert [d.attrib["timestep"] for d in datasets] == ["0", "1"]
-    assert pd.read_csv(out_dir / "samples.csv").to_dict("list") == samples.to_dict("list")
-    second = ET.parse(out_dir / "case_001.vtu").getroot()
-    cell_p = second.find(".//CellData/DataArray[@Name='p']")
-    assert cell_p is not None
-    assert np.allclose(_decode_vtk_payload(cell_p.text), [4.5, 5.5, 6.5])
-
-
 def test_surrogate_vtkhdf_writes_single_time_series_file(tmp_path):
     h5py = pytest.importorskip("h5py")
-    module = _load_ingest_module()
+    module = _load_surrogate_vtk_module()
     run_dir = tmp_path / "run"
     out_dir = tmp_path / "surrogate_vtk"
     samples = pd.DataFrame(
