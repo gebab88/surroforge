@@ -26,6 +26,7 @@ TRAINER_GROUP = "surroforge.trainers"
 EXPORTER_GROUP = "surroforge.exporters"
 REPORTER_GROUP = "surroforge.reporters"
 COMMAND_GROUP = "surroforge.commands"
+COMPARISON_REPORTER_GROUP = "surroforge.comparison_reporters"
 
 _BUILTIN: dict[str, dict[str, str]] = {
     TRAINER_GROUP: {
@@ -44,6 +45,8 @@ _BUILTIN: dict[str, dict[str, str]] = {
     REPORTER_GROUP: {
         "markdown": "surroforge.reporters.markdown:MarkdownReporter",
     },
+    # Core ships no comparison reporter; the terminal rendering lives in the CLI.
+    COMPARISON_REPORTER_GROUP: {},
 }
 
 
@@ -132,6 +135,10 @@ def get_reporter(name: str) -> type:
     return _resolve(REPORTER_GROUP, name, "report format")
 
 
+def get_comparison_reporter(name: str) -> type:
+    return _resolve(COMPARISON_REPORTER_GROUP, name, "comparison report format")
+
+
 def available_trainers() -> list[str]:
     return sorted(_names(TRAINER_GROUP))
 
@@ -142,6 +149,10 @@ def available_exporters() -> list[str]:
 
 def available_reporters() -> list[str]:
     return sorted(_names(REPORTER_GROUP))
+
+
+def available_comparison_reporters() -> list[str]:
+    return sorted(_names(COMPARISON_REPORTER_GROUP))
 
 
 def available_command_names() -> list[str]:
