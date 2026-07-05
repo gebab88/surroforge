@@ -37,18 +37,19 @@ def _metric_names(runs: list[Run]) -> list[str]:
     return names
 
 
+def _as_dict(value: Any) -> dict[str, Any]:
+    """Coerce an untrusted persisted value to a dict, or ``{}`` when it is not one."""
+    return value if isinstance(value, dict) else {}
+
+
 def _run_metrics(run: Run, metric_names: list[str]) -> dict[str, dict[str, Any]]:
-    metrics = run.metrics if isinstance(run.metrics, dict) else {}
-    train = metrics.get("train") if isinstance(metrics.get("train"), dict) else {}
-    test = metrics.get("test") if isinstance(metrics.get("test"), dict) else {}
-    cv = (
-        metrics.get("cross_validation")
-        if isinstance(metrics.get("cross_validation"), dict)
-        else {}
-    )
+    metrics = _as_dict(run.metrics)
+    train = _as_dict(metrics.get("train"))
+    test = _as_dict(metrics.get("test"))
+    cv = _as_dict(metrics.get("cross_validation"))
     out: dict[str, dict[str, Any]] = {}
     for name in metric_names:
-        cvrec = cv.get(name) if isinstance(cv.get(name), dict) else {}
+        cvrec = _as_dict(cv.get(name))
         out[name] = {
             "train": train.get(name),
             "test": test.get(name),
