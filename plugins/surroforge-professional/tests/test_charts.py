@@ -57,6 +57,7 @@ def test_scalar_single_output_full_charts(trained_run):
 
 def test_multi_output_parity_two_series(multi_run):
     charts = build_charts(multi_run)
+    assert charts is not None
     assert charts["outputs"] == ["y1", "y2"]
     assert len(charts["parity"]["actual"]) == 2
     assert len(charts["parity"]["predicted"]) == 2
@@ -69,6 +70,7 @@ def test_parity_transposes_to_output_major():
         predicted=[[1.1, 2.1], [2.9, 3.8], [5.2, 5.9]],
     )
     charts = build_charts(run)
+    assert charts is not None
     assert charts["parity"]["actual"][0] == [1.0, 3.0, 5.0]   # column 0
     assert charts["parity"]["actual"][1] == [2.0, 4.0, 6.0]   # column 1
 
@@ -76,6 +78,7 @@ def test_parity_transposes_to_output_major():
 def test_field_run_omits_parity():
     run = _fake(actual=[[1.0]], predicted=[[1.0]], reduction={"basis": "pod", "rank": 3})
     charts = build_charts(run)
+    assert charts is not None
     assert "parity" not in charts
     assert "cv" in charts and "metric_comparison" in charts
 
@@ -83,6 +86,7 @@ def test_field_run_omits_parity():
 def test_old_run_without_actuals_omits_parity_keeps_cv():
     run = _fake(actual=[], predicted=[[1.0], [2.0]])
     charts = build_charts(run)
+    assert charts is not None
     assert "parity" not in charts
     assert "cv" in charts and "metric_comparison" in charts
 
@@ -90,17 +94,20 @@ def test_old_run_without_actuals_omits_parity_keeps_cv():
 def test_shape_mismatch_omits_parity_without_raising():
     run = _fake(actual=[[1.0], [2.0]], predicted=[[1.0]])
     charts = build_charts(run)            # must not raise
+    assert charts is not None
     assert "parity" not in charts
 
 
 def test_non_numeric_actuals_omit_parity_without_raising():
     run = _fake(actual=[["oops"], ["bad"]], predicted=[[1.0], [2.0]])
     charts = build_charts(run)            # must not raise
+    assert charts is not None
     assert "parity" not in charts
 
 
 def test_cv_present_with_per_fold():
     charts = build_charts(_fake(actual=[[1.0]], predicted=[[1.0]]))
+    assert charts is not None
     assert charts["cv"]["metrics"] == ["rmse", "r2"]
     assert charts["cv"]["folds"] == [1, 2, 3]
     assert charts["cv"]["per_fold"]["rmse"] == [0.16, 0.18, 0.20]
@@ -119,6 +126,7 @@ def test_non_finite_metric_mean_is_dropped_from_comparison():
     metrics["cross_validation"]["r2"]["mean"] = float("nan")
     run = _fake(actual=[[1.0]], predicted=[[1.0]], metrics=metrics)
     charts = build_charts(run)
+    assert charts is not None
     assert "r2" not in charts["metric_comparison"]["metrics"]
     assert "rmse" in charts["metric_comparison"]["metrics"]
     assert all(math.isfinite(v) for v in charts["metric_comparison"]["cv_mean"])

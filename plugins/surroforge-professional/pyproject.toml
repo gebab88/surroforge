@@ -19,7 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
-doe = ["scipy>=1.10"]
+doe = ["scipy>=1.15"]  # qmc engines are seeded via the SPEC-7 `rng=` parameter (scipy 1.15+)
 
 [project.entry-points."surroforge.reporters"]
 html = "surroforge_professional.reports.html:HtmlReporter"

@@ -102,7 +102,8 @@ def _two_source_context(
     train = metrics.get("train")
     test = metrics.get("test")
     cv = metrics.get("cross_validation")
-    if not all(isinstance(section, dict) for section in (train, test, cv)):
+    # Spelled as a conjunction (not all(...)) so type checkers narrow all three to dict.
+    if not (isinstance(train, dict) and isinstance(test, dict) and isinstance(cv, dict)):
         return None
     if not all(metric in train and metric in test for metric in field_names):
         return None

@@ -31,6 +31,11 @@ def _require_qmc():
 def _factorial_levels(factor) -> list:
     if isinstance(factor, ContinuousFactor):
         lo, hi = factor.bounds
+        if factor.num_levels is None:
+            raise DoeError(
+                f"factor '{factor.name}': continuous factors need 'num_levels' "
+                "under full-factorial."
+            )
         return [float(v) for v in np.linspace(lo, hi, factor.num_levels)]
     if isinstance(factor, DiscreteFactor):
         return [float(v) for v in factor.levels]
@@ -50,18 +55,22 @@ def _map_unit(factor, column: np.ndarray) -> list:
         lo, hi = factor.bounds
         return [float(v) for v in (lo + column * (hi - lo))]
     choices = _discrete_choices(factor)
+    if choices is None:  # spec's discriminated union makes this unreachable today
+        raise DoeError(f"factor '{factor.name}': unsupported factor type for sampled designs.")
     k = len(choices)
     index = np.minimum((column * k).astype(int), k - 1)
     return [choices[i] for i in index]
 
 
 def _unit_hypercube(spec: DoeSpec, dimensions: int) -> np.ndarray:
+    n = spec.samples
+    if n is None:
+        raise DoeError(f"design '{spec.design}' requires 'samples' >= 1.")
     if spec.design == "lhs":
         qmc = _require_qmc()
-        return qmc.LatinHypercube(d=dimensions, seed=spec.seed).random(spec.samples)
+        return qmc.LatinHypercube(d=dimensions, rng=spec.seed).random(n)
     if spec.design == "sobol":
         qmc = _require_qmc()
-        n = spec.samples
         if n & (n - 1):  # not a power of two
             warnings.warn(
                 f"Sobol sampling is most uniform at a power of two; got samples={n}.",
@@ -70,9 +79,9 @@ def _unit_hypercube(spec: DoeSpec, dimensions: int) -> np.ndarray:
             )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # silence scipy's own balance warning
-            return qmc.Sobol(d=dimensions, seed=spec.seed).random(n)
+            return qmc.Sobol(d=dimensions, rng=spec.seed).random(n)
     rng = np.random.default_rng(spec.seed)
-    return rng.random((spec.samples, dimensions))
+    return rng.random((n, dimensions))
 
 
 def generate(spec: DoeSpec) -> pd.DataFrame:
