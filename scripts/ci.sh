@@ -12,9 +12,11 @@
 #   Setup:  pip install -e ".[all,dev,docs]"   # one-time; brings every gate's tooling
 #
 # Required gates (ruff, mypy, pyright, import-linter, pytest) fail the run if their
-# tool is missing. The release-time gates (docs, profile, licenses) are skipped with
-# a hint when their optional tooling is absent, so the everyday lint+type+test loop
-# still runs from a minimal install. Every gate runs; a summary is printed at the end.
+# tool is missing. Each installed plugin's test suite (plugins/*/tests) is a required
+# gate too; uninstalled plugins are skipped. The release-time gates (docs, profile,
+# licenses) are skipped with a hint when their optional tooling is absent, so the
+# everyday lint+type+test loop still runs from a minimal install. Every gate runs;
+# a summary is printed at the end.
 
 set -uo pipefail  # deliberately NOT -e: run all gates, then report, don't fail-fast.
 
@@ -89,14 +91,32 @@ require "reproducibility" pytest "${PIN[@]}" pytest -q \
   tests/test_reproduce.py tests/test_canonicalize.py tests/test_reproduce_field.py \
   tests/test_reproduce_scalar_identity.py tests/test_probe_coverage.py
 
-# 4. docs build (mkdocs --strict) — release-time gate -------------------------
+# 4. plugin test suites — required for every installed plugin -----------------
+# Root pytest only collects tests/ (testpaths), so each plugin ships its own
+# suite. An installed plugin's suite is a required gate; an uninstalled one is
+# skipped, keeping the minimal-checkout loop working.
+for plugin_dir in plugins/*/; do
+  [[ -d "${plugin_dir}tests" ]] || continue
+  plugin_name="$(basename "$plugin_dir")"
+  module_name="${plugin_name//-/_}"
+  if python -c "import ${module_name}" >/dev/null 2>&1; then
+    run "plugin: $plugin_name" pytest -q "${plugin_dir}tests"
+  else
+    printf '\n%s━━━ plugin: %s ━━━%s\n' "$bold" "$plugin_name" "$reset"
+    echo "SKIPPED — $plugin_name not installed (pip install -e ./$plugin_dir)"
+    results+=("SKIP  plugin: $plugin_name")
+    skipped=1
+  fi
+done
+
+# 5. docs build (mkdocs --strict) — release-time gate -------------------------
 optional "docs" mkdocs "mkdocs not found — pip install -e '.[docs]'" \
   mkdocs build --strict
 
-# 5. profiling (SurroForge code stays a small fraction of CPU time) -----------
+# 6. profiling (SurroForge code stays a small fraction of CPU time) -----------
 require "profile" python "${PIN[@]}" python scripts/profile_training.py
 
-# 6. license hygiene (no GPL/LGPL in Core — NFR8) — release-time gate ---------
+# 7. license hygiene (no GPL/LGPL in Core — NFR8) — release-time gate ---------
 optional "licenses" pip-licenses "pip-licenses not found — pip install pip-licenses (in .[dev])" \
   bash -c 'pip-licenses --format=json | python scripts/check_licenses.py'
 
