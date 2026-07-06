@@ -30,12 +30,15 @@ identical — only the data source changes.
   the freestream velocity** `U = |U|·(cos α, sin α, 0)` (and the `forceCoeffs` lift/drag
   directions), and the freestream speed `|U|` is varied independently — a full DoE over every
   `angle × speed` combination, all on the one mesh (no re-meshing).
-- **Outputs per case:** a converged pressure field `p` (read mesh-free by
+- **Outputs per case:** converged pressure and velocity fields `p`/`U` (read mesh-free by
   `surroforge.data.read_openfoam_sweep`) and the integrated lift and drag coefficients `Cl`/`Cd`
   written by the `forceCoeffs` function object.
-- **Surrogates** (same two as example 09): a **field** model (`reduced-field` POD + neural inner)
-  `(AoA, speed) → pressure field`, and a **scalar** model `(AoA, speed) → [Cl, Cd]`. Core `mlp`
-  always; the PyTorch `torch-mlp` backend joins if the `surroforge-torch` plugin is installed.
+- **Surrogates** (the two from example 09 plus a velocity field): a **field** model
+  (`reduced-field` POD + neural inner) `(AoA, speed) → pressure field`, a second field model
+  `(AoA, speed) → velocity field (Ux, Uy)` — the 2-D case's z component is machine zero, so it
+  is dropped at ingest and re-padded as exact zero on export — and a **scalar** model
+  `(AoA, speed) → [Cl, Cd]`. Core `mlp` always; the PyTorch `torch-mlp` backend joins if the
+  `surroforge-torch` plugin is installed.
 
 ## Run it
 
@@ -58,12 +61,13 @@ The VTKHDF export needs `h5py` (`pip install 'surroforge[formats]'` or
 
 `ingest_and_train.py` also **exports** the trained surrogates: the best coefficient model to
 `coeffs_surrogate.onnx`, the torch-mlp coefficient model to `coeffs_surrogate.pt` (a native PyTorch
-checkpoint, when the plugin is installed), and the field surrogate to `field_surrogate.pkl`
-(`reduced-field` is pickle-only). It then evaluates the best field surrogate on every original
-case in `samples.csv` and writes VTKHDF output to
-`surrogate_vtk/surrogate_fields.vtkhdf`, plus a `samples.csv` mapping file for the time-step to
-case/AoA/speed assignment. Open the `.vtkhdf` file in ParaView; the surrogate pressure field is
-written as cell data `p`.
+checkpoint, when the plugin is installed), and the pressure- and velocity-field surrogates to
+`field_surrogate.pkl` / `velocity_surrogate.pkl` (`reduced-field` is pickle-only). It then
+evaluates the best field surrogates on every original case in `samples.csv` and writes VTKHDF
+output to `surrogate_vtk/surrogate_fields.vtkhdf`, plus a `samples.csv` mapping file for the
+time-step to case/AoA/speed assignment. Open the `.vtkhdf` file in ParaView; the surrogate
+pressure field is written as cell data `p` and the surrogate velocity as vector cell data `U`
+(magnitude colouring, glyphs and streamlines work; `Uz` is identically zero in this 2-D case).
 
 By default these outputs land in the sweep directory and the SurroForge project (datasets, runs,
 lineage, POD basis, models) is built in a temp dir and discarded; pass **`--out DIR`** to save the
@@ -148,10 +152,12 @@ python examples/naca0012_openfoam/ingest_and_train.py \
   examples/naca0012_openfoam/run --out examples/naca0012_openfoam/ex09_real
 ```
 
-Ingestion read **10 720 pressure DOFs/case plus the real `Cl` and `Cd`** for all 110 cases; both
-surrogates trained; all three model artifacts exported (`coeffs_surrogate.onnx`/`.pt`,
-`field_surrogate.pkl`); and the best field surrogate wrote a **110-step VTKHDF pressure-field
-time series** under `surrogate_vtk/surrogate_fields.vtkhdf` for ParaView.
+Ingestion read **10 720 pressure DOFs plus 21 440 velocity DOFs per case (`Ux`/`Uy` — the
+machine-zero z columns of the 2-D case are dropped at ingest), plus the real `Cl` and
+`Cd`** for all 110 cases; all three surrogates trained; all four model artifacts exported
+(`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`, `velocity_surrogate.pkl`); and the best
+field surrogates wrote a **110-step VTKHDF pressure+velocity time series** under
+`surrogate_vtk/surrogate_fields.vtkhdf` for ParaView.
 
 **Convergence.** 90/110 cases reached the `1e-8` residual target. The attached cases converge at
 **~520–670 iterations** — which is why `--iters` defaults to 1000; an older 500 default clipped
@@ -167,6 +173,7 @@ the negative side).
 | Surrogate | Best method | test R² | test RMSE |
 | --- | --- | --- | --- |
 | Field `(AoA, U) → p` (POD-NN) | `torch-mlp` inner | 0.986 | 30.0 |
+| Field `(AoA, U) → U` (POD-NN) | `torch-mlp` inner | 0.998 | 0.621 |
 | Scalar `(AoA, U) → [Cl, Cd]` | `mlp` | 0.994 | 0.0074 |
 
 - **Scalar:** `mlp` wins on both metrics — the best R² (0.994) *and* the best RMSE (0.0074), the
@@ -186,6 +193,15 @@ the negative side).
   `polynomial` inner is clearly behind (R² 0.921), and the scikit-learn `mlp` inner is the
   weakest of the three (R² 0.676) — the reverse of the scalar task, so on this data neither NN
   backend dominates both tasks.
+- **Field (POD-NN), velocity:** the `torch-mlp` inner again fits best, by a clear margin (R²
+  0.998, RMSE 0.621), with the degree-2 `polynomial` inner close behind (R² 0.996) and the
+  scikit-learn `mlp` inner the weakest of the three (R² 0.935). That is the same ranking as the
+  pressure field, but with a far tighter spread — 0.935–0.998 here versus 0.676–0.986 for
+  pressure — since every inner already fits the velocity field well. The surrogate trains on
+  `Ux`/`Uy` only: the 2-D case's `Uz` column is machine zero, and Core's uniform-average R² over
+  a zero-variance output column would be arbitrarily negative — the pre-switch full-vector run
+  showed test R² ≈ −861 despite an excellent x/y fit — so `z` is dropped at ingest and re-padded
+  as exact zero on export.
 
 Takeaway: the **scalar coefficient surrogate `(AoA, speed) → [Cl, Cd]` is the robust, cheap win**,
 and on converged steady-RANS data a **degree-2 polynomial is a strong baseline** — the post-stall
@@ -204,6 +220,7 @@ examples/naca0012_openfoam/
 └─ ex09_real/                # saved SurroForge run + artifacts (--out)
    ├─ coeffs_surrogate.onnx / .pt
    ├─ field_surrogate.pkl
+   ├─ velocity_surrogate.pkl
    ├─ surrogate_vtk/         #   surrogate_fields.vtkhdf + samples.csv
    └─ naca/                  #   project: runs/, basis/, data/, surroforge.yaml
 ```
