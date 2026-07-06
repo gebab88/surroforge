@@ -142,20 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Examples
 
-- **`examples/09_naca0012_openfoam_surrogate.py`** — a NACA 0012 study over **angle of attack and
-  freestream speed** end to end: ingest a 2-D OpenFOAM DoE (`read_openfoam_sweep`), then train
-  **two** surrogates — a `reduced-field` POD-NN of the pressure field (`p = Cp(AoA)·q(U)`, so speed
-  scales it via the dynamic pressure) and a scalar `(AoA, speed) → [C_L, C_D]` model (both
-  coefficients carry the stall, with a Reynolds stall drift). The stall makes the neural surrogate
-  beat a quadratic on both; `torch-mlp` joins when the plugin is present. Self-contained/CI-safe (it
-  fabricates the sweep in genuine OpenFOAM format, no solver). Exports one artifact per format —
-  the best coefficient model to **ONNX**, the `torch-mlp` model to a native **`.pt`** checkpoint,
-  the field model to pickle — degrading gracefully when a backend is absent. Pass `--out DIR` to
-  **save the run** there: the SurroForge project (`DIR/naca` with all runs/lineage/models/POD basis,
-  inspectable via `surroforge --config-dir DIR/naca list`) plus the exported artifacts. Without it
-  everything goes to a temp dir and is removed, so the default run leaves nothing behind and re-runs
-  never collide.
-- **`examples/09_naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
+- **`examples/09_naca0012_openfoam/`** — a real-CFD NACA 0012 study (not CI-tested): `run_sweep.py` drives
   `simpleFoam` over a 2-D `angle × speed` DoE on the validated `airFoil2D` mesh (rotating the
   freestream + `forceCoeffs`, `--angles`/`--speeds`), and `ingest_and_train.py` builds the same
   surrogates — `(AoA, speed) → field` (pressure **and** velocity) and `(AoA, speed) → [Cl, Cd]` —

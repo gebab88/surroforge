@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Drive a real OpenFOAM NACA 0012 angle-of-attack sweep with simpleFoam.
 
-This is the *real-CFD* companion to ``examples/09_naca0012_openfoam_surrogate.py`` (which
-fabricates a representative sweep so it can run in CI without a solver). Here we run actual
-steady-state RANS (Spalart-Allmaras) on the validated ``airFoil2D`` mesh that ships with
-OpenFOAM, once per angle of attack, and lay the results out exactly as
+This runs actual steady-state RANS (Spalart-Allmaras) on the validated ``airFoil2D`` mesh
+that ships with OpenFOAM, once per angle of attack, and lays the results out exactly as
 ``surroforge.data.read_openfoam_sweep`` expects — so ``ingest_and_train.py`` then builds the
 surrogate from genuine CFD output.
 

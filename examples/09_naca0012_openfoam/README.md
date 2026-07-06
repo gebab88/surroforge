@@ -1,11 +1,9 @@
 # NACA 0012 — real OpenFOAM sweep → SurroForge surrogate
 
-The **real-CFD companion** to [`examples/09_naca0012_openfoam_surrogate.py`](../09_naca0012_openfoam_surrogate.py).
-
-Example 09 *fabricates* a representative sweep so it runs in CI with no solver. This directory
-runs **actual** steady-state RANS with OpenFOAM, once per angle-of-attack/speed combination, and
-trains the SurroForge surrogates on the genuine output. The downstream surrogate code is
-identical — only the data source changes.
+This example runs **actual** steady-state RANS with OpenFOAM, once per angle-of-attack/speed
+combination, and trains the SurroForge surrogates on the genuine output. It uses the same
+downstream surrogate code as the smoke-tested examples — only the data source changes, a real
+solver instead of a fabricated sweep.
 
 > ⚠️ **Not run in CI.** This needs a real OpenFOAM install, so it is not part of the smoke-tested
 > examples. The scripts were authored and **verified against OpenFOAM v2512** (see *Verified* below).
@@ -33,7 +31,7 @@ identical — only the data source changes.
 - **Outputs per case:** converged pressure and velocity fields `p`/`U` (read mesh-free by
   `surroforge.data.read_openfoam_sweep`) and the integrated lift and drag coefficients `Cl`/`Cd`
   written by the `forceCoeffs` function object.
-- **Surrogates** (the two from example 09 plus a velocity field): a **field** model
+- **Surrogates** (two field models plus the coefficients): a **field** model
   (`reduced-field` POD + neural inner) `(AoA, speed) → pressure field`, a second field model
   `(AoA, speed) → velocity field (Ux, Uy)` — the 2-D case's z component is machine zero, so it
   is dropped at ingest and re-padded as exact zero on export — and a **scalar** model
@@ -72,8 +70,7 @@ pressure field is written as cell data `p` and the surrogate velocity as vector 
 By default these outputs land in the sweep directory and the SurroForge project (datasets, runs,
 lineage, POD basis, models) is built in a temp dir and discarded; pass **`--out DIR`** to save the
 whole run instead — the project to `DIR/naca` plus the artifacts and `DIR/surrogate_vtk/` — so it
-stays inspectable and reproducible afterwards (`surroforge --config-dir DIR/naca list`), exactly
-like example 09's `--out`.
+stays inspectable and reproducible afterwards (`surroforge --config-dir DIR/naca list`).
 
 `run_sweep.py` options: `--angles` (deg) and `--speeds` (|U| m/s), each space/comma-separated — a
 2-D DoE is run over every angle × speed; `--iters` (steady-state *cap*, default 1000), `--residual`
@@ -186,9 +183,9 @@ the negative side).
 - **Why the polynomial is so strong here (the honest caveat):** steady RANS **cannot converge the
   post-stall cases**, so the *converged* data is essentially **attached and low-order** (≈linear
   `Cl`, ≈quadratic `Cd`) — exactly what a quadratic fits best. A neural net's across-stall
-  advantage — which the synthetic example 09 deliberately *can* show — **cannot be demonstrated
-  on converged steady-RANS data**, because the nonlinear post-stall region is precisely the part
-  that will not converge. Use a transient solver there, or keep the DoE in the attached regime.
+  advantage **cannot be demonstrated on converged steady-RANS data**, because the nonlinear
+  post-stall region is precisely the part that will not converge. Use a transient solver there,
+  or keep the DoE in the attached regime.
 - **Field (POD-NN):** the `torch-mlp` inner fits the pressure field best (R² 0.986); the
   `polynomial` inner is clearly behind (R² 0.921), and the scikit-learn `mlp` inner is the
   weakest of the three (R² 0.676) — the reverse of the scalar task, so on this data neither NN

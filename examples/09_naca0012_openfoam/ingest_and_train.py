@@ -4,8 +4,7 @@
 Run this after ``run_sweep.py`` has produced a sweep directory. It reads each case's
 converged pressure and velocity fields with ``surroforge.data.read_openfoam_sweep`` and the
 **real** lift and drag coefficients ``Cl``/``Cd`` that ``forceCoeffs`` integrated, then trains
-the two surrogates of the synthetic CI example (``examples/09_naca0012_openfoam_surrogate.py``)
-plus a velocity-field surrogate:
+three surrogates:
 
   * a **field** surrogate (``reduced-field`` POD + neural inner): (AoA, speed) -> pressure field;
   * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy —
