@@ -107,4 +107,36 @@ mit h5py prüfen (Shapes, Offsets, Endlichkeit).
 
 - Kein neuer CFD-Lauf, keine Änderung an `run_sweep.py`.
 - Keine Änderung am Core (`read_openfoam_sweep` kann Vektoren bereits).
-- Keine Magnitude-/Komponenten-Filterung, kein zweites Dataset.
+- ~~Keine Magnitude-/Komponenten-Filterung~~ (siehe Amendment), kein zweites Dataset.
+
+## Amendment (2026-07-06, nach dem Verifikationslauf): Ux/Uy statt vollem Vektor
+
+Der Verifikationslauf widerlegte die Annahme „Uz ≈ 0 wird trivial mitgelernt, keine
+Sonderbehandlung": Die 10 720 `U_*_z`-Spalten des 2-D-Falls sind Maschinen-Null
+(Spalten-Varianz ≤ 2e-27). Cores R² mittelt uniform über alle Output-Spalten
+(`src/surroforge/validators/metrics.py`, sklearn `multioutput="uniform_average"`), und
+Null-Varianz-Spalten liefern beliebig negatives per-Spalten-R² — die Velocity-Tabelle
+zeigte **test R² ≈ −861 bei exzellentem Fit** (per-Spalten-R² über x/y: 0.9994, RMSE
+0.51 m/s bei 20–100 m/s Anströmung; Diagnose kontrolliert nachgerechnet). Zusätzlich
+feuerte die „data-starved sweep"-Hinweiszeile des Skripts sachlich falsch.
+
+**Nutzerentscheidung:** auf **Ux/Uy umstellen** (die ursprünglich verworfene Alternative),
+statt die Artefakt-Zahlen im README zu erklären. Konkret:
+
+- **Ingest:** die `U_*_z`-Spalten werden beim Merge verworfen
+  (`c.startswith("U_") and not c.endswith("_z")`) — sie tragen im 2-D-Fall keine
+  Information. Das Dataset enthält 21 440 U-DOFs (`U_NNNN_x, U_NNNN_y, …`,
+  cell-major interleaved in Frame-Reihenfolge).
+- **Training:** unverändert `outputs: ["U_*"]` — die Wildcard matcht jetzt nur noch
+  x/y-Spalten. R²/RMSE werden aussagekräftig; die Hinweiszeile feuert nicht mehr.
+- **Export:** vor `write_surrogate_vtkhdf` wird das Prädiktions-Array auf 3 Komponenten
+  re-gepaddet (`out[:, 0::3] = pred[:, 0::2]; out[:, 1::3] = pred[:, 1::2]`, z bleibt
+  exakt 0), damit ParaView weiterhin ein echtes Vektorfeld `U` bekommt. Die
+  Writer-Schnittstelle aus Abschnitt 3 bleibt unverändert.
+- **README:** dokumentiert den Drop als Design-Notiz (2-D-Fall, uniform gemitteltes R²
+  über Null-Varianz-Spalten), im „honest caveat"-Stil des Beispiels.
+
+**Backlog-Notiz (außerhalb dieses Zyklus):** Cores R²-Verhalten bei
+Null-Varianz-Output-Spalten ist ein generelles Multi-Output-Thema (z. B. Spalten
+ausschließen + warnen, oder `energy_l2` für Felder prominenter dokumentieren) — eigener
+Zyklus, `src/`-Änderungen sind hier ausgeschlossen.

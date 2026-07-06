@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-06-naca-velocity-field-surrogate-design.md`
 
+**Amendment (2026-07-06):** the first verified run exposed that the machine-zero `U_*_z` columns make Core's uniform-average R² meaningless (test R² −861 despite per-column x/y R² 0.9994). User decision (see the spec's Amendment section): train on Ux/Uy only and re-pad z=0 at export. Task 3 implements the switch; Task 4's README numbers come from the post-switch run.
+
 ## Global Constraints
 
 - Commits go directly to `main`; conventional-commit style (`feat:`/`test:`/`docs:`); **no `Co-Authored-By:` trailer, ever**. Do not push.
@@ -292,6 +294,8 @@ git commit -m "feat(naca): write named scalar+vector surrogate fields to VTKHDF"
 
 ### Task 2: Velocity ingest + training block in `ingest_and_train.py`, verified on the real sweep
 
+> **Amended:** implemented as specified (commit `30c4490`, review clean), then partly superseded by Task 3 — the ingest now drops `U_*_z` and the export re-pads z=0. Do not re-execute this task.
+
 **Files:**
 - Modify: `examples/naca0012_openfoam/ingest_and_train.py`
 
@@ -464,14 +468,156 @@ git commit -m "feat(naca): train and export a velocity-field surrogate (U)"
 
 ---
 
-### Task 3: README + CHANGELOG with the verified numbers, full gates
+### Task 3: Switch the velocity surrogate to Ux/Uy (re-pad z at export)
+
+Rationale (spec Amendment): the 2-D case's 10 720 `U_*_z` columns are machine zero (column variance ≤ 2e-27). Core's R² uniform-averages all output columns, so those zero-variance columns drive the velocity test R² to ≈ −861 even though the x/y fit is excellent (per-column R² 0.9994, RMSE 0.51 m/s). Dropping z at ingest makes R²/RMSE meaningful; the export re-pads z as exact zero so ParaView still gets a 3-component vector field.
+
+**Files:**
+- Modify: `examples/naca0012_openfoam/ingest_and_train.py`
+
+**Interfaces:**
+- Consumes: the Task-1 writer `write_surrogate_vtkhdf(run_dir, output, samples, fields: Mapping[str, np.ndarray])` — unchanged; it still receives a full 3-component `U` matrix (padded).
+- Produces: dataset `sweep` now holds 21 440 U DOFs (`U_NNNN_x, U_NNNN_y, …`, cell-major interleaved in frame order); `velocity_surrogate.pkl` predicts `(n, 21440)`; the VTKHDF `CellData/U` keeps shape `(110·10720, 3)` with `U[:, 2] == 0` exactly. Task 4 transcribes the post-switch fit tables.
+
+- [ ] **Step 1: Add the numpy import**
+
+`ingest_and_train.py` currently imports pandas but not numpy. In the import block, directly above `import pandas as pd`, add:
+
+```python
+import numpy as np
+```
+
+- [ ] **Step 2: Update the module docstring**
+
+Replace the velocity bullet
+
+```
+  * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy, Uz);
+```
+
+with:
+
+```
+  * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy —
+    the 2-D case's z component is machine zero, dropped at ingest, re-padded on export);
+```
+
+- [ ] **Step 3: Drop the z columns at ingest**
+
+In `main()`, replace
+
+```python
+    velocity_cols = [c for c in velocity.columns if c.startswith("U_")]
+```
+
+with:
+
+```python
+    # The airFoil2D case is 2-D: every U_*_z value is machine zero (~1e-16), and Core's
+    # uniform-average R² would be dominated by those zero-variance columns (per-column
+    # R² of a constant output is arbitrarily negative). Drop z at ingest; the VTKHDF
+    # export re-pads it as exact zero.
+    velocity_cols = [
+        c for c in velocity.columns if c.startswith("U_") and not c.endswith("_z")
+    ]
+```
+
+The training block (`outputs: ["U_*"]`) needs no change — the wildcard now only matches x/y columns.
+
+- [ ] **Step 4: Re-pad z in the VTKHDF export**
+
+Replace the whole `=== Surrogate field VTK ===` block with:
+
+```python
+        print("\n=== Surrogate field VTK ===")
+        prediction_cases = doe.loc[case_names, ["aoa", "speed"]].reset_index()
+        prediction_inputs = prediction_cases[inputs].to_numpy(dtype=float)
+        predicted_velocity_xy = velocity_best.load_model().predict(prediction_inputs)
+        # Re-pad the dropped z component (exact zero in this 2-D case) so ParaView still
+        # gets a 3-component vector field: cell-major [x0 y0 z0 x1 …], as the writer expects.
+        predicted_velocity = np.zeros(
+            (predicted_velocity_xy.shape[0], predicted_velocity_xy.shape[1] // 2 * 3)
+        )
+        predicted_velocity[:, 0::3] = predicted_velocity_xy[:, 0::2]
+        predicted_velocity[:, 1::3] = predicted_velocity_xy[:, 1::2]
+        vtk_dir = export_dir / "surrogate_vtk"
+        vtkhdf = write_surrogate_vtkhdf(
+            run_dir,
+            vtk_dir / "surrogate_fields.vtkhdf",
+            prediction_cases,
+            {
+                "p": field_best.load_model().predict(prediction_inputs),
+                "U": predicted_velocity,
+            },
+        )
+        print(
+            f"  surrogate p+U fields -> {vtkhdf} "
+            f"({len(prediction_cases)} time steps + samples.csv)"
+        )
+```
+
+- [ ] **Step 5: Static checks**
+
+Run: `./.venv/bin/ruff check examples/naca0012_openfoam/ingest_and_train.py && ./.venv/bin/python -m py_compile examples/naca0012_openfoam/ingest_and_train.py`
+Expected: no findings, exit 0.
+
+- [ ] **Step 6: Re-run the verification (no OpenFOAM needed)**
+
+```bash
+./.venv/bin/python examples/naca0012_openfoam/ingest_and_train.py \
+  examples/naca0012_openfoam/run --out examples/naca0012_openfoam/ex09_real \
+  > /private/tmp/claude-501/-Users-georg-Software-surroforge/35056efb-276a-40ab-95eb-ab773c0f6980/scratchpad/ingest_u_run.log 2>&1
+```
+
+Run it in the foreground with a 10-minute timeout (do not background it). Expected in the log:
+- `Ingested 110 real cases: 10720 pressure DOFs + 21440 velocity DOFs + Cl + Cd`
+- three fit tables; the velocity table now shows **meaningful positive R²** and NO `(all test R² < 0 — data-starved sweep…)` caveat line under it,
+- four export lines and `surrogate p+U fields -> …/surrogate_fields.vtkhdf (110 time steps + samples.csv)`.
+
+- [ ] **Step 7: Spot-check the VTKHDF file (z exactly zero)**
+
+```bash
+./.venv/bin/python - <<'EOF'
+import h5py, numpy as np
+path = "examples/naca0012_openfoam/ex09_real/surrogate_vtk/surrogate_fields.vtkhdf"
+with h5py.File(path) as h5:
+    vtk = h5["VTKHDF"]
+    p = vtk["CellData/p"][...]
+    U = vtk["CellData/U"][...]
+    assert p.shape == (110 * 10720,), p.shape
+    assert U.shape == (110 * 10720, 3), U.shape
+    assert np.isfinite(p).all() and np.isfinite(U).all()
+    assert vtk["Steps"].attrs["NSteps"] == 110
+    assert vtk["Steps/CellDataOffsets/U"][...].tolist() == list(range(0, 110 * 10720, 10720))
+    assert (U[:, 2] == 0).all()          # re-padded z is exact zero
+    assert np.abs(U[:, :2]).max() > 1.0  # x/y carry the freestream-scale signal
+print("VTKHDF OK")
+EOF
+```
+
+Expected: `VTKHDF OK`.
+
+- [ ] **Step 8: Record all three fit tables verbatim**
+
+Copy the three post-switch comparison tables from the run log into your report — Task 4 transcribes **these** numbers (the pressure/scalar tables should reproduce the earlier run; if they shifted, Task 4 must use the new values everywhere).
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add examples/naca0012_openfoam/ingest_and_train.py
+git commit -m "refactor(naca): train the velocity surrogate on Ux/Uy only (2-D case)"
+```
+
+---
+
+### Task 4: README + CHANGELOG with the verified numbers, full gates
 
 **Files:**
 - Modify: `examples/naca0012_openfoam/README.md`
 - Modify: `CHANGELOG.md` (the `examples/naca0012_openfoam/` bullet under `### Added — Examples`, currently lines 158–172)
 
 **Interfaces:**
-- Consumes: the velocity fit table recorded in Task 2 step 8 (inner-method ranking, test R², test RMSE). Every `⟨…⟩` slot below MUST be replaced with those actual values — leaving a slot unfilled is a task failure.
+- Consumes: the three fit tables recorded in Task 3 step 8 (the post-switch run — NOT Task 2's tables). Every `⟨…⟩` slot below MUST be replaced with those actual values — leaving a slot unfilled is a task failure. If the pressure/scalar numbers shifted versus the README's current "Verified" table, update those cells too so the whole table reflects one run.
 - Produces: documentation only; no code.
 
 - [ ] **Step 1: Update README "What it does"**
@@ -489,9 +635,10 @@ Replace the **Surrogates** bullet (currently lines 36–38) with:
 ```markdown
 - **Surrogates** (the two from example 09 plus a velocity field): a **field** model
   (`reduced-field` POD + neural inner) `(AoA, speed) → pressure field`, a second field model
-  `(AoA, speed) → velocity field (Ux, Uy, Uz)`, and a **scalar** model `(AoA, speed) → [Cl, Cd]`.
-  Core `mlp` always; the PyTorch `torch-mlp` backend joins if the `surroforge-torch` plugin is
-  installed.
+  `(AoA, speed) → velocity field (Ux, Uy)` — the 2-D case's z component is machine zero, so it
+  is dropped at ingest and re-padded as exact zero on export — and a **scalar** model
+  `(AoA, speed) → [Cl, Cd]`. Core `mlp` always; the PyTorch `torch-mlp` backend joins if the
+  `surroforge-torch` plugin is installed.
 ```
 
 - [ ] **Step 2: Update README export paragraph**
@@ -507,7 +654,7 @@ evaluates the best field surrogates on every original case in `samples.csv` and 
 output to `surrogate_vtk/surrogate_fields.vtkhdf`, plus a `samples.csv` mapping file for the
 time-step to case/AoA/speed assignment. Open the `.vtkhdf` file in ParaView; the surrogate
 pressure field is written as cell data `p` and the surrogate velocity as vector cell data `U`
-(magnitude colouring, glyphs and streamlines work).
+(magnitude colouring, glyphs and streamlines work; `Uz` is identically zero in this 2-D case).
 ```
 
 - [ ] **Step 3: Update README "Verified" section**
@@ -515,7 +662,8 @@ pressure field is written as cell data `p` and the surrogate velocity as vector 
 Replace the paragraph "Ingestion read **10 720 pressure DOFs/case …**" (currently lines 151–154) with:
 
 ```markdown
-Ingestion read **10 720 pressure DOFs plus 32 160 velocity DOFs per case, plus the real `Cl` and
+Ingestion read **10 720 pressure DOFs plus 21 440 velocity DOFs per case (`Ux`/`Uy` — the
+machine-zero z columns of the 2-D case are dropped at ingest), plus the real `Cl` and
 `Cd`** for all 110 cases; all three surrogates trained; all four model artifacts exported
 (`coeffs_surrogate.onnx`/`.pt`, `field_surrogate.pkl`, `velocity_surrogate.pkl`); and the best
 field surrogates wrote a **110-step VTKHDF pressure+velocity time series** under
@@ -528,7 +676,7 @@ In the fit-quality table (currently lines 167–171), add one row directly under
 | Field `(AoA, U) → U` (POD-NN) | `⟨best inner⟩` inner | ⟨test R²⟩ | ⟨test RMSE⟩ |
 ```
 
-After the existing **Field (POD-NN)** bullet (currently lines 185–188), add a matching bullet reporting the velocity result — 2–3 sentences in the same style, stating which inner wins, the R² spread across the three inners (actual numbers from the run log), and whether the ordering matches the pressure field.
+After the existing **Field (POD-NN)** bullet (currently lines 185–188), add a matching bullet reporting the velocity result — 3–4 sentences in the same style: which inner wins, the R² spread across the three inners (actual numbers from the run log), whether the ordering matches the pressure field, **and** the design note that the velocity surrogate trains on `Ux`/`Uy` only: the 2-D case's z columns are machine zero, and Core's uniform-average R² over zero-variance columns would be arbitrarily negative (the pre-switch full-vector run showed test R² ≈ −861 despite an excellent x/y fit), so z is dropped at ingest and re-padded as exact zero on export.
 
 - [ ] **Step 4: Update README on-disk layout**
 
