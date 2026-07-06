@@ -62,6 +62,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plot, Core now persists out-of-sample **holdout actuals** alongside the prediction
   fingerprint, exposed as **`Run.holdout_actual`** — additive lineage that feeds no hash
   and does not affect `reproduce()`.
+- **Interactive HTML comparison report** — `surroforge compare --runs a,b,c --format html`
+  now renders the extended comparison as a **single self-contained HTML file**
+  (`reports/comparison.html` by default; `--output/-o` overrides, `--format terminal`
+  stays the unchanged default). The page carries a best-run callout (with per-metric
+  winners when they disagree), a prominent **warnings banner** for apples-to-oranges
+  comparisons, the ranking table, **one interactive uPlot chart per metric** (layered
+  train/test/CV-mean bars per run with **±std whiskers** and the per-metric best marked),
+  the full train/test/CV table, the configuration **diff**, and the lineage block. Same
+  guarantees as the single-run report: uPlot vendored inline, no network/external assets,
+  Jinja autoescape + `<`-escaped JSON (XSS-safe), license-gated. Core gained the seam this
+  plugs into: a `BaseComparisonReporter` contract on the new
+  `surroforge.comparison_reporters` entry-point group and
+  `services.generate_comparison_report(...)` — third parties can register their own
+  comparison formats the same way.
 
 ### Added — Plugins
 
@@ -155,6 +169,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   surrogate on every original `samples.csv` case and writes a single VTKHDF time series
   `surrogate_vtk/surrogate_fields.vtkhdf`, using the original VTU meshes as the geometry source and
   writing the surrogate pressure as cell field `p`. Verified against OpenFOAM v2512.
+
+### Changed
+
+- **`surroforge-professional[doe]` now requires `scipy>=1.15`** (was `>=1.10`): the qmc
+  engines (LHS/Sobol) are seeded via SciPy's SPEC-7 `rng=` parameter instead of the legacy
+  `seed=` alias slated for removal. Same streams for the same integer seeds — existing
+  designs reproduce unchanged.
+- **NACA real-CFD example slimmed** — the VTK/VTKHDF I/O of
+  `examples/naca0012_openfoam/ingest_and_train.py` now lives in a reusable, SurroForge-free
+  sibling module `surrogate_vtk.py`, the dead per-case `.vtu`/`.pvd` export path was
+  removed, and the directory's README absorbed the full verified reference (case setup,
+  DoE, exact commands, fit numbers from the real 110-case run). Behaviour is unchanged —
+  re-verified end to end against the on-disk sweep.
 
 ## [0.2.0] — 2026-06-15
 
