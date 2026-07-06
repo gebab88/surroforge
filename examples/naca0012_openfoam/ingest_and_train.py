@@ -8,7 +8,8 @@ the two surrogates of the synthetic CI example (``examples/09_naca0012_openfoam_
 plus a velocity-field surrogate:
 
   * a **field** surrogate (``reduced-field`` POD + neural inner): (AoA, speed) -> pressure field;
-  * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy, Uz);
+  * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy —
+    the 2-D case's z component is machine zero, dropped at ingest, re-padded on export);
   * a **scalar** surrogate: (AoA, speed) -> [Cl, Cd] (lift and drag coefficients).
 
 Both inputs come from the 2-D DoE ``run_sweep.py`` wrote (angle × speed). Both models use
@@ -40,6 +41,7 @@ import warnings
 from pathlib import Path
 from typing import NamedTuple
 
+import numpy as np
 import pandas as pd
 from sklearn.exceptions import ConvergenceWarning
 from surrogate_vtk import write_surrogate_vtkhdf
@@ -153,7 +155,13 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
             "pressure and velocity sweeps disagree on their (AoA, speed) rows — "
             "some case has one field but not the other; re-run the sweep for that case"
         )
-    velocity_cols = [c for c in velocity.columns if c.startswith("U_")]
+    # The airFoil2D case is 2-D: every U_*_z value is machine zero (~1e-16), and Core's
+    # uniform-average R² would be dominated by those zero-variance columns (per-column
+    # R² of a constant output is arbitrarily negative). Drop z at ingest; the VTKHDF
+    # export re-pads it as exact zero.
+    velocity_cols = [
+        c for c in velocity.columns if c.startswith("U_") and not c.endswith("_z")
+    ]
     snapshots = pd.concat([snapshots, velocity[velocity_cols]], axis=1)
     # The real Cl/Cd forceCoeffs reported, per case. Align by (AoA, speed) — robust to row order
     # or a case the field reader dropped — rather than positional order.
@@ -265,6 +273,14 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
         print("\n=== Surrogate field VTK ===")
         prediction_cases = doe.loc[case_names, ["aoa", "speed"]].reset_index()
         prediction_inputs = prediction_cases[inputs].to_numpy(dtype=float)
+        predicted_velocity_xy = velocity_best.load_model().predict(prediction_inputs)
+        # Re-pad the dropped z component (exact zero in this 2-D case) so ParaView still
+        # gets a 3-component vector field: cell-major [x0 y0 z0 x1 …], as the writer expects.
+        predicted_velocity = np.zeros(
+            (predicted_velocity_xy.shape[0], predicted_velocity_xy.shape[1] // 2 * 3)
+        )
+        predicted_velocity[:, 0::3] = predicted_velocity_xy[:, 0::2]
+        predicted_velocity[:, 1::3] = predicted_velocity_xy[:, 1::2]
         vtk_dir = export_dir / "surrogate_vtk"
         vtkhdf = write_surrogate_vtkhdf(
             run_dir,
@@ -272,7 +288,7 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
             prediction_cases,
             {
                 "p": field_best.load_model().predict(prediction_inputs),
-                "U": velocity_best.load_model().predict(prediction_inputs),
+                "U": predicted_velocity,
             },
         )
         print(
