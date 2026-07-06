@@ -149,11 +149,24 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
         },
     )
     # Both frames are sorted by case name, but a case that has `p` while missing `U`
-    # (or vice versa) would silently shift the rows — refuse instead of misaligning.
+    # (or vice versa) would silently shift the rows — refuse instead of misaligning,
+    # naming the (AoA, speed) points that differ so the user can re-run just those.
     if not snapshots[["aoa", "speed"]].equals(velocity[["aoa", "speed"]]):
+        p_rows = {_key(a, s) for a, s in snapshots[["aoa", "speed"]].to_numpy()}
+        u_rows = {_key(a, s) for a, s in velocity[["aoa", "speed"]].to_numpy()}
+        only_p = sorted(p_rows - u_rows)
+        only_u = sorted(u_rows - p_rows)
+        detail = []
+        if only_p:
+            detail.append(f"only in the pressure sweep: {only_p}")
+        if only_u:
+            detail.append(f"only in the velocity sweep: {only_u}")
+        if not detail:  # same set of points, but a different row order
+            detail.append("the same (AoA, speed) points appear in a different order")
         raise RuntimeError(
             "pressure and velocity sweeps disagree on their (AoA, speed) rows — "
-            "some case has one field but not the other; re-run the sweep for that case"
+            + "; ".join(detail)
+            + ". Re-run the sweep so both fields exist for every case."
         )
     # The airFoil2D case is 2-D: every U_*_z value is machine zero (~1e-16), and Core's
     # uniform-average R² would be dominated by those zero-variance columns (per-column
