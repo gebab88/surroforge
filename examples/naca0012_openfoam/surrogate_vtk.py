@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import base64
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
@@ -148,11 +149,17 @@ def write_surrogate_vtkhdf(
     run_dir: Path,
     output: Path,
     samples: pd.DataFrame,
-    fields,
-    *,
-    field_name: str = "p",
+    fields: Mapping[str, np.ndarray],
 ) -> Path:
-    """Write all surrogate fields to one ParaView-readable VTKHDF time-series file."""
+    """Write surrogate cell fields of all cases to one ParaView-readable VTKHDF file.
+
+    ``fields`` maps each field name to an ``(n_cases, n_cells * n_components)`` matrix,
+    vector components laid out cell-major (``[x0 y0 z0 x1 …]``) — exactly the column
+    order ``read_openfoam_sweep`` produces. Scalar fields (1 component) are written
+    flat under ``CellData/<name>``; vector fields (3 components) as an
+    ``(n_steps·n_cells, 3)`` dataset, which ParaView reads as a vector array
+    (magnitude colouring, glyphs, streamlines).
+    """
     try:
         import h5py
     except ImportError as exc:
@@ -163,22 +170,38 @@ def write_surrogate_vtkhdf(
 
     if "case" not in samples.columns:
         raise ValueError("samples must include a 'case' column")
-    matrix = np.asarray(fields, dtype=np.float32)
-    if matrix.ndim != 2 or matrix.shape[0] != len(samples):
-        raise ValueError(
-            f"surrogate fields must be an (n_cases, n_cells) matrix; got {matrix.shape} "
-            f"for {len(samples)} sample row(s)"
-        )
+    if not fields:
+        raise ValueError("fields must contain at least one named field matrix")
+    matrices: dict[str, np.ndarray] = {}
+    for name, values in fields.items():
+        matrix = np.asarray(values, dtype=np.float32)
+        if matrix.ndim != 2 or matrix.shape[0] != len(samples):
+            raise ValueError(
+                f"field '{name}' must be an (n_cases, n_dof) matrix; got {matrix.shape} "
+                f"for {len(samples)} sample row(s)"
+            )
+        matrices[name] = matrix
 
+    components: dict[str, int] = {}
     meshes: list[VtuMesh] = []
     for row in samples.itertuples(index=False):
         case = str(row.case)
         mesh = _read_vtu_mesh(_internal_vtu_template(run_dir / case))
-        if matrix.shape[1] != mesh.types.size:
-            raise ValueError(
-                f"{case}: surrogate field has {matrix.shape[1]} values, "
-                f"but VTU template has {mesh.types.size} cells"
-            )
+        n_cells = int(mesh.types.size)
+        for name, matrix in matrices.items():
+            n_dof = matrix.shape[1]
+            if n_dof % n_cells or n_dof // n_cells not in (1, 3):
+                raise ValueError(
+                    f"{case}: field '{name}' has {n_dof} values, but the VTU template "
+                    f"has {n_cells} cells; expected n_cells (scalar) or 3*n_cells "
+                    "(vector) values"
+                )
+            inferred = n_dof // n_cells
+            if components.setdefault(name, inferred) != inferred:
+                raise ValueError(
+                    f"{case}: field '{name}' implies {inferred} component(s) on this "
+                    f"mesh, but an earlier case implied {components[name]}"
+                )
         meshes.append(mesh)
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -216,7 +239,11 @@ def write_surrogate_vtkhdf(
         )
 
         cell_data = vtk.create_group("CellData")
-        cell_data.create_dataset(field_name, data=matrix.reshape(-1).astype(np.float32))
+        for name, matrix in matrices.items():
+            if components[name] == 1:
+                cell_data.create_dataset(name, data=matrix.reshape(-1))
+            else:
+                cell_data.create_dataset(name, data=matrix.reshape(-1, 3))
         vtk.create_group("PointData")
         field_data = vtk.create_group("FieldData")
         field_data.create_dataset("TimeValue", data=times)
@@ -230,7 +257,9 @@ def write_surrogate_vtkhdf(
         steps.create_dataset("ConnectivityIdOffsets", data=_step_offsets(connectivity_counts))
         steps.create_group("PointDataOffsets")
         cell_data_offsets = steps.create_group("CellDataOffsets")
-        cell_data_offsets.create_dataset(field_name, data=_step_offsets(cell_counts))
+        for name in matrices:
+            # Offsets count rows (cells) for scalar and vector datasets alike.
+            cell_data_offsets.create_dataset(name, data=_step_offsets(cell_counts))
         field_data_offsets = steps.create_group("FieldDataOffsets")
         field_data_offsets.create_dataset("TimeValue", data=np.arange(n_steps, dtype=np.int64))
         field_data_sizes = steps.create_group("FieldDataSizes")

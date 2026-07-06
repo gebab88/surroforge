@@ -89,8 +89,11 @@ def test_surrogate_vtkhdf_writes_single_time_series_file(tmp_path):
         run_dir,
         output,
         samples,
-        np.array([[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]]),
-        field_name="p",
+        {
+            "p": np.array([[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]]),
+            # 3 cells x 3 components per case row, cell-major [x0 y0 z0 x1 ...]
+            "U": np.arange(18, dtype=float).reshape(2, 9),
+        },
     )
 
     assert written == output
@@ -104,9 +107,38 @@ def test_surrogate_vtkhdf_writes_single_time_series_file(tmp_path):
         assert vtk["NumberOfConnectivityIds"][...].tolist() == [9, 9]
         assert vtk["Offsets"][...].tolist() == [0, 3, 6, 9, 0, 3, 6, 9]
         assert vtk["CellData/p"][...].tolist() == [1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
+        assert vtk["CellData/U"].shape == (6, 3)
+        assert vtk["CellData/U"][...].tolist() == [
+            [0.0, 1.0, 2.0],
+            [3.0, 4.0, 5.0],
+            [6.0, 7.0, 8.0],
+            [9.0, 10.0, 11.0],
+            [12.0, 13.0, 14.0],
+            [15.0, 16.0, 17.0],
+        ]
         assert vtk["FieldData/TimeValue"][...].tolist() == [0.0, 1.0]
         assert vtk["Steps"].attrs["NSteps"] == 2
         assert vtk["Steps/Values"][...].tolist() == [0.0, 1.0]
         assert vtk["Steps/PointOffsets"][...].tolist() == [0, 4]
         assert vtk["Steps/ConnectivityIdOffsets"][...].tolist() == [0, 9]
         assert vtk["Steps/CellDataOffsets/p"][...].tolist() == [0, 3]
+        assert vtk["Steps/CellDataOffsets/U"][...].tolist() == [0, 3]
+
+
+def test_surrogate_vtkhdf_rejects_dof_count_not_matching_cells(tmp_path):
+    pytest.importorskip("h5py")
+    module = _load_surrogate_vtk_module()
+    run_dir = tmp_path / "run"
+    samples = pd.DataFrame({"case": ["case_000"], "aoa": [0.0], "speed": [20.0]})
+    template = run_dir / "case_000" / "VTK" / "case_000_10" / "internal.vtu"
+    template.parent.mkdir(parents=True)
+    _write_minimal_vtu(template)
+
+    # 4 DOF on a 3-cell mesh: neither n_cells (scalar) nor 3*n_cells (vector).
+    with pytest.raises(ValueError, match="field 'U' has 4 values"):
+        module.write_surrogate_vtkhdf(
+            run_dir,
+            tmp_path / "out.vtkhdf",
+            samples,
+            {"U": np.zeros((1, 4))},
+        )
