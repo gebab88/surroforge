@@ -2,11 +2,13 @@
 """Ingest a real OpenFOAM NACA 0012 sweep and train the SurroForge surrogates.
 
 Run this after ``run_sweep.py`` has produced a sweep directory. It reads each case's
-converged pressure field with ``surroforge.data.read_openfoam_sweep`` and the **real**
-lift and drag coefficients ``Cl``/``Cd`` that ``forceCoeffs`` integrated, then trains the
-same two surrogates as the synthetic CI example (``examples/09_naca0012_openfoam_surrogate.py``):
+converged pressure and velocity fields with ``surroforge.data.read_openfoam_sweep`` and the
+**real** lift and drag coefficients ``Cl``/``Cd`` that ``forceCoeffs`` integrated, then trains
+the two surrogates of the synthetic CI example (``examples/09_naca0012_openfoam_surrogate.py``)
+plus a velocity-field surrogate:
 
   * a **field** surrogate (``reduced-field`` POD + neural inner): (AoA, speed) -> pressure field;
+  * a **velocity** surrogate (same construction): (AoA, speed) -> velocity field (Ux, Uy, Uz);
   * a **scalar** surrogate: (AoA, speed) -> [Cl, Cd] (lift and drag coefficients).
 
 Both inputs come from the 2-D DoE ``run_sweep.py`` wrote (angle × speed). Both models use
@@ -19,8 +21,9 @@ it consumes the output ``run_sweep.py`` already produced.
 
 With ``--out`` the SurroForge project (datasets, runs, lineage, POD basis, models) **and** the
 exported artifacts are saved under that directory, so the real run is inspectable/reproducible
-afterwards (``surroforge --config-dir <out>/naca list``). The best field surrogate is also
-evaluated on **every** case from ``samples.csv`` and written as one VTKHDF time-series file
+afterwards (``surroforge --config-dir <out>/naca list``). The best pressure- and velocity-field
+surrogates are also evaluated on **every** case from ``samples.csv`` and written into one VTKHDF
+time-series file (cell arrays ``p`` and ``U``)
 ``<out>/surrogate_vtk/surrogate_fields.vtkhdf`` (or
 ``<run_dir>/surrogate_vtk/surrogate_fields.vtkhdf`` without ``--out``), plus ``samples.csv`` for
 the case/AoA/speed mapping. Without ``--out`` the project is built in a temp dir and removed, and
@@ -136,6 +139,22 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
             "speed": float(doe.loc[case.name, "speed"]),
         },
     )
+    velocity = read_openfoam_sweep(
+        run_dir, field="U",
+        params=lambda case: {
+            "aoa": float(doe.loc[case.name, "aoa"]),
+            "speed": float(doe.loc[case.name, "speed"]),
+        },
+    )
+    # Both frames are sorted by case name, but a case that has `p` while missing `U`
+    # (or vice versa) would silently shift the rows — refuse instead of misaligning.
+    if not snapshots[["aoa", "speed"]].equals(velocity[["aoa", "speed"]]):
+        raise RuntimeError(
+            "pressure and velocity sweeps disagree on their (AoA, speed) rows — "
+            "some case has one field but not the other; re-run the sweep for that case"
+        )
+    velocity_cols = [c for c in velocity.columns if c.startswith("U_")]
+    snapshots = pd.concat([snapshots, velocity[velocity_cols]], axis=1)
     # The real Cl/Cd forceCoeffs reported, per case. Align by (AoA, speed) — robust to row order
     # or a case the field reader dropped — rather than positional order.
     case_names = sorted(
@@ -154,7 +173,8 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
     snapshots["cl"] = [coeffs[k].cl for k in keys]
     snapshots["cd"] = [coeffs[k].cd for k in keys]
     field_cols = [c for c in snapshots.columns if c.startswith("p_")]
-    print(f"Ingested {len(snapshots)} real cases: {len(field_cols)} pressure DOFs + Cl + Cd")
+    print(f"Ingested {len(snapshots)} real cases: {len(field_cols)} pressure DOFs "
+          f"+ {len(velocity_cols)} velocity DOFs + Cl + Cd")
     if unsettled:
         listed = ", ".join(f"({a:+.1f}°,{s:.4g}) ±{sp / 2:.3g}" for a, s, sp in unsettled)
         print(f"⚠  {len(unsettled)}/{len(case_names)} case(s) have a still-swinging C_L over the "
@@ -193,6 +213,19 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
         }
         _report(project, field_runs, "inner")
 
+        print("\n=== Field surrogate: (AoA, speed) -> velocity field (POD + inner) ===")
+        velocity_runs = {
+            label: Trainer.from_dict({
+                "experiment": f"velocity-{label}",
+                "data": {"source": "sweep", "inputs": inputs, "outputs": ["U_*"], "split": split},
+                "model": {"method": "reduced-field",
+                          "reduction": {"basis": "pod", "energy": 0.999}, "inner": inner},
+                "validation": validation,
+            }).fit(project)
+            for label, inner in _candidates([48, 48])
+        }
+        _report(project, velocity_runs, "inner")
+
         print("\n=== Scalar surrogate: (AoA, speed) -> [Cl, Cd] ===")
         cl_runs = {
             label: Trainer.from_dict({
@@ -224,21 +257,26 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
         field_best = field_runs[_best_label(project, field_runs)]
         field_out = field_best.export("pickle", export_dir / "field_surrogate.pkl")
         print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")
+        velocity_best = velocity_runs[_best_label(project, velocity_runs)]
+        velocity_out = velocity_best.export("pickle", export_dir / "velocity_surrogate.pkl")
+        print(f"  velocity surrogate -> {velocity_out.name} "
+              "(pickle; reduced-field is pickle-only)")
 
         print("\n=== Surrogate field VTK ===")
         prediction_cases = doe.loc[case_names, ["aoa", "speed"]].reset_index()
-        predicted_fields = field_best.load_model().predict(
-            prediction_cases[inputs].to_numpy(dtype=float)
-        )
+        prediction_inputs = prediction_cases[inputs].to_numpy(dtype=float)
         vtk_dir = export_dir / "surrogate_vtk"
         vtkhdf = write_surrogate_vtkhdf(
             run_dir,
             vtk_dir / "surrogate_fields.vtkhdf",
             prediction_cases,
-            predicted_fields,
+            {
+                "p": field_best.load_model().predict(prediction_inputs),
+                "U": velocity_best.load_model().predict(prediction_inputs),
+            },
         )
         print(
-            f"  surrogate p fields -> {vtkhdf} "
+            f"  surrogate p+U fields -> {vtkhdf} "
             f"({len(prediction_cases)} time steps + samples.csv)"
         )
         if out_dir is not None:
