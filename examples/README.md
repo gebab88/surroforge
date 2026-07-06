@@ -26,7 +26,7 @@ from the shell in [docs/quickstart.md](../docs/quickstart.md) and the
 [scenarios](../docs/scenarios/).
 
 For a **real** OpenFOAM run (not part of the CI smoke tests, since it needs a solver), see
-[`naca0012_openfoam/`](naca0012_openfoam/) — it drives `simpleFoam` over an angle-of-attack
+[`09_naca0012_openfoam/`](09_naca0012_openfoam/) — it drives `simpleFoam` over an angle-of-attack
 sweep and feeds the genuine results into the same surrogate code as example 09.
 
 ## CLI configs

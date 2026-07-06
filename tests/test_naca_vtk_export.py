@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_SCRIPT = _REPO_ROOT / "examples" / "naca0012_openfoam" / "surrogate_vtk.py"
+_SCRIPT = _REPO_ROOT / "examples" / "09_naca0012_openfoam" / "surrogate_vtk.py"
 
 
 def _load_surrogate_vtk_module():

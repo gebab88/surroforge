@@ -27,7 +27,7 @@ The Python scripts are the API twin of the shell workflows in the
 are smoke-tested in CI, so they stay in step with the API.
 
 For a **real** OpenFOAM run (not smoke-tested, since it needs a solver), see
-[`examples/naca0012_openfoam/`](https://github.com/gebab88/surroforge/tree/main/examples/naca0012_openfoam)
+[`examples/09_naca0012_openfoam/`](https://github.com/gebab88/surroforge/tree/main/examples/09_naca0012_openfoam)
 — it drives `simpleFoam` over an angle-of-attack sweep and feeds the genuine results into the same
 surrogate code as example 09.
 

@@ -155,7 +155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inspectable via `surroforge --config-dir DIR/naca list`) plus the exported artifacts. Without it
   everything goes to a temp dir and is removed, so the default run leaves nothing behind and re-runs
   never collide.
-- **`examples/naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
+- **`examples/09_naca0012_openfoam/`** — the real-CFD companion (not CI-tested): `run_sweep.py` drives
   `simpleFoam` over a 2-D `angle × speed` DoE on the validated `airFoil2D` mesh (rotating the
   freestream + `forceCoeffs`, `--angles`/`--speeds`), and `ingest_and_train.py` builds the same
   surrogates — `(AoA, speed) → field` (pressure **and** velocity) and `(AoA, speed) → [Cl, Cd]` —
@@ -178,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `seed=` alias slated for removal. Same streams for the same integer seeds — existing
   designs reproduce unchanged.
 - **NACA real-CFD example slimmed** — the VTK/VTKHDF I/O of
-  `examples/naca0012_openfoam/ingest_and_train.py` now lives in a reusable, SurroForge-free
+  `examples/09_naca0012_openfoam/ingest_and_train.py` now lives in a reusable, SurroForge-free
   sibling module `surrogate_vtk.py`, the dead per-case `.vtu`/`.pvd` export path was
   removed, and the directory's README absorbed the full verified reference (case setup,
   DoE, exact commands, fit numbers from the real 110-case run). Behaviour is unchanged —
