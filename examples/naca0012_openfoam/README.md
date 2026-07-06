@@ -198,7 +198,7 @@ the negative side).
   scikit-learn `mlp` inner the weakest of the three (R² 0.935). That is the same ranking as the
   pressure field, but with a far tighter spread — 0.935–0.998 here versus 0.676–0.986 for
   pressure — since every inner already fits the velocity field well. The surrogate trains on
-  `Ux`/`Uy` only: the 2-D case's `Uz` column is machine zero, and Core's uniform-average R² over
+  `Ux`/`Uy` only: the 2-D case's `Uz` columns are machine zero, and Core's uniform-average R² over
   a zero-variance output column would be arbitrarily negative — the pre-switch full-vector run
   showed test R² ≈ −861 despite an excellent x/y fit — so `z` is dropped at ingest and re-padded
   as exact zero on export.
