@@ -18,11 +18,11 @@ Surrogate-Modelle werden zum selbstverständlichen Werkzeug jedes Berechnungsing
 
 ### 1.3 Mission
 
-Wir bauen ein Open-Core-Werkzeug, mit dem Ingenieure aus Simulationsdaten reproduzierbare Surrogate-Modelle trainieren, vergleichen und teilen können — skriptbar, versionierbar und ohne Vendor-Lock-in.
+Wir bauen ein Open-Core-Werkzeug, mit dem Ingenieure aus Simulationsdaten Surrogate-Modelle trainieren, vergleichen und teilen können — skriptbar, offen und ohne Vendor-Lock-in. Die kommerziellen Editionen ergänzen die für Engineering-Nachweise entscheidenden Ebenen: Reproduzierbarkeit und Lineage, Modell-Deployment und erweiterte Methoden.
 
 ### 1.4 Kernversprechen
 
-Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde — mit allen Daten, Konfigurationen und Modellen sauber versioniert und nach Monaten oder Jahren reproduzierbar.
+Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde. Die kommerziellen Editionen machen daraus einen nachweisbaren Prozess: Daten, Konfigurationen und Modelle sauber versioniert und nach Monaten oder Jahren bit-genau reproduzierbar — die Auditierbarkeit, die Engineering-Freigaben verlangen.
 
 ### 1.5 MVP-Ansatz
 
@@ -32,15 +32,15 @@ Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde — mit
 
 **Was das MVP von SurroForge leistet** (vollständig in Abschnitt 9.1 spezifiziert):
 
-- Ein durchgängiger Pfad vom registrierten Datensatz bis zum validierten, exportierten Surrogate-Modell — über CLI und Python-API
+- Ein durchgängiger Pfad vom registrierten Datensatz bis zum trainierten, validierten Surrogate-Modell — über CLI und Python-API
 - Drei bewusst etablierte Methoden (Kriging, RBF, polynomiale Regression) statt einer breiten Methodenpalette
-- Reproduzierbarkeit und Run-Persistenz von Tag eins, weil dies das Kernversprechen (Abschnitt 1.4) und Hauptdifferenzierungsmerkmal ist — nicht ein späteres Add-on
-- Markdown-Reports und ONNX-Export als minimale, aber vollständige Ausgabekette
+- Ein minimaler Run-Store (Modelle speichern, auflisten, Vorhersagen erzeugen) — die *nachweisbare* Reproduzierbarkeit (Herkunfts-Hashes, `reproduce`, Lineage) ist die erste kommerzielle Ebene (Abschnitt 3.2), nicht Teil des freien Kerns
+- Markdown-Reports als Ausgabe; portabler Modell-Export (ONNX/Pickle) gehört zu Professional
 - Plugin-Schnittstellen, damit der spätere Ausbau (Pro/Enterprise) additiv erfolgt und den Kern nicht umbaut
 
-**Was das MVP bewusst weglässt:** erweiterte Methoden (GP, RF, Boosting, NN), interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
+**Was das MVP bewusst weglässt:** erweiterte Methoden (skalierbare GP, RF, Boosting, NN), Modell-Export, Reproduzierbarkeit/Lineage und `reproduce`, interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
 
-**Warum dieser Zuschnitt:** Das MVP soll die teuerste Unsicherheit zuerst beantworten — ob der Open-Source-Kern messbare Adoption in der CAE-Community erzeugt (Annahme 2) und ob Reproduzierbarkeit als Differenzierungsmerkmal trägt. Erst wenn das belegt ist, rechtfertigt sich die Investition in kommerzielle Editionen. Die Definition of Done für Phase 1 (drei externe Testnutzer durchlaufen die drei Standard-Szenarien erfolgreich) ist genau dieser Lerntest.
+**Warum dieser Zuschnitt:** Das MVP soll die teuerste Unsicherheit zuerst beantworten — ob der freie Open-Source-Kern messbare Adoption in der CAE-Community erzeugt (Annahme 2) und als Funnel taugt. Erst wenn das belegt ist, rechtfertigt sich die Investition in die kommerziellen Ebenen (Reproduzierbarkeit, Deployment, Methoden-Breite), auf denen die Konversion beruht. Die Definition of Done für Phase 1 (drei externe Testnutzer durchlaufen die drei Standard-Szenarien erfolgreich) ist genau dieser Lerntest.
 
 ---
 
@@ -71,17 +71,26 @@ Open Core. Der Produktkern ist Open Source unter Apache 2.0, kommerzielle Erweit
 | Funktion | Core | Professional | Enterprise |
 |---|---|---|---|
 | Basis-Methoden (Kriging, RBF, Polynom) | ✓ | ✓ | ✓ |
-| Cross-Validation, Standard-Metriken | ✓ | ✓ | ✓ |
-| ONNX-Export, Markdown-Reports | ✓ | ✓ | ✓ |
-| Run-Persistenz, Reproduzierbarkeit | ✓ | ✓ | ✓ |
+| Cross-Validation, Standard-Metriken (RMSE/R²/MAE) | ✓ | ✓ | ✓ |
+| Train / Validate / Predict, Terminal-Vergleich, Multi-Output | ✓ | ✓ | ✓ |
+| Feld-ROM (reduced-field POD, Core-Inner-Surrogat) | ✓ | ✓ | ✓ |
+| Markdown-Reports | ✓ | ✓ | ✓ |
+| OpenFOAM-Ingestion, minimaler Run-Store | ✓ | ✓ | ✓ |
 | Python-API und Plugin-Schnittstellen | ✓ | ✓ | ✓ |
-| Erweiterte Methoden (GP, RF, Gradient Boosting, NN) | — | ✓ | ✓ |
-| HTML-Reports mit interaktiven Visualisierungen | — | ✓ | ✓ |
-| Multi-Output-Modelle, erweiterte Vergleiche | — | ✓ | ✓ |
+| Erweiterte Methoden (Random Forest, Gradient Boosting) | — | ✓ | ✓ |
+| Neuronale Netze (sklearn-MLP, PyTorch, Autoencoder) | — | ✓ | ✓ |
+| Skalierbare Gaussian Processes (Sparse GP, GPyTorch) | — | ✓ | ✓ |
+| Feld-ROM mit NN-/erweitertem Inner-Surrogat | — | ✓ | ✓ |
+| Reproduzierbarkeit & Lineage (`reproduce`, Herkunfts-Hashes, Lineage-Ansicht/-Export) | — | ✓ | ✓ |
+| Modell-Export (ONNX, Pickle) | — | ✓ | ✓ |
+| HTML-Reports (interaktiv), DoE/Sampling, erweiterte Vergleiche | — | ✓ | ✓ |
+| Lizenz-Aktivierung (Datei/Online) | — | ✓ | ✓ |
 | Active Learning, Multi-Fidelity | — | — | ✓ |
-| Audit-Reports (PDF) mit Lineage-Tracking | — | — | ✓ |
+| PDF-Audit-Reports mit Lineage/Compliance-Anhang | — | — | ✓ |
 | Floating-Lizenzen, Site-License | — | — | ✓ |
 | SLA-Support, Customer Success | — | — | ✓ |
+
+**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment* (Modell-Export) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus.
 
 ### 3.3 Lizenzaktivierung
 
@@ -148,24 +157,25 @@ Optionale Felder mit Defaults:
 **Eingabe:** CSV, Parquet, HDF5. Tabellarisch, mit benannten Spalten für Inputs und Outputs.
 
 **Ausgabe:**
-- Modell als Pickle und ONNX
+- Modell-Export als Pickle und ONNX (Professional)
 - Metadaten als JSON
 - Reports als Markdown (Core), HTML (Pro), PDF-Audit (Enterprise)
 - Konfigurations-Snapshot als YAML
 
 ### 4.5 Run-Persistenz und Reproduzierbarkeit
 
-Jeder Trainingslauf erzeugt einen Run mit:
+Jeder Trainingslauf erzeugt einen Run. Der **freie Kern** speichert:
 
 - Eindeutiger ID (z. B. `run-001` oder UUID)
 - Snapshot der vollständigen Konfiguration
-- Daten-Hash (SHA-256 über die verwendeten Daten)
-- Random Seed
-- Python-Version und Bibliotheksversionen
 - Trainings-Metriken (Train, Test, Cross-Validation)
-- Modell-Artefakt
+- Modell-Artefakt (für spätere Vorhersagen über `predict`)
 
-`surroforge reproduce <run-id>` muss bitidentische Modelle erzeugen, sofern Python- und Bibliotheksversionen passen.
+**Professional** ergänzt die vollständige Lineage und die Reproduzierbarkeits-Garantie:
+
+- Daten-Hash (SHA-256 über die verwendeten Daten), Random Seed, Python- und Bibliotheksversionen
+- Vollständige Herkunfts-Ansicht (`info`, Lineage-Spalten in `compare`) und Lineage-Export
+- `surroforge reproduce <run-id>` erzeugt bitidentische Modelle, sofern Python- und Bibliotheksversionen passen
 
 ### 4.6 Methoden (MVP — Core)
 
@@ -240,12 +250,13 @@ Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne P
 - Training eines Kriging-Modells auf 200 Punkten mit 5 Inputs: unter 5 Sekunden
 - Training eines Random-Forest auf 10.000 Punkten: unter 30 Sekunden
 - Cross-Validation mit k=5 darf das Training maximal um Faktor 6 verlangsamen
-- Daten-Hashing bei `data add`: unter 5 Sekunden für Datensätze bis 100 MB
+- Datensatz-Integritäts-Hashing bei `data add`: unter 5 Sekunden für Datensätze bis 100 MB (Core; die Verknüpfung zur reproduzierbaren Run-Lineage ist Professional)
 
-### 5.2 Reproduzierbarkeit
+### 5.2 Reproduzierbarkeit (Professional)
 
-- Jeder Run ist vollständig reproduzierbar bei identischer Python- und Bibliotheksversion
-- Konfiguration, Daten-Hash, Seed und Versionen werden automatisch erfasst — kein Opt-Out
+- In Professional ist jeder Run vollständig reproduzierbar bei identischer Python- und Bibliotheksversion
+- Dort werden Konfiguration, Daten-Hash, Seed und Versionen automatisch erfasst — kein Opt-Out
+- Der freie Kern speichert Konfiguration und Modell für Vorhersagen, jedoch ohne Herkunfts-Hashes und ohne `reproduce`
 
 ### 5.3 Plattform-Support
 
@@ -300,16 +311,16 @@ surroforge/
 ├── data/             # Datenimport, Validierung, Hashing
 ├── trainers/         # Basis-Methoden (Core)
 ├── validators/       # Cross-Validation, Metriken
-├── exporters/        # ONNX und Standard-Formate
+├── exporters/        # ONNX/Pickle-Export (Professional)
 ├── reporters/        # Markdown-Report
-├── persistence/      # Run-Speicherung, Lineage
+├── persistence/      # Run-Speicherung (Core); Lineage/reproduce (Professional)
 ├── plugins/          # Plugin-Registry und Entry-Points
 └── api/              # Hochlevel-Python-API
 ```
 
 Kommerzielle Module liegen in separaten Paketen:
 ```
-surroforge-professional/  # Erweiterte Methoden, HTML-Reports
+surroforge-professional/  # Erw. Methoden (RF/Boosting/NN), Export, Repro/Lineage, HTML-Reports, DoE
 surroforge-enterprise/    # Active Learning, Multi-Fidelity, Audit-PDF
 ```
 
@@ -346,9 +357,11 @@ mein-projekt/
 └── reports/                 # Generierte Reports
 ```
 
-### 7.2 Run-Metadaten (lineage.json)
+Im **freien Kern** enthält ein Run `config.snapshot.yaml`, `model.pkl` (interner Store für `predict`), `metrics.json` und `log.txt`. `model.onnx` (Export) und `lineage.json` (Herkunft) werden erst in **Professional** geschrieben.
 
-Pflichtfelder pro Run:
+### 7.2 Run-Metadaten (lineage.json, Professional)
+
+`lineage.json` wird von Professional geschrieben. Pflichtfelder pro Run:
 - `run_id`
 - `created_at` (ISO 8601)
 - `config_hash`
@@ -389,33 +402,33 @@ Folgendes wird bewusst nicht gebaut:
 **Ziel:** Erste öffentliche Version des Open-Source-Kerns auf PyPI und GitHub.
 
 Inhalte:
-- CLI-Skeleton mit allen Befehlen aus Abschnitt 4.2
+- CLI-Skeleton mit den Core-Befehlen aus Abschnitt 4.2 (Pro/Enterprise-Befehle wie `export`/`reproduce` erscheinen erst mit der jeweiligen Edition)
 - Drei Methoden: Kriging, RBF, polynomiale Regression
 - YAML-Konfiguration mit Pydantic-Validierung
 - Cross-Validation und Standard-Metriken
-- Run-Persistenz mit Hashing
-- ONNX-Export
+- Minimaler Run-Store: Speichern, Auflisten, Vorhersagen (ohne Herkunfts-Hashes/`reproduce` — die kommen mit Professional, Phase 2)
 - Markdown-Reports
 - Vollständige Python-API
 - Plugin-Schnittstellen
 - Dokumentation mit Tutorials und API-Referenz
 
-**Definition of Done:** Drei externe Testnutzer durchlaufen die drei Standard-Szenarien (Greenfield, Methoden-Vergleich, Reproduktion) erfolgreich.
+**Definition of Done:** Drei externe Testnutzer durchlaufen die drei Standard-Szenarien (Greenfield, Methoden-Vergleich, Vorhersage auf neuen Daten) erfolgreich. (Das Reproduktions-Szenario wandert mit `reproduce` nach Phase 2.)
 
 ### 9.2 Phase 2 — Professional (Monate 5–9)
 
 **Ziel:** Erste kommerzielle Edition. Beginn der Monetarisierung.
 
 Inhalte:
-- Erweiterte Methoden: Gaussian Processes, Random Forest, Gradient Boosting, NN
+- Erweiterte Methoden: skalierbare Gaussian Processes, Random Forest, Gradient Boosting, neuronale Netze (sklearn-MLP, PyTorch, Autoencoder)
+- Reproduzierbarkeit & Lineage: Herkunfts-Hashing, `reproduce`, Lineage-Ansicht (`info`/`compare`) und Lineage-Export
+- Modell-Export (ONNX, Pickle)
 - HTML-Reports mit interaktiven Visualisierungen
-- Multi-Output-Modelle
 - Erweiterte Run-Vergleiche
 - Lizenz-Aktivierungs-Mechanik
 - E-Mail-Support-Infrastruktur
 - DoE-Modul als ergänzendes Submodul
 
-**Definition of Done:** Drei zahlende Pilotkunden, dokumentierte Konversion vom Core.
+**Definition of Done:** Drei zahlende Pilotkunden, dokumentierte Konversion vom Core; das Reproduktions-Szenario (bit-identischer Nachvollzug) läuft in Professional durch.
 
 ### 9.3 Phase 3 — Enterprise (Monate 10–18)
 
@@ -482,7 +495,7 @@ Diese Annahmen werden vor und während der Entwicklung durch Interviews und frü
 ### 11.3 Geschäftliche Risiken
 
 - **Konversionsrate niedriger als geplant:** Mitigationsstrategie: konservative Geldplanung, Pilot-Programme früh starten, Akademie-Lizenzen für Multiplikator-Effekt.
-- **Konkurrenz durch Enterprise-Suiten oder neue ML-Engineering-Startups:** Mitigationsstrategie: scharfe Positionierung über Reproduzierbarkeit und Open Core, nicht über Methoden-Breite.
+- **Konkurrenz durch Enterprise-Suiten oder neue ML-Engineering-Startups:** Mitigationsstrategie: freier, offener Kern als Adoptions-Funnel plus scharf abgegrenzte kommerzielle Ebenen — Reproduzierbarkeit/Auditierbarkeit, Modell-Deployment und Methoden-Breite. Open Core senkt die Einstiegshürde; die bezahlten Ebenen liefern den nachweisbaren Engineering-Wert.
 
 ---
 
