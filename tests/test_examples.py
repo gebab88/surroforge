@@ -8,6 +8,7 @@ out to it and asserts a clean exit.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -26,12 +27,18 @@ def test_examples_directory_is_present():
 
 @pytest.mark.parametrize("script", _EXAMPLES, ids=lambda p: p.stem)
 def test_example_runs_to_completion(script: Path):
+    # Some examples (mlp, torch-mlp, and their reduced-field/POD-NN inners) exercise
+    # Professional methods (Wave-1 editions split). Grant a local dev license for the
+    # smoke run so this suite still proves the scripts execute end-to-end; it is not a
+    # statement about what a fresh install can run out of the box.
+    env = {**os.environ, "SURROFORGE_PRO_LICENSE": "example-smoke-test"}
     result = subprocess.run(
         [sys.executable, str(script)],
         capture_output=True,
         text=True,
         timeout=300,
         cwd=_REPO_ROOT,
+        env=env,
     )
     assert result.returncode == 0, (
         f"{script.name} exited {result.returncode}\n"

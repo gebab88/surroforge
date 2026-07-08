@@ -15,6 +15,35 @@ def licensed(monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
 
 
+def blas_is_bit_reproducible() -> bool:
+    """Whether numpy's BLAS/LAPACK is bit-reproducible run-to-run.
+
+    Apple's Accelerate (vecLib) is not: its LAPACK shows ULP-level run-to-run
+    variation, which is harmless for closed-form methods but pushes gradient-MLE
+    Kriging to a materially different optimum on a *flat* likelihood (smooth
+    targets drive the length-scales to the bound, so the optimum is barely
+    identified) — diverging by anything from ~1e-5 up to a few percent. So
+    Kriging's declared 1e-9 reproduction tolerance holds on OpenBLAS (Linux CI)
+    but not on macOS/Accelerate. This returns ``False`` only for the known
+    non-reproducible backend; every other BLAS keeps the guarantee asserted.
+    """
+    try:
+        deps = np.__config__.show(mode="dicts").get("Build Dependencies", {})
+        name = str(deps.get("blas", {}).get("name", "")).lower()
+    except Exception:
+        return True  # unknown backend: keep the bit-reproducibility assertions sharp
+    return "accelerate" not in name
+
+
+#: Skip a test that asserts bit-level reproducibility when the BLAS cannot deliver
+#: it (Apple Accelerate). The guarantee stays asserted on OpenBLAS / CI.
+requires_reproducible_blas = pytest.mark.skipif(
+    not blas_is_bit_reproducible(),
+    reason="bit-level reproduction needs a bit-reproducible BLAS; Apple Accelerate "
+    "(vecLib) is not, so this holds on OpenBLAS/CI but not on macOS/Accelerate",
+)
+
+
 def make_samples(n: int = 80, seed: int = 0) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     length = rng.uniform(1.0, 3.0, n)

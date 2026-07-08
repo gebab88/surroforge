@@ -21,6 +21,14 @@ def test_builtin_trainers_registered():
     assert set(available_trainers()) >= {"kriging", "rbf", "polynomial"}
 
 
+def test_professional_trainers_not_in_core_builtin_table():
+    # mlp/random-forest/gradient-boosting moved to surroforge_professional (Wave 1);
+    # Core's _BUILTIN fallback table must not resurrect them for a source checkout.
+    from surroforge.plugins.registry import _BUILTIN, TRAINER_GROUP
+
+    assert not {"mlp", "random-forest", "gradient-boosting"} & set(_BUILTIN[TRAINER_GROUP])
+
+
 def test_get_trainer_returns_subclass():
     cls = get_trainer("polynomial")
     assert issubclass(cls, BaseTrainer)

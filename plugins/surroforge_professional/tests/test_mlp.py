@@ -17,10 +17,12 @@ import numpy as np
 import pytest
 from sklearn.metrics import r2_score
 
+from conftest import requires_reproducible_blas
 from surroforge.errors import ExportError, TrainerError
 from surroforge.plugins import available_trainers, get_trainer
-from surroforge.trainers.mlp import MLPTrainer
-from tests.conftest import requires_reproducible_blas
+from surroforge_professional.trainers.mlp import MLPTrainer
+
+pytestmark = pytest.mark.usefixtures("licensed")
 
 
 def _smooth_problem(n=240, seed=0):

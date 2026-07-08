@@ -2,8 +2,9 @@
 
 The first neural-network method. It is a genuine MLP, but backed by
 ``sklearn.neural_network.MLPRegressor`` rather than a deep-learning framework, so
-it adds **no new dependency** (scikit-learn is already Core, BSD-licensed → NFR8),
-plugs into the project's sklearn-style integer ``random_state`` reproducibility
+it needs no deep-learning stack (scikit-learn only; a Professional method since
+the Wave-1 editions split), plugs into the project's sklearn-style integer
+``random_state`` reproducibility
 model, and — like ``polynomial`` — exports to ONNX via ``skl2onnx``. A heavyweight
 framework (PyTorch/DeepONet/FNO) for the large, strongly-nonlinear field regime
 belongs on the external entry-point plugin seam, not in Core.
@@ -63,6 +64,7 @@ class MLPTrainer(BaseTrainer):
     """
 
     name = "mlp"
+    required_tier = "professional"
     # An iterative, non-convex optimiser: deterministic in-process with a fixed
     # random_state (a same-seed lbfgs refit is bit-identical), but not guaranteed
     # bit-for-bit across BLAS thread counts / platforms. So it declares a small,

@@ -51,6 +51,7 @@ class GradientBoostingTrainer(BaseTrainer):
     """
 
     name = "gradient-boosting"
+    required_tier = "professional"
     # Tree ensemble with a fixed seed and early_stopping off: deterministic in-process.
     # Declares a small honest tolerance (like mlp) rather than 0.0 to absorb any
     # thread/platform float differences in histogram summation.

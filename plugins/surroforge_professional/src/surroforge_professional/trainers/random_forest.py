@@ -62,6 +62,7 @@ class RandomForestTrainer(BaseTrainer):
     """
 
     name = "random-forest"
+    required_tier = "professional"
     # Bootstrap + feature subsampling are seeded, so a fixed random_state is
     # deterministic. Declares a small honest tolerance (like mlp/gradient-boosting)
     # rather than 0.0 to absorb thread/platform float differences in tree averaging.

@@ -17,7 +17,9 @@ from sklearn.metrics import r2_score
 
 from surroforge.errors import TrainerError
 from surroforge.plugins import available_trainers, get_trainer
-from surroforge.trainers.random_forest import RandomForestTrainer
+from surroforge_professional.trainers.random_forest import RandomForestTrainer
+
+pytestmark = pytest.mark.usefixtures("licensed")
 
 
 def _nonlinear_problem(n=240, seed=0):
