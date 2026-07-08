@@ -134,3 +134,45 @@ def test_plugin_metadata_has_required_tier_default_none():
         source="builtin", ref="m:C",
     )
     assert meta.required_tier is None
+
+
+def test_resolution_gates_tier_declaring_entry_point(monkeypatch):
+    from surroforge.plugins import gate, registry
+
+    class ProTrainer:
+        name = "fake-pro"
+        required_tier = "professional"
+
+    class FakeEP:
+        name = "fake-pro"
+        value = "fake.module:ProTrainer"
+
+        def load(self):
+            return ProTrainer
+
+    def fake_grouped(group):
+        if group == registry.TRAINER_GROUP:
+            return {"fake-pro": [FakeEP()]}
+        return {}
+
+    monkeypatch.setattr(registry, "_entry_points_grouped", fake_grouped)
+
+    # Denied: no authorizer installed.
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: ())
+    with pytest.raises(PluginError, match="'professional' license"):
+        registry.get_trainer("fake-pro")
+
+    # Granted: an authorizer approves the tier.
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: (lambda tier: True,))
+    assert registry.get_trainer("fake-pro") is ProTrainer
+
+
+def test_core_builtins_resolve_without_any_authorizer(monkeypatch):
+    # Spec: a Core-only installation (no authorizer at all) must never be denied.
+    from surroforge.plugins import gate, registry
+
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: ())
+    # polynomial/reduced-field suffice as proof (kriging/rbf are equivalent but
+    # import the optional SMT backend); free builtins carry required_tier=None.
+    assert registry.get_trainer("polynomial") is not None
+    assert registry.get_trainer("reduced-field") is not None

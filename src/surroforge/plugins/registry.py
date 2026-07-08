@@ -20,6 +20,7 @@ from surroforge.plugins.seam import (
     PluginMetadata,
     check_api_version,
     resolve_api_version,
+    resolve_required_tier,
 )
 
 TRAINER_GROUP = "surroforge.trainers"
@@ -106,13 +107,14 @@ def _resolve(group: str, name: str, kind: str) -> Any:
         raise PluginError(f"Unknown {kind} '{name}'. Available: {sorted(_names(group))}")
 
     # Reserve the commercial seam: validate the declared plugin API version, then
-    # run the authorisation gate (a documented Phase-1 no-op) after resolution.
+    # run the tier-aware authorisation gate after resolution.
     metadata = PluginMetadata(
         name=name,
         group=group,
         api_version=resolve_api_version(cls),
         source=source,
         ref=ref,
+        required_tier=resolve_required_tier(cls),
     )
     check_api_version(metadata)
     gate.check(metadata)
