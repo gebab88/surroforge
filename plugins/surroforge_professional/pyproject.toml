@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "surroforge-professional"
-version = "0.1.0"
-description = "Professional report formats for SurroForge."
-readme = { text = "Professional report formats for SurroForge.", content-type = "text/markdown" }
+name = "surroforge_professional"
+version = "0.2.0"
+description = "Professional edition for SurroForge: licensed methods, HTML reports, DoE."
+readme = { text = "Professional edition for SurroForge: licensed methods, HTML reports, DoE.", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { text = "Proprietary" }
 authors = [{ name = "SurroForge" }]
