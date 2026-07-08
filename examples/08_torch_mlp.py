@@ -1,8 +1,11 @@
 """Switch the neural-network backend with one config line — `mlp` <-> `torch-mlp`.
 
-SurroForge ships `mlp` (scikit-learn's `MLPRegressor`) in Core. The optional
-`surroforge-torch` plugin adds `torch-mlp`, a PyTorch MLP that registers on the
-same `surroforge.trainers` entry point. Because `torch-mlp` mirrors `mlp`'s
+Both halves are Professional methods since the Wave-1 editions split: `mlp`
+(scikit-learn) and `torch-mlp` (PyTorch) ship in the `surroforge_professional`
+plugin — the PyTorch half additionally needs the `[torch]` extra
+(`pip install 'surroforge_professional[torch]'`) — and require a license
+(e.g. `SURROFORGE_PRO_LICENSE=dev`). `torch-mlp` registers on the same
+`surroforge.trainers` entry point. Because `torch-mlp` mirrors `mlp`'s
 hyperparameter surface, moving between scikit-learn and PyTorch is a one-line
 change — `model.method: mlp` -> `model.method: torch-mlp` — with the *same*
 hyperparameter block. This example trains both on one dataset and compares them.
@@ -11,10 +14,10 @@ Run it:
 
     python examples/08_torch_mlp.py
 
-The `mlp` half is Core-only (it always runs). The `torch-mlp` half runs only if
-the plugin is installed:
+The `mlp` half always runs (given the Professional license above). The
+`torch-mlp` half additionally runs only if the `[torch]` extra is installed:
 
-    pip install ./plugins/surroforge-torch
+    pip install 'surroforge_professional[torch]'
 
 Without it, the example trains `mlp` alone and prints how to enable the PyTorch
 backend, so it still runs to completion (it is smoke-tested in CI, where PyTorch
@@ -44,8 +47,8 @@ NN_HYPERPARAMETERS = {
     "random_state": 0,
 }
 
-# True only when the surroforge-torch plugin is installed (its entry point is then
-# registered). The example itself never imports torch — only the plugin does.
+# True only when surroforge_professional[torch] is installed (its entry point is
+# then registered). The example itself never imports torch — only the plugin does.
 _HAS_TORCH = "torch-mlp" in available_trainers()
 
 
@@ -84,8 +87,9 @@ def main(workdir: Path) -> None:
         ).fit(project)
 
     if not _HAS_TORCH:
-        print("(surroforge-torch not installed — running the scikit-learn `mlp` backend only)")
-        print("Enable the PyTorch backend with: pip install ./plugins/surroforge-torch\n")
+        print("(surroforge_professional[torch] not installed — running the scikit-learn")
+        print("`mlp` backend only)")
+        print("Enable the PyTorch backend with: pip install 'surroforge_professional[torch]'\n")
 
     # Both runs share the SAME hyperparameters; the method string is the only difference.
     label_by_id = {r.run_id: name for name, r in runs.items()}

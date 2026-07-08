@@ -16,9 +16,9 @@ python examples/01_quickstart.py
 | [`03_reproduction.py`](03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Core only |
 | [`04_field_rom.py`](04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |
 | [`05_openfoam_field_rom.py`](05_openfoam_field_rom.py) | Ingest an OpenFOAM case sweep (parse `internalField`) into a field ROM | Core only |
-| [`06_mlp_surrogate.py`](06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Core (ONNX export adds `[onnx]`) |
-| [`07_pod_nn_field.py`](07_pod_nn_field.py) | POD-NN: reduce a field with POD, learn the modal coefficients with an `mlp` inner, beat a polynomial inner | Core only |
-| [`08_torch_mlp.py`](08_torch_mlp.py) | Switch the NN backend with one config line — `mlp` (scikit-learn) ↔ `torch-mlp` (PyTorch), same hyperparameters | Core; the PyTorch half needs the `surroforge-torch` plugin |
+| [`06_mlp_surrogate.py`](06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Professional license (`mlp`); ONNX export adds `[onnx]` |
+| [`07_pod_nn_field.py`](07_pod_nn_field.py) | POD-NN: reduce a field with POD, learn the modal coefficients with an `mlp` inner, beat a polynomial inner | Core (polynomial inner); the `mlp` inner needs a Professional license |
+| [`08_torch_mlp.py`](08_torch_mlp.py) | Switch the NN backend with one config line — `mlp` (scikit-learn) ↔ `torch-mlp` (PyTorch), same hyperparameters | Professional license; the PyTorch half needs `surroforge_professional[torch]` |
 
 The Python scripts mirror the documented workflows — the same steps are shown
 from the shell in [docs/quickstart.md](../docs/quickstart.md) and the

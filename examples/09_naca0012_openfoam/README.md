@@ -35,8 +35,8 @@ solver instead of a fabricated sweep.
   (`reduced-field` POD + neural inner) `(AoA, speed) → pressure field`, a second field model
   `(AoA, speed) → velocity field (Ux, Uy)` — the 2-D case's z component is machine zero, so it
   is dropped at ingest and re-padded as exact zero on export — and a **scalar** model
-  `(AoA, speed) → [Cl, Cd]`. Core `mlp` always; the PyTorch `torch-mlp` backend joins if the
-  `surroforge-torch` plugin is installed.
+  `(AoA, speed) → [Cl, Cd]`. `mlp` always runs; the PyTorch `torch-mlp` backend joins if
+  `surroforge_professional[torch]` is installed.
 
 ## Run it
 
@@ -56,6 +56,10 @@ python examples/naca0012_openfoam/ingest_and_train.py run --out ./ex09_real
 
 The VTKHDF export needs `h5py` (`pip install 'surroforge[formats]'` or
 `pip install 'surroforge[all]'`).
+
+Note (editions): the neural-network candidates (`mlp`, `torch-mlp`) are
+Professional methods — `pip install 'surroforge_professional[torch]'` and set
+`SURROFORGE_PRO_LICENSE`. The polynomial candidates run on Core alone.
 
 `ingest_and_train.py` also **exports** the trained surrogates: the best coefficient model to
 `coeffs_surrogate.onnx`, the torch-mlp coefficient model to `coeffs_surrogate.pt` (a native PyTorch

@@ -12,8 +12,8 @@ three surrogates:
   * a **scalar** surrogate: (AoA, speed) -> [Cl, Cd] (lift and drag coefficients).
 
 Both inputs come from the 2-D DoE ``run_sweep.py`` wrote (angle × speed). Both models use
-Core ``mlp``; the PyTorch ``torch-mlp`` backend joins the comparison if the
-``surroforge-torch`` plugin is installed. Unlike example 09 this needs no solver here —
+``mlp``, a Professional method; the PyTorch ``torch-mlp`` backend joins the comparison if
+``surroforge_professional[torch]`` is installed. Unlike example 09 this needs no solver here —
 it consumes the output ``run_sweep.py`` already produced.
 
     python examples/naca0012_openfoam/ingest_and_train.py run
@@ -28,6 +28,10 @@ time-series file (cell arrays ``p`` and ``U``)
 ``<run_dir>/surrogate_vtk/surrogate_fields.vtkhdf`` without ``--out``), plus ``samples.csv`` for
 the case/AoA/speed mapping. Without ``--out`` the project is built in a temp dir and removed, and
 only the exported artifacts plus the surrogate VTKHDF file persist.
+
+Note (editions): the neural-network candidates (``mlp``, ``torch-mlp``) are
+Professional methods — ``pip install 'surroforge_professional[torch]'`` and set
+``SURROFORGE_PRO_LICENSE``. The polynomial candidates run on Core alone.
 """
 
 from __future__ import annotations
@@ -273,7 +277,10 @@ def main(run_dir: Path, out_dir: Path | None = None) -> None:
             out = torch_run.export("pt", export_dir / "coeffs_surrogate.pt")
             print(f"  pt    -> {out.name} ({out.stat().st_size} bytes)  [torch-mlp native]")
         else:
-            print("  pt    skipped — install ./plugins/surroforge-torch for the torch-mlp backend")
+            print(
+                "  pt    skipped — pip install 'surroforge_professional[torch]' "
+                "for the torch-mlp backend"
+            )
         field_best = field_runs[_best_label(project, field_runs)]
         field_out = field_best.export("pickle", export_dir / "field_surrogate.pkl")
         print(f"  field surrogate -> {field_out.name} (pickle; reduced-field is pickle-only)")

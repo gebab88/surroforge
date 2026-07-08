@@ -17,8 +17,11 @@ Run it:
 
     python examples/07_pod_nn_field.py
 
-Core-only: both the POD reduction (numpy/scipy) and the MLP inner (scikit-learn)
-ship with Core — no optional backend required.
+The POD reduction (numpy/scipy) ships with Core.
+
+Note (editions): the `mlp` inner is a Professional method — install
+`surroforge_professional` and set `SURROFORGE_PRO_LICENSE`; the polynomial
+inner runs on Core alone.
 """
 
 from __future__ import annotations
