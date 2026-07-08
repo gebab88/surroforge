@@ -34,6 +34,7 @@ class PluginMetadata:
     api_version: int
     source: str  # "builtin" | "entry_point"
     ref: str  # the "module:attr" reference the class was loaded from
+    required_tier: str | None = None  # licence tier the plugin declares; None = free
 
 
 def resolve_api_version(cls: object) -> int:
@@ -51,6 +52,25 @@ def resolve_api_version(cls: object) -> int:
             f"api_version {version!r}; it must be an int."
         )
     return version
+
+
+def resolve_required_tier(cls: object) -> str | None:
+    """The licence tier a plugin class declares, or ``None`` for a free plugin.
+
+    Tier names are opaque data to Core — a commercial edition's authorizer
+    (:mod:`surroforge.plugins.gate`) interprets them. Declaring anything but a
+    non-empty string is a plugin bug and fails loudly. The field is additive and
+    backwards-compatible (undeclared → free), so ``PLUGIN_API_VERSION`` stays 1.
+    """
+    tier = getattr(cls, "required_tier", None)
+    if tier is None:
+        return None
+    if not isinstance(tier, str) or not tier:
+        raise PluginError(
+            f"Plugin {getattr(cls, 'name', cls)!r} declares an invalid "
+            f"required_tier {tier!r}; it must be a non-empty string."
+        )
+    return tier
 
 
 def check_api_version(metadata: PluginMetadata) -> None:

@@ -80,3 +80,57 @@ def test_comparison_reporter_resolves_from_entry_point(monkeypatch):
     monkeypatch.setattr(registry, "_entry_points_grouped", fake_grouped)
     assert registry.get_comparison_reporter("fake-html") is FakeComparisonReporter
     assert "fake-html" in registry.available_comparison_reporters()
+
+
+# --- required_tier seam (Wave 1) ---------------------------------------------
+
+
+def test_required_tier_defaults_to_none():
+    from surroforge.plugins.seam import resolve_required_tier
+
+    class FreeTrainer:
+        name = "free"
+
+    assert resolve_required_tier(FreeTrainer) is None
+
+
+def test_required_tier_reads_class_attribute():
+    from surroforge.plugins.seam import resolve_required_tier
+
+    class ProTrainer:
+        name = "pro"
+        required_tier = "professional"
+
+    assert resolve_required_tier(ProTrainer) == "professional"
+
+
+def test_required_tier_rejects_non_string():
+    from surroforge.plugins.seam import resolve_required_tier
+
+    class Broken:
+        name = "broken"
+        required_tier = 1
+
+    with pytest.raises(PluginError, match="required_tier"):
+        resolve_required_tier(Broken)
+
+
+def test_required_tier_rejects_empty_string():
+    from surroforge.plugins.seam import resolve_required_tier
+
+    class Broken:
+        name = "broken"
+        required_tier = ""
+
+    with pytest.raises(PluginError, match="required_tier"):
+        resolve_required_tier(Broken)
+
+
+def test_plugin_metadata_has_required_tier_default_none():
+    from surroforge.plugins.seam import PluginMetadata
+
+    meta = PluginMetadata(
+        name="x", group="surroforge.trainers", api_version=1,
+        source="builtin", ref="m:C",
+    )
+    assert meta.required_tier is None
