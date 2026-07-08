@@ -21,11 +21,16 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
 doe = ["scipy>=1.15"]  # qmc engines are seeded via the SPEC-7 `rng=` parameter (scipy 1.15+)
+torch = ["torch>=2.0"]
 
 [project.entry-points."surroforge.trainers"]
 mlp = "surroforge_professional.trainers.mlp:MLPTrainer"
 random-forest = "surroforge_professional.trainers.random_forest:RandomForestTrainer"
 gradient-boosting = "surroforge_professional.trainers.gradient_boosting:GradientBoostingTrainer"
+torch-mlp = "surroforge_professional.trainers.torch_mlp:TorchMLPTrainer"
+
+[project.entry-points."surroforge.exporters"]
+pt = "surroforge_professional.pt_exporter:PtExporter"
 
 [project.entry-points."surroforge.reporters"]
 html = "surroforge_professional.reports.html:HtmlReporter"

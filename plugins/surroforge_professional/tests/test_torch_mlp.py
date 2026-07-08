@@ -21,7 +21,9 @@ from sklearn.metrics import r2_score
 from surroforge.conformance import check_trainer
 from surroforge.errors import ExportError, TrainerError
 from surroforge.plugins import available_trainers, get_trainer
-from surroforge_torch.trainer import TorchMLPTrainer
+from surroforge_professional.trainers.torch_mlp import TorchMLPTrainer
+
+pytestmark = pytest.mark.usefixtures("licensed")
 
 
 def _smooth_problem(n: int = 240, seed: int = 0):
@@ -251,7 +253,7 @@ def test_onnx_export_hint_when_onnx_missing(monkeypatch):
 
 def _rebuild_from_pt(checkpoint) -> "torch.nn.Module":
     """Reconstruct the fitted module from a to_pt() checkpoint, the way a consumer would."""
-    from surroforge_torch.trainer import _ACTIVATIONS, _StandardizedMLP
+    from surroforge_professional.trainers._torch_impl import _ACTIVATIONS, _StandardizedMLP
 
     layers, prev = [], checkpoint["n_features"]
     for width in checkpoint["hidden_layer_sizes"]:
@@ -305,7 +307,7 @@ def test_pt_exporter_registered_on_seam():
     """The plugin registers the `pt` exporter on the Core seam, so Core resolves it without
     any built-in entry — and writes a real .pt file for a fitted torch-mlp."""
     from surroforge.plugins import available_exporters, get_exporter
-    from surroforge_torch.pt_exporter import PtExporter
+    from surroforge_professional.pt_exporter import PtExporter
 
     assert "pt" in available_exporters()
     assert get_exporter("pt") is PtExporter
@@ -315,7 +317,7 @@ def test_pt_exporter_writes_file(tmp_path):
     x, y = _smooth_problem(n=80)
     t = TorchMLPTrainer(max_iter=100)
     t.fit(x, y)
-    from surroforge_torch.pt_exporter import PtExporter
+    from surroforge_professional.pt_exporter import PtExporter
 
     dest = PtExporter().export(t, tmp_path / "model.pt", n_features=2)
     assert dest.exists() and dest.suffix == ".pt"
@@ -345,3 +347,13 @@ def test_reduced_field_inner_torch_mlp_end_to_end():
     assert recon.shape == field[120:].shape
     score = r2_score(field[120:], recon)
     assert score > 0.9, f"POD-NN reconstruction R²={score:.3f}"
+
+
+# --- guard module -------------------------------------------------------------
+
+def test_guard_module_exports_real_trainer_when_torch_installed():
+    from surroforge_professional.trainers._torch_impl import TorchMLPTrainer as Impl
+    from surroforge_professional.trainers.torch_mlp import TorchMLPTrainer as Guarded
+
+    assert Guarded is Impl
+    assert Guarded.required_tier == "professional"

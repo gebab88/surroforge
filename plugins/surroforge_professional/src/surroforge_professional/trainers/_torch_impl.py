@@ -1,12 +1,13 @@
 """PyTorch neural-network surrogate — the ``surroforge-torch`` plugin (Epic R7).
 
-This is the first heavyweight-framework method and the first real exercise of
-SurroForge's external plugin seam: it ships as a *separate distribution*
-(``surroforge-torch``) that registers ``torch-mlp`` through the ``surroforge.trainers``
-entry point only — never Core's ``_BUILTIN`` table. Core stays torch-free; installing
-this package makes ``model.method: torch-mlp`` resolvable. Switching backends is a
-one-line config edit: ``torch-mlp`` mirrors the built-in ``mlp``'s exact hyperparameter
-surface, so the same YAML trains either scikit-learn or PyTorch.
+This is the heavyweight-framework counterpart of ``mlp``. Since the Wave-1
+editions split it ships inside ``surroforge_professional`` behind the optional
+``[torch]`` extra and registers ``torch-mlp`` through the ``surroforge.trainers``
+entry point (via the guard module ``trainers/torch_mlp.py``, resolvable without
+torch installed) — never Core's ``_BUILTIN`` table. Core stays torch-free.
+Switching backends is a one-line config edit: ``torch-mlp`` mirrors ``mlp``'s
+exact hyperparameter surface, so the same YAML trains either scikit-learn or
+PyTorch.
 
 Design choices for a reproducibility-first surrogate tool:
 
@@ -118,6 +119,7 @@ class TorchMLPTrainer(BaseTrainer):
     """
 
     name = "torch-mlp"
+    required_tier = "professional"
     # float32 network: a same-seed refit is bit-identical in-process, but float32
     # reductions are not bit-stable across threads/platforms — so it declares a small,
     # honest band (looser than mlp's 1e-6). A changed seed moves predictions by ~1e-2
