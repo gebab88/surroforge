@@ -78,19 +78,20 @@ Open Core. Der Produktkern ist Open Source unter Apache 2.0, kommerzielle Erweit
 | OpenFOAM-Ingestion, minimaler Run-Store | ✓ | ✓ | ✓ |
 | Python-API und Plugin-Schnittstellen | ✓ | ✓ | ✓ |
 | Erweiterte Methoden (Random Forest, Gradient Boosting) | — | ✓ | ✓ |
-| Neuronale Netze (sklearn-MLP, PyTorch, Autoencoder) | — | ✓ | ✓ |
+| Neuronale Netze (sklearn-MLP, PyTorch) | — | ✓ | ✓ |
 | Skalierbare Gaussian Processes (Sparse GP, GPyTorch) | — | ✓ | ✓ |
 | Feld-ROM mit NN-/erweitertem Inner-Surrogat | — | ✓ | ✓ |
 | Reproduzierbarkeit & Lineage (`reproduce`, Herkunfts-Hashes, Lineage-Ansicht/-Export) | — | ✓ | ✓ |
 | Modell-Export (ONNX, Pickle) | — | ✓ | ✓ |
 | HTML-Reports (interaktiv), DoE/Sampling, erweiterte Vergleiche | — | ✓ | ✓ |
 | Lizenz-Aktivierung (Datei/Online) | — | ✓ | ✓ |
+| Autoencoder-Feld-Surrogate (nichtlineare Reduktion) | — | — | ✓ |
 | Active Learning, Multi-Fidelity | — | — | ✓ |
 | PDF-Audit-Reports mit Lineage/Compliance-Anhang | — | — | ✓ |
 | Floating-Lizenzen, Site-License | — | — | ✓ |
 | SLA-Support, Customer Success | — | — | ✓ |
 
-**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment* (Modell-Export) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus.
+**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment* (Modell-Export) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus — stufen-bewusst: das Autoencoder-Feld-Surrogat verlangt die Enterprise-Stufe.
 
 ### 3.3 Lizenzaktivierung
 
@@ -194,6 +195,7 @@ Cross-Validation: k-fold mit konfigurierbarem k. Standardmetriken: RMSE, R², MA
 
 ### 4.8 Methoden (Phase 3 — Enterprise)
 
+- **Autoencoder-Feld-Surrogate** (nichtlineare Feld-Reduktion, über PyTorch)
 - **Active Learning** mit Acquisition-Funktionen (über BoTorch)
 - **Multi-Fidelity-Modelle** (Co-Kriging, hierarchische Modelle)
 
@@ -320,8 +322,8 @@ surroforge/
 
 Kommerzielle Module liegen in separaten Paketen:
 ```
-surroforge-professional/  # Erw. Methoden (RF/Boosting/NN), Export, Repro/Lineage, HTML-Reports, DoE
-surroforge-enterprise/    # Active Learning, Multi-Fidelity, Audit-PDF
+surroforge_professional/  # Erw. Methoden (RF/Boosting/NN), Export, Repro/Lineage, HTML-Reports, DoE
+surroforge_enterprise/    # Autoencoder-Feld-Surrogat, Active Learning, Multi-Fidelity, Audit-PDF
 ```
 
 ### 6.3 Abhängigkeiten und Lizenzen
@@ -419,7 +421,7 @@ Inhalte:
 **Ziel:** Erste kommerzielle Edition. Beginn der Monetarisierung.
 
 Inhalte:
-- Erweiterte Methoden: skalierbare Gaussian Processes, Random Forest, Gradient Boosting, neuronale Netze (sklearn-MLP, PyTorch, Autoencoder)
+- Erweiterte Methoden: skalierbare Gaussian Processes, Random Forest, Gradient Boosting, neuronale Netze (sklearn-MLP, PyTorch)
 - Reproduzierbarkeit & Lineage: Herkunfts-Hashing, `reproduce`, Lineage-Ansicht (`info`/`compare`) und Lineage-Export
 - Modell-Export (ONNX, Pickle)
 - HTML-Reports mit interaktiven Visualisierungen
@@ -435,6 +437,7 @@ Inhalte:
 **Ziel:** Enterprise-fähiges Produkt. Audit-Funktionen, größere Vertragsvolumen.
 
 Inhalte:
+- Autoencoder-Feld-Surrogat
 - Active Learning mit Acquisition-Funktionen
 - Multi-Fidelity-Modelle
 - PDF-Audit-Reports mit Lineage-Tracking

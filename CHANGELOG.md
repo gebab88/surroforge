@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Editionen (Breaking)
+
+- **`mlp`, `random-forest`, `gradient-boosting` sind Professional-Methoden** und leben jetzt
+  im `surroforge_professional`-Plugin (Entry-Points statt Core-Builtins). Auflösung ohne
+  Lizenz schlägt mit einem klaren `PluginError` fehl; `SURROFORGE_PRO_LICENSE` (oder
+  `~/.surroforge/professional.lic`) schaltet frei. Core behält Kriging, RBF, Polynom und
+  `reduced-field` (mit Nicht-NN-Inner).
+- **`torch-mlp` + `pt`-Exporter** sind in `surroforge_professional` aufgegangen (optionales
+  Extra: `pip install 'surroforge_professional[torch]'`); das separate `surroforge-torch`-Paket
+  entfällt.
+- **`autoencoder-field` ist eine Enterprise-Methode** im neuen `surroforge_enterprise`-Paket;
+  eine Professional-Lizenz schaltet sie nicht frei (Stufen: professional < enterprise). Das
+  separate `surroforge-autoencoder`-Paket entfällt.
+- **Plugin-Seam (additiv, API v1 unverändert):** Plugins können `required_tier` deklarieren;
+  Editionen registrieren Authorizer über die neue Entry-Point-Gruppe `surroforge.authorizers`.
+- **Hinweis:** bestehende lokale Run-Stores mit `mlp`/`torch-mlp`-Modellen (Pickle-Modulpfade)
+  müssen neu trainiert werden; die Modulpfade haben sich durch den Umzug geändert.
+
 ### Added — Python API
 
 - **`Run.export(fmt, output=None)`** — an object-level binding of
