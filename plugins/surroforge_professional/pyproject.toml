@@ -30,6 +30,9 @@ doe = "surroforge_professional.commands.doe:doe_app"
 [project.entry-points."surroforge.comparison_reporters"]
 html = "surroforge_professional.reports.comparison:HtmlComparisonReporter"
 
+[project.entry-points."surroforge.authorizers"]
+professional = "surroforge_professional.license:authorize"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/surroforge_professional"]
 
