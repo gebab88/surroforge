@@ -100,6 +100,7 @@ class _AutoencoderModule(nn.Module):
 
 class AutoencoderFieldTrainer(BaseTrainer):
     name = "autoencoder-field"
+    required_tier = "enterprise"
     export_formats = frozenset({"pickle"})
     reproduction_tolerance = 1e-4
 

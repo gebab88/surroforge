@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "surroforge_enterprise"
+version = "0.1.0"
+description = "Enterprise edition for SurroForge: autoencoder field surrogate (more to come in Phase 3)."
+readme = { text = "Enterprise edition for SurroForge.", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "SurroForge" }]
+keywords = ["surrogate", "surroforge", "autoencoder", "field-rom", "enterprise"]
+dependencies = [
+    "surroforge",
+    "surroforge_professional",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+torch = ["torch>=2.0"]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
+
+[project.entry-points."surroforge.trainers"]
+autoencoder-field = "surroforge_enterprise.trainers.autoencoder_field:AutoencoderFieldTrainer"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/surroforge_enterprise"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

@@ -9,7 +9,14 @@ import pytest
 from sklearn.metrics import r2_score
 
 from surroforge.errors import TrainerError
-from surroforge_autoencoder import AutoencoderFieldTrainer
+from surroforge_enterprise.trainers.autoencoder_field import AutoencoderFieldTrainer
+
+# Not found by a direct grep for get_trainer/available_trainers (this file constructs
+# AutoencoderFieldTrainer directly), but fit() delegates to the "mlp" inner by default,
+# and mlp is professional-tier gated (Task 8) — so a license is needed for the two tests
+# that call fit(). An enterprise licence satisfies both the mlp (professional) and, were
+# it ever checked here, the autoencoder-field (enterprise) requirement.
+pytestmark = pytest.mark.usefixtures("licensed_enterprise")
 
 
 def smooth_field_fixture():
@@ -29,11 +36,12 @@ def smooth_field_fixture():
 
 
 def test_pyproject_declares_autoencoder_field_entry_point():
-    data = tomllib.loads(Path("plugins/surroforge-autoencoder/pyproject.toml").read_text())
+    data = tomllib.loads(Path("plugins/surroforge_enterprise/pyproject.toml").read_text())
     trainers = data["project"]["entry-points"]["surroforge.trainers"]
     assert trainers == {
-        "autoencoder-field": "surroforge_autoencoder.trainer:AutoencoderFieldTrainer"
+        "autoencoder-field": "surroforge_enterprise.trainers.autoencoder_field:AutoencoderFieldTrainer"
     }
+    assert data["project"]["license"] == {"text": "Proprietary"}
 
 
 def test_constructor_rejects_invalid_hyperparameters():
