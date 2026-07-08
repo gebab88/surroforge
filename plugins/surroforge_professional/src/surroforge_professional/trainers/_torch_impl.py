@@ -1,4 +1,4 @@
-"""PyTorch neural-network surrogate — the ``surroforge-torch`` plugin (Epic R7).
+"""PyTorch neural-network surrogate — ``torch-mlp`` in surroforge_professional (Epic R7).
 
 This is the heavyweight-framework counterpart of ``mlp``. Since the Wave-1
 editions split it ships inside ``surroforge_professional`` behind the optional
@@ -321,7 +321,7 @@ class TorchMLPTrainer(BaseTrainer):
         if importlib.util.find_spec("onnx") is None:
             raise ExportError(
                 "ONNX export requires the 'onnx' package (and 'onnxruntime' to run the model). "
-                "Install them with: pip install 'surroforge-torch[onnx]'"
+                "Install them with: pip install 'surroforge_professional[onnx]'"
             )
         self._model.eval()
         buffer = io.BytesIO()

@@ -193,7 +193,7 @@ def test_passes_conformance_suite():
 
 _needs_ort = pytest.mark.skipif(
     importlib.util.find_spec("onnxruntime") is None,
-    reason="requires onnxruntime (the surroforge-torch[onnx] extra)",
+    reason="requires onnxruntime (the surroforge_professional[onnx] extra)",
 )
 
 
@@ -245,7 +245,7 @@ def test_onnx_export_hint_when_onnx_missing(monkeypatch):
         "find_spec",
         lambda name, *a, **k: None if name == "onnx" else real_find_spec(name, *a, **k),
     )
-    with pytest.raises(ExportError, match=r"surroforge-torch\[onnx\]"):
+    with pytest.raises(ExportError, match=r"surroforge_professional\[onnx\]"):
         t.to_onnx(n_features=2)
 
 
