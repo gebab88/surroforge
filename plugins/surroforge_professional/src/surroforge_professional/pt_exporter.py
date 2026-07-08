@@ -1,4 +1,4 @@
-"""Native PyTorch ``.pt`` exporter — registered by the ``surroforge-torch`` plugin.
+"""Native PyTorch ``.pt`` exporter — part of surroforge_professional (needs the [torch] extra).
 
 Registered through the ``surroforge.exporters`` entry point only (never Core's
 ``_BUILTIN`` table), so Core stays torch-free and only gains the ``pt`` format when this
