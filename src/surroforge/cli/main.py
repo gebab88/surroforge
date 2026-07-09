@@ -22,8 +22,8 @@ from surroforge.core.project import Project
 from surroforge.core.run import FieldCoverageWarning, ProvenanceWarning, Run
 from surroforge.data import SUPPORTED_SUFFIXES, load_table, read_openfoam_sweep
 from surroforge.engine import run_training
-from surroforge.errors import DataError, SurroForgeError
-from surroforge.plugins import available_commands, get_trainer
+from surroforge.errors import DataError, PluginError, SurroForgeError
+from surroforge.plugins import available_commands, get_exporter, get_trainer
 
 app = typer.Typer(
     help="SurroForge — surrogate models for FEM/CFD simulation data.",
@@ -341,9 +341,15 @@ def train(
     _success(f"Run {run.run_id} complete.")
     _metrics_summary(run)
     # Discoverability: ONNX is now opt-in, so point users at the on-demand path
-    # when the trained method actually supports it (e.g. polynomial).
+    # when the trained method supports it AND the exporter actually resolves —
+    # since Wave 2 it is Professional; don't advertise a command that would fail.
     if not onnx and "onnx" in getattr(get_trainer(cfg.model.method), "export_formats", frozenset()):
-        _info(f"  ONNX export available — run 'surroforge export {run.run_id} --format onnx'.")
+        try:
+            get_exporter("onnx")
+        except PluginError:
+            pass
+        else:
+            _info(f"  ONNX export available — run 'surroforge export {run.run_id} --format onnx'.")
 
 
 @app.command()

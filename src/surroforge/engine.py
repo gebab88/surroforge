@@ -30,7 +30,6 @@ from surroforge.core.run import (
 )
 from surroforge.data.loader import expand_field_columns, select_columns
 from surroforge.errors import DataError, TrainerError
-from surroforge.exporters.onnx_exporter import ONNXExporter
 from surroforge.persistence import (
     capture_environment,
     dump_model,
@@ -38,7 +37,7 @@ from surroforge.persistence import (
     write_npz,
     write_yaml,
 )
-from surroforge.plugins import get_trainer
+from surroforge.plugins import get_exporter, get_trainer
 from surroforge.trainers.base import BaseTrainer
 from surroforge.validators import compute_metrics, cross_validate, validate_metric_names
 
@@ -287,7 +286,11 @@ def run_training(
     onnx_exported = False
     if export_onnx and final_model.supports_export("onnx"):
         try:
-            ONNXExporter().export(final_model, run_dir / MODEL_ONNX, n_features=n_features)
+            # Resolved through the plugin seam: since Wave 2 the ONNX exporter is
+            # Professional, so resolution itself may raise (unlicensed or not
+            # installed) — the same best-effort skip covers that (PRD 3.2).
+            exporter = get_exporter("onnx")()
+            exporter.export(final_model, run_dir / MODEL_ONNX, n_features=n_features)
             onnx_exported = True
         except Exception as exc:  # ONNX is best-effort; never fail a run over it
             log(f"ONNX export skipped: {exc}")
