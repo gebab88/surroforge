@@ -56,7 +56,7 @@ Unknown top-level keys are rejected.
 
 | Field | Type | Default | Notes |
 |---|---|---|---|
-| `method` | string | — (required) | A registered method: `kriging`, `rbf`, `polynomial`, `mlp`, `gradient-boosting`, `random-forest`, `reduced-field`, or a plugin (e.g. `torch-mlp` from the [`surroforge-torch`](https://github.com/gebab88/surroforge/tree/main/plugins/surroforge-torch) package — a PyTorch MLP that switches in by changing this field). |
+| `method` | string | — (required) | A registered method. Core: `kriging`, `rbf`, `polynomial`, `reduced-field`. Professional (licensed): `mlp`, `gradient-boosting`, `random-forest`, and `torch-mlp` (a PyTorch MLP that switches in by changing this field; needs the `[torch]` extra of [`surroforge_professional`](https://github.com/gebab88/surroforge/tree/main/plugins/surroforge_professional)). Enterprise: `autoencoder-field`. |
 | *(any other key)* | — | — | Collected as **method-specific hyperparameters** and passed straight to the trainer. |
 
 Hyperparameters are not enumerated centrally — each method validates its own and

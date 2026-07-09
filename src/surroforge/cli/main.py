@@ -365,7 +365,7 @@ def compare(
         "--format",
         "-f",
         help="Output format: 'terminal' prints tables; anything else is resolved as a "
-        "comparison-reporter plugin (e.g. 'html' from surroforge-professional).",
+        "comparison-reporter plugin (e.g. 'html' from surroforge_professional).",
     ),
     output: Path = typer.Option(
         None, "--output", "-o", help="Destination file (needs a file-producing --format)."

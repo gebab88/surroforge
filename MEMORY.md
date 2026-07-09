@@ -8,8 +8,10 @@ Code allein ersichtlich ist: Architektur, Befehle, Konventionen und Entscheidung
 CLI-Werkzeug (mit spiegelgleicher Python-API) zum Erstellen, Validieren und
 Verwalten von **Surrogate-Modellen** aus tabellarischen FEM/CFD-Simulationsdaten.
 Open Core unter Apache 2.0. Maßgeblich ist `PRD.md`; **Phase 1 (MVP)** ist umgesetzt,
-und der aktuelle Stand geht bereits darüber hinaus: Field-ROM/OpenFOAM-Erweiterungen,
-`mlp`, ein PyTorch-Plugin und ein erster Professional-HTML-Reporter sind vorhanden.
+und der aktuelle Stand geht bereits darüber hinaus: Field-ROM/OpenFOAM-Erweiterungen
+sowie die Editionen-Aufteilung (Welle 1): NN-/Ensemble-Methoden (`mlp`, `random-forest`,
+`gradient-boosting`, `torch-mlp`) sind lizenzpflichtig in `surroforge_professional`,
+`autoencoder-field` ist Enterprise-tier in `surroforge_enterprise`.
 
 **Kernversprechen:** vom Solver-Output zum validierten, reproduzierbaren
 Surrogate-Modell — Daten, Konfiguration und Modelle sauber versioniert.
@@ -21,8 +23,8 @@ Surrogate-Modell — Daten, Konfiguration und Modelle sauber versioniert.
 - **Installieren:** `.venv/bin/pip install -e '.[all,dev]'`
 - **CLI:** `.venv/bin/surroforge --help`
 - **Tests Core:** `.venv/bin/python -m pytest tests` (aktuell 430 gesammelt)
-- **Tests Plugins:** `.venv/bin/python -m pytest plugins/surroforge-professional/tests`
-  und `.venv/bin/python -m pytest plugins/surroforge-torch/tests`
+- **Tests Plugins:** `.venv/bin/python -m pytest plugins/surroforge_professional/tests`
+  und `.venv/bin/python -m pytest plugins/surroforge_enterprise/tests`
 - **Lint/Typen:** `.venv/bin/ruff check src tests` · `.venv/bin/mypy src`
 
 Vor Release die Gates aus `RELEASING.md` frisch ausführen.
@@ -34,10 +36,10 @@ src/surroforge/
 ├── cli/main.py      # Typer-CLI; alle Befehle aus PRD 4.2; _guard rendert Fehler sauber
 ├── core/            # config (Pydantic), project, run, dataset
 ├── data/            # loader (CSV/Parquet/HDF5), OpenFOAM/mesh readers, hashing
-├── trainers/        # base + polynomial, kriging/rbf, mlp, reduced-field
+├── trainers/        # base + polynomial, kriging/rbf, reduced-field (mlp/RF/GB: professional)
 ├── validators/      # metrics (RMSE/R²/MAE + field metrics), cross_validation
-├── exporters/       # base, pickle (immer), onnx; pt kommt über surroforge-torch
-├── reporters/       # base, markdown; html kommt über surroforge-professional
+├── exporters/       # base, pickle (immer), onnx; pt kommt über surroforge_professional[torch]
+├── reporters/       # base, markdown; html kommt über surroforge_professional
 ├── persistence/     # store: atomare I/O, Run-IDs, Environment-Capture
 ├── plugins/         # registry/gate/seam: Entry-Points + Builtin-Fallback
 ├── api/highlevel.py # Project, Trainer (PRD 4.10)
@@ -56,16 +58,18 @@ Daten** (das gespeicherte Artefakt) und schreibt `runs/<id>/` mit `config.snapsh
 - **Plugin-Registry:** Trainer/Exporter/Reporter werden über Entry-Point-Gruppen
   (`surroforge.trainers|exporters|reporters`) entdeckt. Eine Builtin-Fallback-Tabelle
   sorgt dafür, dass ein Source-Checkout ohne `pip install` ebenfalls funktioniert.
-  Externe/kommerzielle Pakete nutzen denselben Mechanismus (`surroforge-torch`,
-  `surroforge-professional`).
+  Externe/kommerzielle Pakete nutzen denselben Mechanismus (`surroforge_professional`,
+  `surroforge_enterprise`); lizenzpflichtige Trainer deklarieren `required_tier`, den
+  die Registry über die `surroforge.authorizers`-Entry-Points durchsetzt.
 - **Optionale Backends lazy:** SMT (Kriging/RBF), ONNX, meshio und schwere Plugin-Backends
   werden erst zur Laufzeit bzw. über Extras/Plugins geladen; fehlende Backends scheitern
   beim `fit`/`export`/Importpfad mit klarer Meldung.
 - **Kriging/RBF sind single-output** (SMT-Limitierung). Multi-Output ist über `mlp`,
   `torch-mlp` und Feld-ROM-Pfade abgedeckt, nicht über SMT.
 - **Professional-HTML ist Plugin-only:** Core bleibt Markdown-only. Der HTML-Reporter lebt
-  in `plugins/surroforge-professional/`, registriert `html` per Entry Point und nutzt in v1
-  nur eine lokale Lizenzprüfung (`SURROFORGE_PRO_LICENSE` oder Datei), keine Online-Aktivierung.
+  in `plugins/surroforge_professional/`, registriert `html` per Entry Point und nutzt in v1
+  nur eine lokale, tier-aware Lizenzprüfung (`SURROFORGE_PRO_LICENSE` oder Datei; Wert mit
+  „enterprise" schaltet die Enterprise-Stufe frei), keine Online-Aktivierung.
 - **Reproduzierbarkeit:** Jeder Lauf speichert einen *Prediction-Fingerprint*
   (SHA-256 über Vorhersagen auf den Trainingsinputs). `reproduce` vergleicht ihn
   → Polynom reproduziert bit-identisch. Daten-Hash: bei registrierten Datensätzen
@@ -99,9 +103,11 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
 - Git ist initialisiert; `main` läuft gegen `origin/main`.
 - Implementierungspläne liegen als getrackte Artefakte unter `docs/superpowers/plans/`
   (`2026-06-23-professional-html-reports.md`, `2026-06-25-autoencoder-field-plugin.md`).
-- Phase 2 ist begonnen (`surroforge-torch`, `surroforge-professional`, `surroforge-autoencoder`,
-  OpenFOAM/Field-ROM), aber nicht vollständig: offen sind laut PRD u. a. GP/RF/Boosting-Methoden,
-  erweiterte Run-Vergleiche, echte Lizenz-Aktivierung, DoE-Modul und Support-Infrastruktur.
+- Phase 2 ist weit fortgeschritten (`surroforge_professional` mit mlp/RF/GB/torch-mlp,
+  `surroforge_enterprise` mit autoencoder-field, OpenFOAM/Field-ROM, DoE, erweiterte
+  Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP, Export-Gating
+  (Welle 2), reproduce/Lineage-Gating (Welle 3), echte Lizenz-Aktivierung (M3) und
+  Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
 - Produktvalidierung/Interviews/Pilotkunden sind für die aktuelle Engineering-Queue

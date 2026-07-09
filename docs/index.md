@@ -32,16 +32,22 @@ Phase 1 (MVP).
 - **Extensible by design.** New methods, exporters, and reporters register through
   entry points — the built-ins use exactly that mechanism.
 
-## Methods (Core / MVP)
+## Methods
 
-| Method | `model.method` | Backend | Extra |
+| Method | `model.method` | Backend | Edition / Extra |
 |---|---|---|---|
-| Kriging (Gaussian process) | `kriging` | SMT | `surroforge[smt]` |
-| Radial Basis Functions | `rbf` | SMT | `surroforge[smt]` |
-| Polynomial regression | `polynomial` | scikit-learn | (core) |
-| Gradient boosting | `gradient-boosting` | scikit-learn | (core) |
-| Random forest | `random-forest` | scikit-learn | (core) |
+| Kriging (Gaussian process) | `kriging` | SMT | Core (`surroforge[smt]`) |
+| Radial Basis Functions | `rbf` | SMT | Core (`surroforge[smt]`) |
+| Polynomial regression | `polynomial` | scikit-learn | Core |
+| Field ROM (POD + inner method) | `reduced-field` | scipy + inner | Core |
+| Neural network (MLP) | `mlp` | scikit-learn | Professional (licensed) |
+| Gradient boosting | `gradient-boosting` | scikit-learn | Professional (licensed) |
+| Random forest | `random-forest` | scikit-learn | Professional (licensed) |
+| PyTorch MLP | `torch-mlp` | PyTorch | Professional (`surroforge_professional[torch]`) |
+| Autoencoder field surrogate | `autoencoder-field` | PyTorch | Enterprise (`surroforge_enterprise[torch]`) |
 
+Licensed methods need `SURROFORGE_PRO_LICENSE` (or `~/.surroforge/professional.lic`);
+an enterprise licence unlocks the professional tier as well.
 Cross-validation is k-fold; the standard metrics are RMSE, R², and MAE.
 
 The Professional HTML report includes interactive charts — parity, residual, per-fold
