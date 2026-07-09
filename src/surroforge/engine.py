@@ -31,8 +31,13 @@ from surroforge.core.run import (
 from surroforge.data.loader import expand_field_columns, select_columns
 from surroforge.errors import DataError, TrainerError
 from surroforge.exporters.onnx_exporter import ONNXExporter
-from surroforge.exporters.pickle_exporter import PickleExporter
-from surroforge.persistence import capture_environment, write_json, write_npz, write_yaml
+from surroforge.persistence import (
+    capture_environment,
+    dump_model,
+    write_json,
+    write_npz,
+    write_yaml,
+)
 from surroforge.plugins import get_trainer
 from surroforge.trainers.base import BaseTrainer
 from surroforge.validators import compute_metrics, cross_validate, validate_metric_names
@@ -230,7 +235,7 @@ def run_training(
     log(f"Run id: {run.run_id}")
 
     write_yaml(run_dir / CONFIG_SNAPSHOT, canonical_config.canonical_dict())
-    PickleExporter().export(final_model, run_dir / MODEL_PICKLE, n_features=n_features)
+    dump_model(final_model, run_dir / MODEL_PICKLE)
 
     # Content-addressed reduction-artifact store (Story R4.1): the FINAL model's
     # basis/mean/spectrum — the arrays `rom inspect` (R4.2) reads back; predict uses

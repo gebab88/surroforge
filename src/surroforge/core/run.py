@@ -259,11 +259,11 @@ class Run:
         return self.onnx_path.is_file()
 
     def load_model(self) -> Any:
-        from surroforge.exporters.pickle_exporter import load_pickle
+        from surroforge.persistence.model_io import load_model
 
         self._require()
         _warn_if_foreign_artifact(self.model_path, self.lineage)
-        return load_pickle(self.model_path)
+        return load_model(self.model_path)
 
     def export(self, fmt: str, output: str | Path | None = None) -> Path:
         """Export this run's fitted model to ``fmt`` and return the path written.
