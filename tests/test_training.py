@@ -99,6 +99,19 @@ def test_onnx_exported_when_requested(project, licensed_export):
     assert run.lineage["onnx_exported"] is True
 
 
+def test_train_onnx_without_license_skips_gracefully(project, monkeypatch, tmp_path):
+    # Wave 2: the ONNX exporter is Professional. An unlicensed train --onnx must
+    # not fail the run — the best-effort block logs a skip instead. The assertion
+    # sticks to the skip prefix so it holds both with surroforge_professional
+    # installed (licence message) and without (unknown-format message).
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    run = run_training(project, parse_config(poly_config("polynomial")), export_onnx=True)
+    assert not run.has_onnx()
+    assert run.lineage["onnx_exported"] is False
+    assert "ONNX export skipped:" in (run.run_dir / "log.txt").read_text()
+
+
 def test_holdout_actual_persisted_and_aligned_with_fingerprint(project):
     run = run_training(project, parse_config(poly_config("polynomial")))
     actual = np.asarray(run.holdout_actual, dtype=float)

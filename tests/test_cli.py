@@ -94,6 +94,30 @@ def test_export_and_report(tmp_path, licensed_export):
     assert (root / "reports" / "run-001.md").is_file()
 
 
+def test_train_hint_suppressed_when_exporter_unlicensed(tmp_path, monkeypatch):
+    # Wave 2: don't advertise 'surroforge export … --format onnx' when resolving
+    # the exporter would fail (unlicensed or professional not installed).
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+
+    result = runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    assert result.exit_code == 0
+    assert "ONNX export available" not in result.output
+
+
+def test_train_hint_appears_when_exporter_licensed(tmp_path, licensed_export):
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+
+    result = runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    assert result.exit_code == 0
+    assert "ONNX export available" in result.output
+
+
 def test_reproduce_cli(tmp_path):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
