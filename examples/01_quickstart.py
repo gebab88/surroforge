@@ -24,7 +24,6 @@ import pandas as pd
 from surroforge import Project, Trainer
 from surroforge.services import (
     assert_reproducible,
-    export_model,
     generate_report,
     predict_with_run,
     reproduce,
@@ -82,10 +81,10 @@ def main(workdir: Path) -> None:
     print("\nPredictions on 5 new points:")
     print(preds.to_string(index=False))
 
-    # 7. Export the trained model. Pickle is always available; ONNX is declared
-    #    per method (polynomial supports it, with the `onnx` extra installed).
-    model_path = export_model(run, "pickle")
-    print(f"\nExported model -> {model_path.name}")
+    # 7. The fitted model is already persisted in the run store — predict works
+    #    from it directly. Standalone export (pickle/ONNX via `export_model` or
+    #    `surroforge export`) is a Professional feature since the editions split.
+    print(f"\nStored model artifact -> {run.model_path.name}")
 
     # 8. Report (Markdown, under the project's reports/ directory).
     report_path, _text = generate_report(project, run)

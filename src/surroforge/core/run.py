@@ -270,11 +270,12 @@ class Run:
 
         The object-level binding of :func:`surroforge.services.export_model`, so the
         Python API mirrors the ``surroforge export`` CLI (``run = trainer.fit(...);
-        run.export("onnx", "model.onnx")``). ``fmt`` is any registered export format the
-        run's method declares — ``pickle`` and ``onnx`` are built in, ``pt`` is added by
-        the ``surroforge_professional`` plugin (with the ``[torch]`` extra); an unsupported
-        pair raises :class:`~surroforge.errors.ExportError`. ``output`` defaults to
-        ``model<ext>`` inside the run directory.
+        run.export("onnx", "model.onnx")``). ``fmt`` is any registered export format the run's
+        method declares. Since the Wave-2 editions split every export format is provided by a
+        plugin: ``pickle`` and ``onnx`` come with ``surroforge_professional`` (licensed), ``pt``
+        additionally needs its ``[torch]`` extra. An unsupported pair raises
+        :class:`~surroforge.errors.ExportError`. ``output`` defaults to ``model<ext>`` inside the
+        run directory.
         """
         from surroforge.services import export_model
 

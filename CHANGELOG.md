@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`autoencoder-field` ist eine Enterprise-Methode** im neuen `surroforge_enterprise`-Paket;
   eine Professional-Lizenz schaltet sie nicht frei (Stufen: professional < enterprise). Das
   separate `surroforge-autoencoder`-Paket entfällt.
+- **Modell-Export ist Professional (Welle 2):** die Exporter `pickle` und `onnx` leben jetzt
+  (wie `pt`) lizenzpflichtig in `surroforge_professional`; `surroforge export`, `Run.export`
+  und `export_model` verlangen eine Lizenz. `train --onnx` ohne Lizenz überspringt den
+  Export sanft (`ONNX export skipped: …`) und lässt den Run durchlaufen. Der Run-Store
+  selbst (`model.pkl` schreiben/lesen für predict) bleibt frei in Core
+  (`surroforge.persistence.model_io`); das interne `load_pickle` ist durch
+  `persistence.model_io.load_model` ersetzt.
 - **Plugin-Seam (additiv, API v1 unverändert):** Plugins können `required_tier` deklarieren;
   Editionen registrieren Authorizer über die neue Entry-Point-Gruppe `surroforge.authorizers`.
 - **Hinweis:** bestehende lokale Run-Stores mit `mlp`/`torch-mlp`-Modellen (Pickle-Modulpfade)

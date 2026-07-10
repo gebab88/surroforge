@@ -528,7 +528,12 @@ def predict(
 @_guard
 def export(
     run_id: str = typer.Argument(..., help="Run id to export."),
-    format: str = typer.Option("onnx", "--format", "-f", help="Export format: onnx or pickle."),
+    format: str = typer.Option(
+        "onnx",
+        "--format",
+        "-f",
+        help="Export format — pickle/onnx need a Professional license; pt also the [torch] extra.",
+    ),
     output: Path = typer.Option(None, "--output", "-o", help="Destination path."),
 ) -> None:
     """Export a run's model (PRD 4.2)."""

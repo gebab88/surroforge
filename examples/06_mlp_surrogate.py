@@ -15,9 +15,10 @@ Run it:
 
     python examples/06_mlp_surrogate.py
 
-Self-contained: synthesises its own data in a temp dir and cleans up. ONNX
-export uses the optional `[onnx]` extra and degrades gracefully to pickle
-when it is absent.
+Self-contained: synthesises its own data in a temp dir and cleans up. Export is
+Professional (like `mlp` itself); ONNX conversion uses the plugin's `[onnx]`
+extra (`pip install 'surroforge_professional[onnx]'`) and degrades gracefully
+to a pickle export when the conversion stack is absent.
 
 Two notes the script doesn't belabour:
   * Being an ordinary trainer, `mlp` also serves as a `reduced-field` inner
@@ -104,7 +105,7 @@ def main(workdir: Path) -> None:
     except ExportError as exc:
         model_path = export_model(mlp_run, "pickle")
         print(f"\nONNX export unavailable ({exc}); exported pickle -> {model_path.name}")
-        print("Install the extra for ONNX: pip install 'surroforge[onnx]'")
+        print("Install the extra for ONNX: pip install 'surroforge_professional[onnx]'")
 
 
 if __name__ == "__main__":

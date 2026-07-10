@@ -61,7 +61,7 @@ Note (editions): the neural-network candidates (`mlp`, `torch-mlp`) are
 Professional methods — `pip install 'surroforge_professional[torch]'` and set
 `SURROFORGE_PRO_LICENSE`. The polynomial candidates run on Core alone.
 
-`ingest_and_train.py` also **exports** the trained surrogates: the best coefficient model to
+`ingest_and_train.py` also **exports** the trained surrogates (model export needs the Professional license already required for the NN candidates): the best coefficient model to
 `coeffs_surrogate.onnx`, the torch-mlp coefficient model to `coeffs_surrogate.pt` (a native PyTorch
 checkpoint, when the plugin is installed), and the pressure- and velocity-field surrogates to
 `field_surrogate.pkl` / `velocity_surrogate.pkl` (`reduced-field` is pickle-only). It then

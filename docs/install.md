@@ -5,7 +5,7 @@ SurroForge requires **Python 3.10 or newer** and is distributed on PyPI.
 ```bash
 pip install surroforge            # core
 pip install 'surroforge[smt]'     # + Kriging / RBF backends (SMT)
-pip install 'surroforge[onnx]'    # + ONNX export
+pip install 'surroforge[onnx]'    # + ONNX conversion backend (export is Professional)
 pip install 'surroforge[formats]' # + Parquet / HDF5 input
 pip install 'surroforge[rom]'     # + Field ROM (POD field reduction)
 pip install 'surroforge[all]'     # everything an MVP user might want
@@ -28,7 +28,7 @@ rather than a traceback.
 | Extra | Unlocks | Packages |
 |---|---|---|
 | `smt` | Kriging and RBF methods | `smt` |
-| `onnx` | ONNX model export | `skl2onnx`, `onnx`, `onnxruntime` |
+| `onnx` | ONNX conversion backend (model export itself is Professional) | `skl2onnx`, `onnx`, `onnxruntime` |
 | `formats` | Parquet and HDF5 input | `pyarrow`, `h5py` |
 | `rom` | Field ROM (`reduced-field`, POD field reduction) | — (uses core `numpy`/`scipy`) |
 | `all` | all of the above | — |

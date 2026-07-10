@@ -6,18 +6,18 @@ directory and cleans up on exit, so you can run any of them straight from a
 checkout:
 
 ```bash
-pip install -e .          # Core; add [smt] for Kriging/RBF, [onnx] for ONNX export
+pip install -e .          # Core; add [smt] for Kriging/RBF, [onnx] for the ONNX conversion backend
 python examples/01_quickstart.py
 ```
 
 | Script | Shows | Needs |
 | --- | --- | --- |
-| [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → export → report → reproduce | Core only |
+| [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → report → reproduce | Core only |
 | [`02_method_comparison.py`](https://github.com/gebab88/surroforge/blob/main/examples/02_method_comparison.py) | Train several methods, tabulate metrics, pick the best with `compare_runs` | Core (Kriging/RBF added if `smt` present) |
 | [`03_reproduction.py`](https://github.com/gebab88/surroforge/blob/main/examples/03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Core only |
 | [`04_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |
 | [`05_openfoam_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/05_openfoam_field_rom.py) | Ingest an OpenFOAM case sweep (parse `internalField`) into a field ROM | Core only |
-| [`06_mlp_surrogate.py`](https://github.com/gebab88/surroforge/blob/main/examples/06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Professional license (`mlp`); ONNX export adds `[onnx]` |
+| [`06_mlp_surrogate.py`](https://github.com/gebab88/surroforge/blob/main/examples/06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Professional license (`mlp`); ONNX export adds `surroforge_professional[onnx]` |
 | [`07_pod_nn_field.py`](https://github.com/gebab88/surroforge/blob/main/examples/07_pod_nn_field.py) | POD-NN: reduce a field with POD, learn the modal coefficients with an `mlp` inner, beat a polynomial inner | Core (polynomial inner); the `mlp` inner needs a Professional license |
 | [`08_torch_mlp.py`](https://github.com/gebab88/surroforge/blob/main/examples/08_torch_mlp.py) | Switch the NN backend with one config line — `mlp` (scikit-learn) ↔ `torch-mlp` (PyTorch), same hyperparameters | Professional license; the PyTorch half needs `surroforge_professional[torch]` |
 

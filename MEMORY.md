@@ -38,9 +38,9 @@ src/surroforge/
 ├── data/            # loader (CSV/Parquet/HDF5), OpenFOAM/mesh readers, hashing
 ├── trainers/        # base + polynomial, kriging/rbf, reduced-field (mlp/RF/GB: professional)
 ├── validators/      # metrics (RMSE/R²/MAE + field metrics), cross_validation
-├── exporters/       # base, pickle (immer), onnx; pt kommt über surroforge_professional[torch]
+├── exporters/       # nur base (Schnittstelle); pickle/onnx/pt sind Professional (Welle 2)
 ├── reporters/       # base, markdown; html kommt über surroforge_professional
-├── persistence/     # store: atomare I/O, Run-IDs, Environment-Capture
+├── persistence/     # store: atomare I/O, Run-IDs, Environment-Capture; model_io: Run-Store-Pickle
 ├── plugins/         # registry/gate/seam: Entry-Points + Builtin-Fallback
 ├── api/highlevel.py # Project, Trainer (PRD 4.10)
 ├── engine.py        # run_training: Orchestrator (Daten→Split→CV→Final-Modell→Persistenz)
@@ -105,8 +105,8 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
   (`2026-06-23-professional-html-reports.md`, `2026-06-25-autoencoder-field-plugin.md`).
 - Phase 2 ist weit fortgeschritten (`surroforge_professional` mit mlp/RF/GB/torch-mlp,
   `surroforge_enterprise` mit autoencoder-field, OpenFOAM/Field-ROM, DoE, erweiterte
-  Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP, Export-Gating
-  (Welle 2), reproduce/Lineage-Gating (Welle 3), echte Lizenz-Aktivierung (M3) und
+  Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP,
+  reproduce/Lineage-Gating (Welle 3), echte Lizenz-Aktivierung (M3) und
   Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.

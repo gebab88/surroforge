@@ -116,9 +116,13 @@ surroforge predict run-001 --input ../new_points.csv --output preds.csv
 
 ## 8. Export the model
 
+Standalone model export is a **Professional** feature — the trained model itself
+is already stored in the run directory, so predict/report/reproduce work without
+any export:
+
 ```bash
-surroforge export run-001 --format pickle           # always available
-surroforge export run-001 --format onnx             # polynomial only (needs onnx extra)
+surroforge export run-001 --format pickle           # Professional license required
+surroforge export run-001 --format onnx             # polynomial only (needs the onnx stack)
 ```
 
 A method that does not support a format fails with a clear message — export support

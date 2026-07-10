@@ -57,7 +57,7 @@ A training configuration bound to its method, ready to fit.
 |---|---|
 | `Trainer.from_config(path)` | Build from a YAML config file. |
 | `Trainer.from_dict(data)` | Build from an already-parsed mapping. |
-| `fit(target, *, export_onnx=False)` | Train and persist a run. `target` is a `Project` (data taken from the config) or a `Dataset` from `project.dataset(name)` (overrides `data.source`). ONNX export is opt-in (`export_onnx=True`); otherwise produce it later from the saved model via `export_model`. Returns a `Run`. |
+| `fit(target, *, export_onnx=False)` | Train and persist a run. `target` is a `Project` (data taken from the config) or a `Dataset` from `project.dataset(name)` (overrides `data.source`). ONNX export is opt-in (`export_onnx=True`) and needs a Professional license (unlicensed, the export is skipped and the run completes); otherwise produce it later via `export_model`. Returns a `Run`. |
 
 ## `Run`
 
@@ -88,7 +88,7 @@ High-level verbs shared by the CLI and API:
 | `compare_runs(project, run_ids, *, metric="rmse") -> dict` | Rank runs by a metric with per-run train/test/CV, best-per-metric, a config/hyperparameter diff, a lineage summary, and warnings (`runs`/`best`/`config_diff`/`lineage_summary`/`warnings`). |
 | `predict_with_run(run, frame) -> DataFrame` | Predict for an in-memory dataframe. |
 | `predict_from_file(run, path) -> DataFrame` | Predict for a data file. |
-| `export_model(run, fmt, output=None) -> Path` | Export to `pickle`/`onnx`/a plugin format (clear `ExportError` for unsupported pairs). |
+| `export_model(run, fmt, output=None) -> Path` | Export to `pickle`/`onnx`/a plugin format — Professional (licensed); clear `ExportError` for unsupported pairs. |
 | `generate_report(project, run, fmt="markdown", output=None) -> (Path, str)` | Render and write a report. |
 
 `ReproduceResult` carries `verdict`, `bit_identical`, `max_abs_diff`, `tolerance`,

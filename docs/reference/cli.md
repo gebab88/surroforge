@@ -33,10 +33,11 @@ List registered datasets with row/column counts and paths.
 ### `surroforge train -c <config.yaml> [--onnx]`
 Train a surrogate from a YAML [configuration](configuration.md). Prints the new run
 id and a train/test/CV metrics summary. `--config/-c` is required. The model is
-always saved as a pickle; ONNX export is **opt-in** with `--onnx` (it pulls in and
-runs `skl2onnx`, the dominant cost of a cheap method) — otherwise produce it later
-on demand with `surroforge export <run> --format onnx`, which rebuilds it from the
-saved model.
+always saved in the run store; ONNX export is **opt-in** with `--onnx` (it pulls in
+and runs `skl2onnx`, the dominant cost of a cheap method) — otherwise produce it
+later on demand with `surroforge export <run> --format onnx`. Model export is a
+Professional feature: without a license, `--onnx` logs `ONNX export skipped: …`
+and the run still completes.
 
 ### `surroforge list`
 List all runs in the project (id, method, created-at, test RMSE).
@@ -57,9 +58,11 @@ columns. With `--output/-o` (`.csv`/`.parquet`) predictions are written there;
 otherwise they print to stdout.
 
 ### `surroforge export <run_id> [-f FORMAT] [-o OUTPUT]`
-Export a run's model. `--format/-f` is `onnx` (default) or `pickle`; pickle is always
-available, ONNX only for methods that declare it (polynomial). An unsupported
-method/format pair fails with a clear message.
+Export a run's model — a **Professional** feature (licensed). `--format/-f` is
+`onnx` (default), `pickle`, or a plugin format such as `pt`; ONNX only for methods
+that declare it (e.g. polynomial, mlp). An unsupported method/format pair fails
+with a clear message. The run store's own `model.pkl` is written at train time
+regardless — predict never needs an export.
 
 ### `surroforge report <run_id> [-f FORMAT] [-o OUTPUT]`
 Generate a report (default `markdown`) under `reports/`.

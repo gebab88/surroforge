@@ -20,7 +20,7 @@ Read it locally with `pip install -e ".[docs]" && mkdocs serve`.
 ```bash
 pip install surroforge            # core
 pip install 'surroforge[smt]'     # + Kriging / RBF backends
-pip install 'surroforge[onnx]'    # + ONNX export
+pip install 'surroforge[onnx]'    # + ONNX conversion backend (export is Professional)
 pip install 'surroforge[formats]' # + Parquet / HDF5 input
 pip install 'surroforge[rom]'     # + Field ROM (POD field reduction)
 pip install 'surroforge[all]'     # everything
@@ -50,7 +50,7 @@ surroforge reproduce run-001
 
 # 5. Use the model
 surroforge predict run-001 --input ../new_points.csv --output preds.csv
-surroforge export run-001 --format onnx
+surroforge export run-001 --format onnx                    # Professional: model export
 surroforge report run-001
 ```
 
