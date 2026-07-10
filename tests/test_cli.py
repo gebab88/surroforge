@@ -78,7 +78,7 @@ def test_train_invalid_polynomial_degree_clean_error(tmp_path):
     assert "Traceback" not in result.output
 
 
-def test_export_and_report(tmp_path):
+def test_export_and_report(tmp_path, licensed_export):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
     runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])

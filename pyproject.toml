@@ -77,10 +77,6 @@ kriging = "surroforge.trainers.kriging:KrigingTrainer"
 rbf = "surroforge.trainers.rbf:RBFTrainer"
 reduced-field = "surroforge.trainers.reduced_field:ReducedFieldTrainer"
 
-[project.entry-points."surroforge.exporters"]
-pickle = "surroforge.exporters.pickle_exporter:PickleExporter"
-onnx = "surroforge.exporters.onnx_exporter:ONNXExporter"
-
 [project.entry-points."surroforge.reporters"]
 markdown = "surroforge.reporters.markdown:MarkdownReporter"
 

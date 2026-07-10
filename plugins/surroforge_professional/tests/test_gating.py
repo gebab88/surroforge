@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from surroforge.errors import PluginError
-from surroforge.plugins import available_trainers, get_trainer
+from surroforge.plugins import available_exporters, available_trainers, get_exporter, get_trainer
 
 
 @pytest.fixture
@@ -31,3 +31,25 @@ def test_pro_method_resolves_with_license(licensed, method):
 
 def test_pro_methods_listed_via_entry_points(licensed):
     assert {"mlp", "random-forest", "gradient-boosting"} <= set(available_trainers())
+
+
+# --- Exporters (Wave 2) --------------------------------------------------------
+
+
+@pytest.mark.parametrize("fmt", ["pickle", "onnx", "pt"])
+def test_exporter_denied_without_license(unlicensed, fmt):
+    with pytest.raises(PluginError) as err:
+        get_exporter(fmt)
+    assert "'professional' license" in str(err.value)
+    assert "SURROFORGE_PRO_LICENSE" in str(err.value)  # hint from the authorizer
+
+
+@pytest.mark.parametrize("fmt", ["pickle", "onnx", "pt"])
+def test_exporter_resolves_with_license(licensed, fmt):
+    cls = get_exporter(fmt)
+    assert cls.name == fmt
+    assert cls.required_tier == "professional"
+
+
+def test_exporters_listed_via_entry_points(licensed):
+    assert {"pickle", "onnx", "pt"} <= set(available_exporters())

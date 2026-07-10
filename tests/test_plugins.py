@@ -6,11 +6,9 @@ import pytest
 
 from surroforge.errors import PluginError
 from surroforge.plugins import (
-    available_exporters,
     available_reporters,
     available_trainers,
     get_comparison_reporter,
-    get_exporter,
     get_reporter,
     get_trainer,
 )
@@ -39,11 +37,28 @@ def test_unknown_trainer_raises():
         get_trainer("does-not-exist")
 
 
-def test_exporters_and_reporters_registered():
-    assert set(available_exporters()) >= {"pickle", "onnx"}
+def test_reporters_registered():
     assert "markdown" in available_reporters()
-    assert get_exporter("pickle").name == "pickle"
     assert get_reporter("markdown").name == "markdown"
+
+
+def test_exporters_not_in_core_builtin_table():
+    # pickle/onnx moved to surroforge_professional (Wave 2); Core's fallback table
+    # must not resurrect them for a source checkout.
+    from surroforge.plugins.registry import _BUILTIN, EXPORTER_GROUP
+
+    assert _BUILTIN[EXPORTER_GROUP] == {}
+
+
+def test_core_only_install_has_no_exporters(monkeypatch):
+    # Without any edition installed there is no export format at all — and the
+    # error is the editions-neutral "Unknown export format", not a licence pitch.
+    from surroforge.plugins import registry
+
+    monkeypatch.setattr(registry, "_entry_points_grouped", lambda group: {})
+    assert registry.available_exporters() == []
+    with pytest.raises(PluginError, match="Unknown export format"):
+        registry.get_exporter("pickle")
 
 
 def test_entry_point_scan_is_memoised():

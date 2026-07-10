@@ -73,6 +73,17 @@ def trained_run(project):
     return run_training(project, parse_config(poly_config("polynomial")))
 
 
+@pytest.fixture
+def licensed_export(monkeypatch):
+    """Grant the stub Professional licence for tests that export models (Wave 2).
+
+    Skips cleanly on a Core-only checkout: without surroforge_professional there
+    is no exporter to license — those paths are covered by the plugin's own suite.
+    """
+    pytest.importorskip("surroforge_professional")
+    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", "test-license")
+
+
 def poly_config(method: str = "polynomial") -> dict:
     """A minimal valid config dict for the registered 'beam' dataset."""
     model: dict = {"method": method}

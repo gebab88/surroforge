@@ -20,8 +20,9 @@ from surroforge.services import (
 from tests.conftest import make_samples, poly_config
 
 
-def test_scenario_greenfield(tmp_path):
+def test_scenario_greenfield(tmp_path, licensed_export):
     """From an empty directory to a validated, exported, reported model."""
+    # Export is Professional since Wave 2; the rest of the scenario is Core.
     csv = tmp_path / "samples.csv"
     make_samples().to_csv(csv, index=False)
 

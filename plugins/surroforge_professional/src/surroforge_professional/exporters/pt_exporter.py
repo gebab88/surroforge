@@ -1,10 +1,10 @@
-"""Native PyTorch ``.pt`` exporter — part of surroforge_professional (needs the [torch] extra).
+"""Native PyTorch ``.pt`` exporter (needs the [torch] extra) — licensed since Wave 2.
 
-Registered through the ``surroforge.exporters`` entry point only (never Core's
-``_BUILTIN`` table), so Core stays torch-free and only gains the ``pt`` format when this
-package is installed. It mirrors the built-in ONNX exporter: it delegates to the
-trainer's :meth:`to_pt`, so only a method that declares ``pt`` in ``export_formats``
-(today, ``torch-mlp``) can be exported this way.
+Registered through the ``surroforge.exporters`` entry point (never Core's
+``_BUILTIN`` table). It mirrors the ONNX exporter: it delegates to the trainer's
+:meth:`to_pt`, so only a method that declares ``pt`` in ``export_formats`` (today,
+``torch-mlp``) can be exported this way. The module import stays torch-free, so
+the licence seam runs before any torch import.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from surroforge.trainers.base import BaseTrainer
 class PtExporter(BaseExporter):
     name = "pt"
     extension = ".pt"
+    required_tier = "professional"
 
     def export(self, trainer: BaseTrainer, destination: Path, *, n_features: int) -> Path:
         if not trainer.supports_export("pt"):

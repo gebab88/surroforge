@@ -36,10 +36,10 @@ _BUILTIN: dict[str, dict[str, str]] = {
         "rbf": "surroforge.trainers.rbf:RBFTrainer",
         "reduced-field": "surroforge.trainers.reduced_field:ReducedFieldTrainer",
     },
-    EXPORTER_GROUP: {
-        "pickle": "surroforge.exporters.pickle_exporter:PickleExporter",
-        "onnx": "surroforge.exporters.onnx_exporter:ONNXExporter",
-    },
+    # Core ships no exporters since Wave 2 (PRD 3.2): pickle/onnx/pt are licensed
+    # and registered by surroforge_professional. The run store writes/reads
+    # model.pkl through persistence.model_io, independent of any exporter.
+    EXPORTER_GROUP: {},
     REPORTER_GROUP: {
         "markdown": "surroforge.reporters.markdown:MarkdownReporter",
     },

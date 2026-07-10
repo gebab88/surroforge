@@ -92,7 +92,7 @@ def test_onnx_export_is_opt_in_by_default(project):
     assert run.lineage["onnx_exported"] is False
 
 
-def test_onnx_exported_when_requested(project):
+def test_onnx_exported_when_requested(project, licensed_export):
     pytest.importorskip("skl2onnx")  # needs the 'onnx' extra
     run = run_training(project, parse_config(poly_config("polynomial")), export_onnx=True)
     assert run.has_onnx()

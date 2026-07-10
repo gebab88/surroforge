@@ -303,11 +303,12 @@ def test_pt_export_rejects_wrong_feature_count():
         t.to_pt(n_features=5)
 
 
-def test_pt_exporter_registered_on_seam():
+def test_pt_exporter_registered_on_seam(licensed):
     """The plugin registers the `pt` exporter on the Core seam, so Core resolves it without
-    any built-in entry — and writes a real .pt file for a fitted torch-mlp."""
+    any built-in entry — and writes a real .pt file for a fitted torch-mlp. Resolution is
+    licence-gated since Wave 2 (required_tier), hence the `licensed` fixture."""
     from surroforge.plugins import available_exporters, get_exporter
-    from surroforge_professional.pt_exporter import PtExporter
+    from surroforge_professional.exporters.pt_exporter import PtExporter
 
     assert "pt" in available_exporters()
     assert get_exporter("pt") is PtExporter
@@ -317,7 +318,7 @@ def test_pt_exporter_writes_file(tmp_path):
     x, y = _smooth_problem(n=80)
     t = TorchMLPTrainer(max_iter=100)
     t.fit(x, y)
-    from surroforge_professional.pt_exporter import PtExporter
+    from surroforge_professional.exporters.pt_exporter import PtExporter
 
     dest = PtExporter().export(t, tmp_path / "model.pt", n_features=2)
     assert dest.exists() and dest.suffix == ".pt"
