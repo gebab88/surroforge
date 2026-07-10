@@ -57,7 +57,7 @@ def test_core_only_install_has_no_exporters(monkeypatch):
 
     monkeypatch.setattr(registry, "_entry_points_grouped", lambda group: {})
     assert registry.available_exporters() == []
-    with pytest.raises(PluginError, match="Unknown export format"):
+    with pytest.raises(PluginError, match=r"Unknown export format 'pickle'\. Available: \[\]"):
         registry.get_exporter("pickle")
 
 

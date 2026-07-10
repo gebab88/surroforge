@@ -1,6 +1,6 @@
 """Greenfield, end to end — the Python-API twin of the CLI quickstart.
 
-From a raw data table to a *validated, exportable, reproducible* surrogate model,
+From a raw data table to a *validated, reproducible* surrogate model,
 driven entirely from Python (`Project` + `Trainer` + the `services` helpers). The
 CLI walkthrough in docs/quickstart.md does the same steps from the shell.
 

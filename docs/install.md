@@ -20,10 +20,11 @@ surroforge --help
 
 ## Optional backends
 
-Core runs standalone with the polynomial method, CSV input, and pickle export.
-The optional extras unlock more capability and are imported lazily — a method or
-format that needs a missing backend fails with a clear, actionable install hint
-rather than a traceback.
+Core runs standalone with the polynomial method and CSV input; the trained model
+is stored in the run directory, so predict needs no export (model export is a
+Professional feature). The optional extras unlock more capability and are imported
+lazily — a method or format that needs a missing backend fails with a clear,
+actionable install hint rather than a traceback.
 
 | Extra | Unlocks | Packages |
 |---|---|---|

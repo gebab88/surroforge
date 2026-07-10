@@ -14,7 +14,8 @@ surroforge validate run-001
 ```
 
 You finish with a saved model, train/test/CV metrics, and a complete lineage
-record — ready to predict, export, report, and reproduce.
+record — ready to predict, report, and reproduce (and to export, with a
+Professional license).
 
 !!! tip "What 'validated' means here"
     SurroForge always reports **out-of-sample** quality: a held-out test split and
@@ -29,7 +30,7 @@ decide — that is the [Method comparison](method-comparison.md) scenario.
 
 | Method | Good first choice when… |
 |---|---|
-| `polynomial` | the response is smooth and low-order; you want ONNX export. |
+| `polynomial` | the response is smooth and low-order; you want ONNX export (Professional). |
 | `kriging` | you want an interpolating GP with uncertainty-friendly behaviour. |
 | `rbf` | scattered data, smooth interpolation, few hyperparameters. |
 
