@@ -23,7 +23,7 @@ from surroforge.core.run import FieldCoverageWarning, ProvenanceWarning, Run
 from surroforge.data import SUPPORTED_SUFFIXES, load_table, read_openfoam_sweep
 from surroforge.engine import run_training
 from surroforge.errors import DataError, PluginError, SurroForgeError
-from surroforge.plugins import available_commands, get_exporter, get_trainer
+from surroforge.plugins import available_commands, gate, get_exporter, get_trainer
 
 app = typer.Typer(
     help="SurroForge — surrogate models for FEM/CFD simulation data.",
@@ -603,14 +603,22 @@ def info(run_id: str = typer.Argument(..., help="Run id to inspect.")) -> None:
     run = _project().run(run_id)
     lineage = run.lineage
     _info(f"Run {run.run_id}")
-    for key in (
-        "experiment", "method", "created_at", "data_source",
-        "config_hash", "data_hash", "seed", "prediction_hash",
-        "python_version", "surroforge_version", "parent_run",
-    ):
+    for key in ("experiment", "method", "created_at", "data_source"):
         _info(f"  {key:<18}: {lineage.get(key, '-')}")
     _info(f"  {'onnx_artifact':<18}: {'yes' if run.has_onnx() else 'no'}")
-    _info(f"  {'dependencies':<18}: {', '.join(lineage.get('dependencies', []))}")
+    # Provenance is a Professional surface (Wave 3); identity and metrics stay
+    # free. The hidden-line carries the gate's own editions-neutral message.
+    try:
+        gate.require_license("lineage")
+    except PluginError as exc:
+        _info(f"  (provenance hidden: {exc})")
+    else:
+        for key in (
+            "config_hash", "data_hash", "seed", "prediction_hash",
+            "python_version", "surroforge_version", "parent_run",
+        ):
+            _info(f"  {key:<18}: {lineage.get(key, '-')}")
+        _info(f"  {'dependencies':<18}: {', '.join(lineage.get('dependencies', []))}")
     _info("")
     _metrics_summary(run)
 

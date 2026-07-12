@@ -244,7 +244,7 @@ def test_compare_cli(tmp_path):
     assert "Best by test rmse" in result.output
 
 
-def test_info_cli(tmp_path):
+def test_info_cli(tmp_path, granted_license):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
     runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
@@ -252,6 +252,25 @@ def test_info_cli(tmp_path):
     assert result.exit_code == 0
     assert "config_hash" in result.output
     assert "polynomial" in result.output
+
+
+def test_info_cli_hides_provenance_without_license(tmp_path, monkeypatch):
+    # Wave 3: identity + metrics stay free; hashes/seed/versions are Professional.
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    result = runner.invoke(app, ["--config-dir", str(root), "info", "run-001"])
+
+    assert result.exit_code == 0
+    assert "experiment" in result.output
+    assert "polynomial" in result.output
+    assert "provenance hidden:" in result.output
+    assert "config_hash" not in result.output
+    assert "data_hash" not in result.output
+    assert "rmse" in result.output  # metrics stay free
 
 
 def test_version_cli():
