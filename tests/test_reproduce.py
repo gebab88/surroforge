@@ -19,6 +19,11 @@ from surroforge.services import (
 from tests.conftest import make_samples, poly_config, requires_reproducible_blas
 
 
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
+
+
 def test_reproduce_is_bit_identical(project):
     cfg = parse_config(poly_config("polynomial"))
     original = run_training(project, cfg)

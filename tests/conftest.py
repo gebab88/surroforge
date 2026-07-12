@@ -84,6 +84,20 @@ def licensed_export(monkeypatch):
     monkeypatch.setenv("SURROFORGE_PRO_LICENSE", "test-license")
 
 
+@pytest.fixture
+def granted_license(monkeypatch):
+    """Bypass the Wave-3 feature gate with a fake always-yes authorizer.
+
+    For tests of Core functionality that sits BEHIND the gate (reproduce math,
+    field reproduce, lineage panels) — works on a Core-only checkout, unlike
+    ``licensed_export`` (which needs the real professional authorizer). Never
+    use it in tests that assert UNLICENSED behavior: the fake ignores env/HOME.
+    """
+    from surroforge.plugins import gate
+
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: ((lambda tier: True),))
+
+
 def poly_config(method: str = "polynomial") -> dict:
     """A minimal valid config dict for the registered 'beam' dataset."""
     model: dict = {"method": method}

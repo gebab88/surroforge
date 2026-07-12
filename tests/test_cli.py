@@ -118,13 +118,28 @@ def test_train_hint_appears_when_exporter_licensed(tmp_path, licensed_export):
     assert "ONNX export available" in result.output
 
 
-def test_reproduce_cli(tmp_path):
+def test_reproduce_cli(tmp_path, granted_license):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
     runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
     result = runner.invoke(app, ["--config-dir", str(root), "reproduce", "run-001"])
     assert result.exit_code == 0
     assert "identical" in result.output.lower()
+
+
+def test_reproduce_cli_denied_without_license(tmp_path, monkeypatch):
+    # Wave 3: reproduce is a Professional feature — clean gate error, exit 1.
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    result = runner.invoke(app, ["--config-dir", str(root), "reproduce", "run-001"])
+
+    assert result.exit_code == 1
+    assert "'reproduce' requires a 'professional' license" in result.output
+    assert "Traceback" not in result.output
 
 
 def test_unknown_run_reports_clean_error(tmp_path):

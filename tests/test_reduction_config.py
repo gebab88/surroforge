@@ -10,12 +10,18 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from surroforge.core.config import parse_config
 from surroforge.core.project import Project
 from surroforge.engine import run_training
 from surroforge.services import assert_reproducible, reproduce
 from tests.test_reduced_field import low_rank_field
+
+
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
 
 
 def _field_project(tmp_path) -> Project:

@@ -28,7 +28,7 @@ from surroforge.errors import (
     ReproducibilityError,
     TrainerError,
 )
-from surroforge.plugins import get_comparison_reporter, get_exporter, get_reporter
+from surroforge.plugins import gate, get_comparison_reporter, get_exporter, get_reporter
 from surroforge.validators.metrics import FIELD_ENERGY_FLOOR
 
 # --- Reproduce ---------------------------------------------------------------
@@ -169,6 +169,8 @@ def reproduce(project: Project, run_id: str, *, echo: Any = None) -> ReproduceRe
     diagnostic lens, never a gate. A **scalar run** keeps the absolute byte/diff behaviour
     unchanged (the R2.4 regression guard).
     """
+    gate.require_license("reproduce")
+
     parent = project.run(run_id)
     config = parent.config
 

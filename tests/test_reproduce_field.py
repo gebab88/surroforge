@@ -31,6 +31,12 @@ from surroforge.services import (
 )
 from tests.conftest import poly_config
 
+
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
+
+
 N_DOF = 12
 
 

@@ -21,6 +21,11 @@ from surroforge.services import assert_reproducible, reproduce
 from tests.test_reduced_field import low_rank_field
 
 
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
+
+
 def _frame(**cols) -> pd.DataFrame:
     return pd.DataFrame(cols)
 

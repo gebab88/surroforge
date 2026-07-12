@@ -33,6 +33,11 @@ from surroforge.plugins import get_trainer
 from surroforge.services import ReproduceResult, assert_reproducible, reproduce
 from tests.conftest import poly_config
 
+
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
+
 # Lineage keys the field-primary fingerprint adds for a *field* run only; a scalar run
 # must carry NONE of them (the field code path is inert without a reducing trainer).
 # ``probe_coverage_energy`` (Story R2.5) is field-gated too, so it belongs in this guard.

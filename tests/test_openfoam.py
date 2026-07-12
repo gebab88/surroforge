@@ -345,7 +345,7 @@ def test_sweep_field_only_in_earlier_time_gives_clear_error(tmp_path):
 # --- AC6: the produced matrix trains through the unchanged reduced-field pipeline -----
 
 
-def test_sweep_trains_through_reduced_field_pipeline(tmp_path):
+def test_sweep_trains_through_reduced_field_pipeline(tmp_path, granted_license):
     from surroforge.core.config import parse_config
     from surroforge.core.project import Project
     from surroforge.engine import run_training

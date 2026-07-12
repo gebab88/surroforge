@@ -68,7 +68,7 @@ def test_scenario_method_comparison(tmp_path):
     assert set(result["runs"][0]["metrics"]) == {"rmse", "r2", "mae"}
 
 
-def test_scenario_reproduction(tmp_path):
+def test_scenario_reproduction(tmp_path, granted_license):
     """Reproduce a run months later: same config, same data, same model."""
     csv = tmp_path / "samples.csv"
     make_samples().to_csv(csv, index=False)

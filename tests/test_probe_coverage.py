@@ -39,6 +39,11 @@ from tests.conftest import poly_config
 from tests.test_reproduce_field import field_config, make_field_samples
 
 
+@pytest.fixture(autouse=True)
+def _grant_license(granted_license):
+    """reproduce is Professional since Wave 3; this module tests the Core math behind it."""
+
+
 def _const_field_config() -> dict:
     """A reduced-field config over a constant (zero-fluctuation) field on 'cfield'."""
     return {

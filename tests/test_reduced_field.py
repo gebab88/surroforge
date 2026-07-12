@@ -296,7 +296,7 @@ def test_conformance_with_smt_inner(method):
 
 @_needs_smt
 @requires_reproducible_blas
-def test_kriging_inner_field_run_reproduces(tmp_path):
+def test_kriging_inner_field_run_reproduces(tmp_path, granted_license):
     # Reproducibility for a tolerant SMT inner: reproduce() re-trains from the
     # snapshot, doubling the kriging fit count — hence the small Task-1 fixture.
     # Double-guarded: on Accelerate this measurably returns `diverged` (fit-to-fit
