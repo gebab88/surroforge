@@ -53,3 +53,22 @@ def test_exporter_resolves_with_license(licensed, fmt):
 
 def test_exporters_listed_via_entry_points(licensed):
     assert {"pickle", "onnx", "pt"} <= set(available_exporters())
+
+
+# --- Feature gate (Wave 3) -----------------------------------------------------
+
+
+def test_reproduce_works_with_real_license(licensed, project, trained_run):
+    from surroforge.services import assert_reproducible, reproduce
+
+    result = reproduce(project, trained_run.run_id)
+    assert_reproducible(result)  # must not raise
+
+
+def test_reproduce_denied_by_real_authorizer_names_hint(unlicensed, project, trained_run):
+    from surroforge.services import reproduce
+
+    with pytest.raises(PluginError) as err:
+        reproduce(project, trained_run.run_id)
+    assert "'reproduce' requires a 'professional' license" in str(err.value)
+    assert "SURROFORGE_PRO_LICENSE" in str(err.value)  # hint from the real authorizer

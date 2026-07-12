@@ -112,6 +112,21 @@ def test_train_onnx_without_license_skips_gracefully(project, monkeypatch, tmp_p
     assert "ONNX export skipped:" in (run.run_dir / "log.txt").read_text()
 
 
+def test_train_then_predict_without_license(project, monkeypatch, tmp_path):
+    # Second lock on the Wave-2/3 invariant: the run store is licence-free —
+    # an unlicensed user trains AND predicts from the stored model, end to end.
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    from surroforge.services import predict_with_run
+    from tests.conftest import make_samples
+
+    run = run_training(project, parse_config(poly_config("polynomial")))
+    new_points = make_samples(n=5, seed=99).drop(columns=["max_stress"])
+    preds = predict_with_run(run, new_points)
+    assert "max_stress" in preds.columns
+    assert len(preds) == 5
+
+
 def test_holdout_actual_persisted_and_aligned_with_fingerprint(project):
     run = run_training(project, parse_config(poly_config("polynomial")))
     actual = np.asarray(run.holdout_actual, dtype=float)
