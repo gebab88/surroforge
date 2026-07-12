@@ -54,3 +54,37 @@ def test_error_names_plugin_and_tier(monkeypatch):
     monkeypatch.setattr(gate, "_load_authorizers", lambda: ())
     with pytest.raises(PluginError, match=r"'thing' requires a 'professional' license"):
         gate.check(_meta("professional"))
+
+
+# --- require_license: the Wave-3 feature gate ---------------------------------
+
+
+def test_feature_denied_without_any_authorizer(monkeypatch):
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: ())
+    with pytest.raises(PluginError, match=r"'reproduce' requires a 'professional' license"):
+        gate.require_license("reproduce")
+
+
+def test_feature_permitted_by_granting_authorizer(monkeypatch):
+    monkeypatch.setattr(
+        gate, "_load_authorizers", lambda: (lambda tier: tier == "professional",)
+    )
+    gate.require_license("reproduce")  # must not raise
+
+
+def test_feature_gate_appends_authorizer_hint(monkeypatch):
+    def deny(tier: str) -> bool:
+        return False
+
+    deny.hint = "Set THE_LICENSE_VAR."
+    monkeypatch.setattr(gate, "_load_authorizers", lambda: (deny,))
+    with pytest.raises(PluginError, match=r"'lineage' requires .* Set THE_LICENSE_VAR"):
+        gate.require_license("lineage")
+
+
+def test_feature_gate_respects_tier_argument(monkeypatch):
+    monkeypatch.setattr(
+        gate, "_load_authorizers", lambda: (lambda tier: tier == "professional",)
+    )
+    with pytest.raises(PluginError, match=r"'audit' requires a 'enterprise' license"):
+        gate.require_license("audit", tier="enterprise")

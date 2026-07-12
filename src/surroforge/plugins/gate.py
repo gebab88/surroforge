@@ -41,12 +41,36 @@ def check(metadata: PluginMetadata) -> None:
     """
     if metadata.required_tier is None:
         return
-    authorizers = _load_authorizers()
-    if any(authorize(metadata.required_tier) for authorize in authorizers):
+    if any(authorize(metadata.required_tier) for authorize in _load_authorizers()):
         return
+    raise PluginError(_denied_message(metadata.name, metadata.required_tier))
+
+
+def require_license(feature: str, *, tier: str = "professional") -> None:
+    """Gate a Core feature surface behind an edition tier (Wave 3).
+
+    The resolution seam (:func:`check`) covers everything reached through the
+    plugin registry; feature surfaces like ``reproduce`` or the lineage panels
+    never resolve a plugin, so they call this directly — same authorizer group,
+    same hint mechanics, same editions-neutral message, naming the FEATURE
+    instead of a plugin.
+    """
+    if any(authorize(tier) for authorize in _load_authorizers()):
+        return
+    raise PluginError(_denied_message(feature, tier))
+
+
+def _denied_message(name: str, tier: str) -> str:
+    """The editions-neutral denial, shared by the seam gate and the feature gate.
+
+    Core never names an activation mechanism; an installed edition's authorizer
+    may carry a ``hint`` attribute that is appended verbatim. Wave-1 tests assert
+    this wording — keep it byte-identical.
+    """
+    authorizers = _load_authorizers()
     hints = " ".join(h for a in authorizers if (h := getattr(a, "hint", "")))
     message = (
-        f"'{metadata.name}' requires a '{metadata.required_tier}' license, "
+        f"'{name}' requires a '{tier}' license, "
         "and no installed SurroForge edition grants it."
     )
-    raise PluginError(f"{message} {hints}".rstrip())
+    return f"{message} {hints}".rstrip()
