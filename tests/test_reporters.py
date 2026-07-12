@@ -19,7 +19,7 @@ def test_markdown_contains_required_sections(trained_run):
         assert heading in text
 
 
-def test_markdown_reports_metrics_and_lineage(trained_run):
+def test_markdown_reports_metrics_and_lineage(trained_run, granted_license):
     text = MarkdownReporter().render(trained_run)
     assert trained_run.run_id in text
     assert trained_run.config.experiment in text
@@ -31,6 +31,25 @@ def test_markdown_reports_metrics_and_lineage(trained_run):
     # Each input/output column is listed.
     for col in trained_run.config.data.inputs + trained_run.config.data.outputs:
         assert col in text
+    assert "\n\n\n" not in text  # no jinja blank-line drift (licensed = pre-gate bytes)
+
+
+def test_markdown_report_omits_provenance_without_license(trained_run, monkeypatch, tmp_path):
+    # Wave 3: the report keeps every free section; provenance values give way to
+    # a single italic notice carrying the gate's message. (The config YAML block
+    # stays — it is the user's own input, incl. split.seed; gated is the DERIVED
+    # provenance: hashes, fingerprint, env versions, dependencies.)
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    text = MarkdownReporter().render(trained_run)
+    assert "## Reproducibility" in text  # the section survives, its values do not
+    assert "*Provenance omitted: " in text
+    assert "'lineage' requires a 'professional' license" in text
+    assert trained_run.data_hash not in text
+    assert trained_run.config_hash not in text
+    assert "| rmse |" in text  # metrics stay free
+    assert "## Configuration" in text
+    assert "\n\n\n" not in text  # gating removes whole lines, it never stacks blanks
 
 
 def test_generate_report_writes_under_reports_dir(project, trained_run):

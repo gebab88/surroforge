@@ -13,6 +13,8 @@ import numpy as np
 from jinja2 import Template
 
 from surroforge.core.run import Run
+from surroforge.errors import PluginError
+from surroforge.plugins import gate
 from surroforge.reporters.base import BaseReporter
 from surroforge.validators.metrics import two_source_split
 
@@ -22,7 +24,7 @@ _TEMPLATE = Template(
 **Experiment:** {{ experiment }}
 **Method:** `{{ method }}`
 **Created:** {{ created_at }}
-{% if parent_run %}**Reproduction of:** {{ parent_run }}
+{% if provenance and parent_run %}**Reproduction of:** {{ parent_run }}
 {% endif %}
 ## Data Overview
 
@@ -30,8 +32,8 @@ _TEMPLATE = Template(
 - **Samples:** {{ n_samples }}
 - **Inputs ({{ n_inputs }}):** {{ inputs }}
 - **Outputs ({{ n_outputs }}):** {{ outputs }}
-- **Data hash:** `{{ data_hash }}`
-
+{% if provenance %}- **Data hash:** `{{ data_hash }}`
+{% endif %}
 ## Model Specification
 
 - **Method:** {{ method }}
@@ -65,22 +67,23 @@ Basis variance across folds (honest CV): per-fold truncation floors {{ two_sourc
 {% endif %}{% endif %}
 ## Configuration
 
-- **Config hash:** `{{ config_hash }}`
+{% if provenance %}- **Config hash:** `{{ config_hash }}`
 - **Random seed:** {{ seed }}
-- **Test fraction:** {{ test_fraction }}
+{% endif %}- **Test fraction:** {{ test_fraction }}
 
 ```yaml
 {{ config_yaml }}```
 
 ## Reproducibility
-
+{% if provenance %}
 - **Python:** {{ python_version }}
 - **SurroForge:** {{ surroforge_version }}
 - **Prediction fingerprint:** `{{ prediction_hash }}`
 - **Dependencies:**
 {% for dep in dependencies %}    - {{ dep }}
 {% endfor %}
-*Reproduce this run with* `surroforge reproduce {{ run_id }}`.
+*Reproduce this run with* `surroforge reproduce {{ run_id }}`.{% else %}
+*Provenance omitted: {{ provenance_notice }}*{% endif %}
 """
 )
 
@@ -149,6 +152,15 @@ class MarkdownReporter(BaseReporter):
                 "reduction": lineage.get("reduction"),
             }
 
+        # Provenance is a Professional surface (Wave 3): without a licence the
+        # report keeps every free section and replaces the provenance values
+        # with one notice carrying the gate's editions-neutral message.
+        provenance_notice: str | None = None
+        try:
+            gate.require_license("lineage")
+        except PluginError as exc:
+            provenance_notice = str(exc)
+
         context = {
             "run_id": run.run_id,
             "experiment": config.experiment,
@@ -177,6 +189,8 @@ class MarkdownReporter(BaseReporter):
             "surroforge_version": lineage.get("surroforge_version", ""),
             "prediction_hash": lineage.get("prediction_hash", ""),
             "dependencies": lineage.get("dependencies", []),
+            "provenance": provenance_notice is None,
+            "provenance_notice": provenance_notice,
             "fmt": fmt,
         }
         return _TEMPLATE.render(**context)
