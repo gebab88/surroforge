@@ -412,7 +412,10 @@ def _render_comparison(result) -> None:
     _render_ranking_table(result)
     _render_test_metrics(result)
     _render_config_diff(result)
-    _render_lineage(result)
+    if "lineage_summary" in result:
+        _render_lineage(result)
+    else:
+        _render_lineage_notice()
     for warning in result["warnings"]:
         _info(f"Warning: {warning}")
     if result["best"] is not None:
@@ -496,6 +499,15 @@ def _render_lineage(result) -> None:
     if summary["same_data"]:
         shared = next(iter(summary["data_hash_groups"]))
         _info(f"  All runs share the same data (data_hash {_abbrev(shared)}).")
+
+
+def _render_lineage_notice() -> None:
+    # compare_runs stripped the lineage view (Wave 3): explain with the gate's
+    # own editions-neutral message instead of a second hand-written one.
+    try:
+        gate.require_license("lineage")
+    except PluginError as exc:
+        _info(f"Lineage: hidden ({exc})")
 
 
 @app.command()

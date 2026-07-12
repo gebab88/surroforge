@@ -24,6 +24,7 @@ from surroforge.engine import run_training
 from surroforge.errors import (
     DataError,
     ExportError,
+    PluginError,
     ProjectError,
     ReproducibilityError,
     TrainerError,
@@ -396,7 +397,18 @@ def compare_runs(project: Project, run_ids: list[str], *, metric: str = "rmse") 
     if not run_ids:
         raise DataError("Provide at least one run id to compare.")
     runs = [project.run(rid) for rid in run_ids]
-    return build_comparison(runs, metric=metric)
+    result = build_comparison(runs, metric=metric)
+    # Lineage is a Professional surface (Wave 3): the aggregation is built either
+    # way (capture is Core infra), but an unlicensed result carries no lineage
+    # view — one boundary for the CLI and the Python API alike. The comparability
+    # warnings stay: they protect conclusions, they don't display provenance.
+    try:
+        gate.require_license("lineage")
+    except PluginError:
+        for entry in result["runs"]:
+            entry.pop("lineage", None)
+        result.pop("lineage_summary", None)
+    return result
 
 
 # --- Predict -----------------------------------------------------------------

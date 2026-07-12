@@ -229,7 +229,7 @@ def test_predict_missing_value_clean_error(tmp_path):
     assert "Traceback" not in result.output
 
 
-def test_compare_cli(tmp_path):
+def test_compare_cli(tmp_path, granted_license):
     root = _init_project_with_data(tmp_path)
     cfg = _write_config(root)
     runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
@@ -242,6 +242,24 @@ def test_compare_cli(tmp_path):
     assert "Lineage" in result.output
     assert "run-001" in result.output
     assert "Best by test rmse" in result.output
+
+
+def test_compare_cli_hides_lineage_without_license(tmp_path, monkeypatch):
+    monkeypatch.delenv("SURROFORGE_PRO_LICENSE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path / "no-licence-home"))
+    root = _init_project_with_data(tmp_path)
+    cfg = _write_config(root)
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+    runner.invoke(app, ["--config-dir", str(root), "train", "--config", str(cfg)])
+
+    result = runner.invoke(
+        app, ["--config-dir", str(root), "compare", "--runs", "run-001,run-002"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Ranking by test rmse" in result.output
+    assert "Lineage: hidden (" in result.output
+    assert "data_hash" not in result.output
 
 
 def test_info_cli(tmp_path, granted_license):

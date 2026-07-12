@@ -35,3 +35,24 @@ def test_reproduce_service_works_with_granted_license(granted_license, project):
     run = run_training(project, parse_config(poly_config("polynomial")))
     result = reproduce(project, run.run_id)
     assert_reproducible(result)  # must not raise
+
+
+def test_compare_runs_strips_lineage_without_license(unlicensed, project):
+    from surroforge.services import compare_runs
+
+    r1 = run_training(project, parse_config(poly_config("polynomial")))
+    r2 = run_training(project, parse_config(poly_config("polynomial")))
+    result = compare_runs(project, [r1.run_id, r2.run_id])
+    assert "lineage_summary" not in result
+    assert all("lineage" not in entry for entry in result["runs"])
+    assert result["best"] is not None  # ranking/metrics stay free
+
+
+def test_compare_runs_keeps_lineage_with_granted_license(granted_license, project):
+    from surroforge.services import compare_runs
+
+    r1 = run_training(project, parse_config(poly_config("polynomial")))
+    r2 = run_training(project, parse_config(poly_config("polynomial")))
+    result = compare_runs(project, [r1.run_id, r2.run_id])
+    assert result["lineage_summary"]["same_data"] is True
+    assert all("lineage" in entry for entry in result["runs"])
