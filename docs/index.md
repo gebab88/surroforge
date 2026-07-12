@@ -25,7 +25,8 @@ Phase 1 (MVP).
 - **Reproducibility is built in, not bolted on.** Every run records its config, a
   content hash of the data, the seed, and exact library versions, plus an
   out-of-sample prediction fingerprint. `surroforge reproduce` re-runs from the
-  config and returns a verdict. See [Reproduction](scenarios/reproduction.md).
+  config and returns a verdict (Professional; the recording itself happens on every
+  run). See [Reproduction](scenarios/reproduction.md).
 - **The CLI and the Python API are equals.** Anything you can do at the command
   line you can do from Python with the same vocabulary. See the
   [Python API](reference/python-api.md).

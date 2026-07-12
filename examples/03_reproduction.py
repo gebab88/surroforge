@@ -7,6 +7,10 @@ holdout predictions against the original. A deterministic method (closed-form
 OLS) reproduces *bit-identically*; an iterative one reproduces *within its
 declared tolerance*. This mirrors `surroforge reproduce <run-id>`.
 
+Since the editions split, `reproduce` is a Professional feature: set
+`SURROFORGE_PRO_LICENSE` (any value activates the stub licence) before running.
+The recording itself happens on every run, licensed or not.
+
 Run it:
 
     python examples/03_reproduction.py

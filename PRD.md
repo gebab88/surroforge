@@ -172,9 +172,9 @@ Jeder Trainingslauf erzeugt einen Run. Der **freie Kern** speichert:
 - Trainings-Metriken (Train, Test, Cross-Validation)
 - Modell-Artefakt (für spätere Vorhersagen über `predict`)
 
-**Professional** ergänzt die vollständige Lineage und die Reproduzierbarkeits-Garantie:
+**Professional** macht die vollständige Lineage und die Reproduzierbarkeits-Garantie nutzbar:
 
-- Daten-Hash (SHA-256 über die verwendeten Daten), Random Seed, Python- und Bibliotheksversionen
+- Daten-Hash (SHA-256 über die verwendeten Daten), Random Seed, Python- und Bibliotheksversionen — von Core bei jedem Run erfasst, einsehbar erst mit Lizenz
 - Vollständige Herkunfts-Ansicht (`info`, Lineage-Spalten in `compare`) und Lineage-Export
 - `surroforge reproduce <run-id>` erzeugt bitidentische Modelle, sofern Python- und Bibliotheksversionen passen
 
@@ -257,8 +257,8 @@ Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne P
 ### 5.2 Reproduzierbarkeit (Professional)
 
 - In Professional ist jeder Run vollständig reproduzierbar bei identischer Python- und Bibliotheksversion
-- Dort werden Konfiguration, Daten-Hash, Seed und Versionen automatisch erfasst — kein Opt-Out
-- Der freie Kern speichert Konfiguration und Modell für Vorhersagen, jedoch ohne Herkunfts-Hashes und ohne `reproduce`
+- Konfiguration, Daten-Hash, Seed und Versionen werden bei jedem Run automatisch erfasst — kein Opt-Out; nutzbar wird diese Herkunft in Professional
+- Der freie Kern speichert Konfiguration und Modell für Vorhersagen; Herkunfts-Daten werden intern erfasst, sind ohne Lizenz aber weder einsehbar noch per `reproduce` nutzbar
 
 ### 5.3 Plattform-Support
 
@@ -359,11 +359,11 @@ mein-projekt/
 └── reports/                 # Generierte Reports
 ```
 
-Im **freien Kern** enthält ein Run `config.snapshot.yaml`, `model.pkl` (interner Store für `predict`), `metrics.json` und `log.txt`. `model.onnx` (Export) und `lineage.json` (Herkunft) werden erst in **Professional** geschrieben.
+Jeder Run enthält `config.snapshot.yaml`, `model.pkl` (interner Store für `predict`), `metrics.json`, `log.txt` und `lineage.json` — die Herkunfts-**Erfassung** ist Core-interne Infrastruktur (sie trägt `predict` und den Upgrade-Pfad: früher trainierte Runs bleiben nach Lizenzkauf reproduzierbar). **Nutzbar** wird die Herkunft erst in Professional (`reproduce`, Anzeige in `info`/Report/`compare`); `model.onnx` (Export) wird erst in Professional geschrieben.
 
-### 7.2 Run-Metadaten (lineage.json, Professional)
+### 7.2 Run-Metadaten (lineage.json; Erfassung Core-intern, Nutzung Professional)
 
-`lineage.json` wird von Professional geschrieben. Pflichtfelder pro Run:
+`lineage.json` wird von Core für jeden Run geschrieben (interne Infrastruktur); die Professional-Oberflächen (`reproduce`, `info`, Report, `compare`) machen sie nutzbar. Pflichtfelder pro Run:
 - `run_id`
 - `created_at` (ISO 8601)
 - `config_hash`

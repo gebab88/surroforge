@@ -48,7 +48,9 @@ Re-print a run's validation metrics.
 ### `surroforge info <run_id>`
 Show a run's full lineage — experiment, method, created-at, data source, config and
 data hashes, seed, prediction hash, Python/SurroForge versions, parent run, whether
-an ONNX artifact exists, and dependencies — plus the metrics summary.
+an ONNX artifact exists, and dependencies — plus the metrics summary. The provenance
+block (hashes, seed, versions, dependencies) needs a Professional license; identity
+fields and metrics stay free.
 
 ## Use the model
 
@@ -70,7 +72,8 @@ Generate a report (default `markdown`) under `reports/`.
 ## Reproduce
 
 ### `surroforge reproduce <run_id>`
-Re-run a stored run from its config snapshot and verify reproducibility. Succeeds on
+Re-run a stored run from its config snapshot and verify reproducibility. A
+Professional feature (the recording happens on every run). Succeeds on
 `reproduced` / `reproduced_within_tolerance`; exits 1 on `diverged` / `data_changed`.
 See [Reproduction](../scenarios/reproduction.md).
 

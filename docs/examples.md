@@ -14,7 +14,7 @@ python examples/01_quickstart.py
 | --- | --- | --- |
 | [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → report → reproduce | Core only |
 | [`02_method_comparison.py`](https://github.com/gebab88/surroforge/blob/main/examples/02_method_comparison.py) | Train several methods, tabulate metrics, pick the best with `compare_runs` | Core (Kriging/RBF added if `smt` present) |
-| [`03_reproduction.py`](https://github.com/gebab88/surroforge/blob/main/examples/03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Core only |
+| [`03_reproduction.py`](https://github.com/gebab88/surroforge/blob/main/examples/03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Professional license (`reproduce`) |
 | [`04_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |
 | [`05_openfoam_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/05_openfoam_field_rom.py) | Ingest an OpenFOAM case sweep (parse `internalField`) into a field ROM | Core only |
 | [`06_mlp_surrogate.py`](https://github.com/gebab88/surroforge/blob/main/examples/06_mlp_surrogate.py) | Fit a strongly nonlinear response with the `mlp` neural-network method, beat a polynomial, export to ONNX | Professional license (`mlp`); ONNX export adds `surroforge_professional[onnx]` |

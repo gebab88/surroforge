@@ -103,7 +103,8 @@ Cross-validation is k-fold; standard metrics are RMSE, R², and MAE.
 Every run records its full configuration, a SHA-256 hash of the data, the random
 seed, and the exact Python/library versions in `runs/<id>/lineage.json`. A
 prediction fingerprint lets `surroforge reproduce` verify that a re-run produced a
-bit-identical model.
+bit-identical model. Recording happens on every run; verifying and viewing it
+(`reproduce`, the provenance in `info`/reports/`compare`) is a Professional feature.
 
 ## Extending SurroForge
 

@@ -71,7 +71,9 @@ Daten** (das gespeicherte Artefakt) und schreibt `runs/<id>/` mit `config.snapsh
   nur eine lokale, tier-aware Lizenzprüfung (`SURROFORGE_PRO_LICENSE` oder Datei; Wert mit
   „enterprise" schaltet die Enterprise-Stufe frei), keine Online-Aktivierung.
 - **Reproduzierbarkeit:** Jeder Lauf speichert einen *Prediction-Fingerprint*
-  (SHA-256 über Vorhersagen auf den Trainingsinputs). `reproduce` vergleicht ihn
+  (SHA-256 über Vorhersagen auf den Trainingsinputs). Seit Welle 3 sind die
+  Oberflächen (reproduce, Herkunfts-Anzeige in info/Report/compare) Professional;
+  die Erfassung bleibt Core. `reproduce` vergleicht ihn
   → Polynom reproduziert bit-identisch. Daten-Hash: bei registrierten Datensätzen
   der gespeicherte Metadaten-Hash; bei Pfad-Quellen aus der Datei neu berechnet.
 - **Fehler-UX:** Domänenfehler erben von `SurroForgeError`; der `_guard`-Dekorator
@@ -106,8 +108,7 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
 - Phase 2 ist weit fortgeschritten (`surroforge_professional` mit mlp/RF/GB/torch-mlp,
   `surroforge_enterprise` mit autoencoder-field, OpenFOAM/Field-ROM, DoE, erweiterte
   Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP,
-  reproduce/Lineage-Gating (Welle 3), echte Lizenz-Aktivierung (M3) und
-  Support-Infrastruktur.
+  echte Lizenz-Aktivierung (M3) und Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
 - Produktvalidierung/Interviews/Pilotkunden sind für die aktuelle Engineering-Queue

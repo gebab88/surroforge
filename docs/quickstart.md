@@ -104,7 +104,7 @@ model, a config snapshot, metrics, and a complete lineage record.
 ```bash
 surroforge list                 # all runs in the project
 surroforge validate run-001     # re-print this run's metrics
-surroforge info run-001         # full lineage: hashes, seed, versions
+surroforge info run-001         # identity + metrics; provenance needs Professional
 ```
 
 ## 7. Predict on new inputs
@@ -137,7 +137,8 @@ surroforge report run-001       # Markdown report under reports/
 ## 10. Reproduce
 
 Because the run recorded its config, data hash, seed, and versions, you can verify
-it reproduces:
+it reproduces. Reproduction is a **Professional** feature (the recording happens on
+every run):
 
 ```bash
 surroforge reproduce run-001

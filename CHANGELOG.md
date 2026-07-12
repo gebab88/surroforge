@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selbst (`model.pkl` schreiben/lesen für predict) bleibt frei in Core
   (`surroforge.persistence.model_io`); das interne `load_pickle` ist durch
   `persistence.model_io.load_model` ersetzt.
+- **Reproduzierbarkeit & Lineage sind Professional (Welle 3):** `reproduce` (CLI und
+  `services.reproduce`) verlangt eine Lizenz; `info`, der Markdown-Report und `compare`
+  zeigen Herkunft (Hashes, Seed, Versionen, Dependencies) nur noch lizenziert und blenden
+  sonst einen Hinweis ein; `compare_runs` lässt die Lineage-Keys unlizenziert weg. Die
+  **Erfassung** bleibt Core: jeder Run schreibt `lineage.json` weiter (`predict` und der
+  Upgrade-Pfad hängen daran). Neu: `gate.require_license(feature)` als Core-Feature-Gate
+  neben dem W1-Seam.
 - **Plugin-Seam (additiv, API v1 unverändert):** Plugins können `required_tier` deklarieren;
   Editionen registrieren Authorizer über die neue Entry-Point-Gruppe `surroforge.authorizers`.
 - **Hinweis:** bestehende lokale Run-Stores mit `mlp`/`torch-mlp`-Modellen (Pickle-Modulpfade)

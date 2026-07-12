@@ -3,6 +3,12 @@
 **Goal:** confirm — months or years later — that a stored run still produces the
 same model, given only its configuration and data.
 
+!!! info "Professional feature"
+    `reproduce` and the provenance views (`info`, report, `compare` lineage) need a
+    Professional license. The recording itself happens on every run — Core writes
+    `runs/<id>/lineage.json` regardless — so runs trained before a license was
+    installed remain reproducible afterwards.
+
 ## How it works
 
 Every run automatically records, in `runs/<id>/lineage.json`:

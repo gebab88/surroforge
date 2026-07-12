@@ -73,7 +73,7 @@ directory and its `lineage.json`:
 | `created_at`, `seed`, `config_hash`, `data_hash` | Lineage fields. |
 | `holdout_fingerprint` | Out-of-sample predictions recorded for the reproducibility verdict. |
 | `parent_run` | The id this run reproduces, if any. |
-| `lineage` | The full lineage mapping. |
+| `lineage` | The full lineage mapping (raw data stays readable; the gated surfaces are `reproduce` and the aggregated views). |
 | `load_model()` | Unpickle the fitted trainer (emits a one-time `ProvenanceWarning` for non-local artifacts). |
 | `has_onnx()` | Whether an ONNX artifact exists for the run (written by `fit(export_onnx=True)` or a later `export`). |
 
@@ -83,9 +83,9 @@ High-level verbs shared by the CLI and API:
 
 | Function | Description |
 |---|---|
-| `reproduce(project, run_id) -> ReproduceResult` | Re-run from the config snapshot and compare fingerprints. |
+| `reproduce(project, run_id) -> ReproduceResult` | Re-run from the config snapshot and compare fingerprints. Professional (licensed). |
 | `assert_reproducible(result, *, tolerance=None)` | Raise `ReproducibilityError` unless verifiably reproduced (uses the run's declared tolerance by default). |
-| `compare_runs(project, run_ids, *, metric="rmse") -> dict` | Rank runs by a metric with per-run train/test/CV, best-per-metric, a config/hyperparameter diff, a lineage summary, and warnings (`runs`/`best`/`config_diff`/`lineage_summary`/`warnings`). |
+| `compare_runs(project, run_ids, *, metric="rmse") -> dict` | Rank runs by a metric with per-run train/test/CV, best-per-metric, a config/hyperparameter diff, a lineage summary, and warnings (`runs`/`best`/`config_diff`/`lineage_summary`/`warnings`). Without a Professional license the result omits `lineage`/`lineage_summary`. |
 | `predict_with_run(run, frame) -> DataFrame` | Predict for an in-memory dataframe. |
 | `predict_from_file(run, path) -> DataFrame` | Predict for a data file. |
 | `export_model(run, fmt, output=None) -> Path` | Export to `pickle`/`onnx`/a plugin format — Professional (licensed); clear `ExportError` for unsupported pairs. |
