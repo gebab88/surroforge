@@ -13,6 +13,7 @@ authors = [{ name = "SurroForge" }]
 keywords = ["surrogate", "surroforge", "reports", "html", "professional"]
 dependencies = [
     "surroforge",
+    "cryptography>=42",
     "jinja2>=3.1",
     "numpy>=1.24",
     "scikit-learn>=1.3",

@@ -102,3 +102,15 @@ def test_inspect_flags_wrong_key(tmp_path, capsys):
     token = capsys.readouterr().out.strip()
     _, wrong_pub = sfl.generate_keypair()
     assert issue.main(["inspect", token, "--pub", wrong_pub]) == 1
+
+
+# --- cross-check: tool-minted tokens validate in the shipped package -------------
+
+
+def test_tool_minted_token_validates_in_package(monkeypatch):
+    lic = pytest.importorskip("surroforge_professional.license")
+    seed_hex, pub_hex = sfl.generate_keypair()
+    monkeypatch.setattr(lic, "_TRUSTED_KEYS", (pub_hex,))
+    status = lic.validate_token(sfl.mint(PAYLOAD, seed_hex))
+    assert status.error is None
+    assert status.tier == "professional"

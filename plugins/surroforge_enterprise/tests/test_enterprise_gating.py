@@ -8,8 +8,11 @@ from surroforge.errors import PluginError
 from surroforge.plugins import get_trainer
 
 
-def test_professional_license_does_not_unlock_autoencoder(monkeypatch, tmp_path):
-    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", "local-dev-license")
+def test_professional_license_does_not_unlock_autoencoder(monkeypatch, tmp_path, license_kit):
+    from surroforge_professional import license as _license
+
+    monkeypatch.setattr(_license, "_TRUSTED_KEYS", (license_kit.pub_hex,))
+    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", license_kit.mint())
     monkeypatch.setenv("HOME", str(tmp_path))
     with pytest.raises(PluginError, match="'enterprise' license"):
         get_trainer("autoencoder-field")
