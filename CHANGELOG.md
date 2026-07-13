@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed — Editionen (Breaking)
 
+- **Lizenzprüfung validiert Inhalte (M3):** eine Lizenz ist jetzt ein Ed25519-signierter
+  `SFL1.…`-Token (Inhaber, Tier, optionales Ablaufdatum), komplett offline geprüft gegen den
+  im Professional-Paket eingebetteten Vendor-Schlüssel (`cryptography` wird Pflicht-Dependency).
+  Stub-Werte wie `SURROFORGE_PRO_LICENSE=dev` schalten nichts mehr frei; die Kanäle bleiben
+  (Env-Variable oder `~/.surroforge/professional.lic`, Env gewinnt). Neu: `surroforge license
+  status` und `surroforge license install <token-oder-datei>`; abgelaufene/ungültige Lizenzen
+  nennen den Grund in der Gate-Meldung. Vendor-Tooling: `tools/licensing/` (keygen/issue/inspect).
 - **`mlp`, `random-forest`, `gradient-boosting` sind Professional-Methoden** und leben jetzt
   im `surroforge_professional`-Plugin (Entry-Points statt Core-Builtins). Auflösung ohne
   Lizenz schlägt mit einem klaren `PluginError` fehl; `SURROFORGE_PRO_LICENSE` (oder

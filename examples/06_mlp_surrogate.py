@@ -4,7 +4,7 @@ The `mlp` method is a multi-layer perceptron (scikit-learn's `MLPRegressor`, wit
 an input `StandardScaler` and the small-data-friendly `lbfgs` solver). It is a
 genuine neural network backed by scikit-learn — no deep-learning framework needed.
 Since the Wave-1 editions split, `mlp` is a Professional method: install the
-`surroforge_professional` plugin and set a license, e.g. `SURROFORGE_PRO_LICENSE=dev`.
+`surroforge_professional` plugin and set `SURROFORGE_PRO_LICENSE` to a license key.
 
 This example puts it head to head with a degree-2 polynomial on an oscillatory
 target the polynomial cannot capture: the MLP wins decisively on held-out R².

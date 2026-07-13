@@ -4,7 +4,7 @@ Both halves are Professional methods since the Wave-1 editions split: `mlp`
 (scikit-learn) and `torch-mlp` (PyTorch) ship in the `surroforge_professional`
 plugin — the PyTorch half additionally needs the `[torch]` extra
 (`pip install 'surroforge_professional[torch]'`) — and require a license
-(e.g. `SURROFORGE_PRO_LICENSE=dev`). `torch-mlp` registers on the same
+(`SURROFORGE_PRO_LICENSE`). `torch-mlp` registers on the same
 `surroforge.trainers` entry point. Because `torch-mlp` mirrors `mlp`'s
 hyperparameter surface, moving between scikit-learn and PyTorch is a one-line
 change — `model.method: mlp` -> `model.method: torch-mlp` — with the *same*

@@ -67,9 +67,9 @@ Daten** (das gespeicherte Artefakt) und schreibt `runs/<id>/` mit `config.snapsh
 - **Kriging/RBF sind single-output** (SMT-Limitierung). Multi-Output ist über `mlp`,
   `torch-mlp` und Feld-ROM-Pfade abgedeckt, nicht über SMT.
 - **Professional-HTML ist Plugin-only:** Core bleibt Markdown-only. Der HTML-Reporter lebt
-  in `plugins/surroforge_professional/`, registriert `html` per Entry Point und nutzt in v1
-  nur eine lokale, tier-aware Lizenzprüfung (`SURROFORGE_PRO_LICENSE` oder Datei; Wert mit
-  „enterprise" schaltet die Enterprise-Stufe frei), keine Online-Aktivierung.
+  in `plugins/surroforge_professional/`, registriert `html` per Entry Point und nutzt die
+  lokale, tier-aware Lizenzprüfung (M3: Ed25519-signierte `SFL1`-Tokens, offline gegen den
+  eingebetteten Vendor-Key; Env oder `~/.surroforge/professional.lic`), keine Online-Aktivierung.
 - **Reproduzierbarkeit:** Jeder Lauf speichert einen *Prediction-Fingerprint*
   (SHA-256 über Vorhersagen auf den Trainingsinputs). Seit Welle 3 sind die
   Oberflächen (reproduce, Herkunfts-Anzeige in info/Report/compare) Professional;
@@ -107,8 +107,8 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
   (`2026-06-23-professional-html-reports.md`, `2026-06-25-autoencoder-field-plugin.md`).
 - Phase 2 ist weit fortgeschritten (`surroforge_professional` mit mlp/RF/GB/torch-mlp,
   `surroforge_enterprise` mit autoencoder-field, OpenFOAM/Field-ROM, DoE, erweiterte
-  Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP,
-  echte Lizenz-Aktivierung (M3) und Support-Infrastruktur.
+  Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP und
+  Support-Infrastruktur.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
 - Produktvalidierung/Interviews/Pilotkunden sind für die aktuelle Engineering-Queue

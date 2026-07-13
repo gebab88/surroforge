@@ -12,20 +12,22 @@ From the repository root:
 
 ## License Gate
 
-HTML reports require a local Professional license marker. For development, set:
+Professional features need a signed license token (M3: content validation,
+offline against the vendor key). Obtain a token, then either
 
 ```bash
-export SURROFORGE_PRO_LICENSE=local-dev-license
+surroforge license install <token-or-file>   # writes ~/.surroforge/professional.lic
+surroforge license status                    # verify: holder, tier, expiry
 ```
 
-Alternatively create:
+or set it for the session (takes precedence over the installed file):
 
 ```bash
-mkdir -p ~/.surroforge
-printf '%s\n' local-dev-license > ~/.surroforge/professional.lic
+export SURROFORGE_PRO_LICENSE='SFL1.…'
 ```
 
-There is no online activation in v1.
+For development, issue yourself a license: `python tools/licensing/issue.py issue
+--holder "dev"` (one-time `keygen` first — see `tools/licensing/README.md`).
 
 ## CLI Usage
 

@@ -47,8 +47,8 @@ Phase 1 (MVP).
 | PyTorch MLP | `torch-mlp` | PyTorch | Professional (`surroforge_professional[torch]`) |
 | Autoencoder field surrogate | `autoencoder-field` | PyTorch | Enterprise (`surroforge_enterprise[torch]`) |
 
-Licensed methods need `SURROFORGE_PRO_LICENSE` (or `~/.surroforge/professional.lic`);
-an enterprise licence unlocks the professional tier as well.
+Licensed methods need a signed license key — install it with `surroforge license install`
+(or set `SURROFORGE_PRO_LICENSE`); an enterprise licence unlocks the professional tier as well.
 Cross-validation is k-fold; the standard metrics are RMSE, R², and MAE.
 
 The Professional HTML report includes interactive charts — parity, residual, per-fold

@@ -77,6 +77,18 @@ Professional feature (the recording happens on every run). Succeeds on
 `reproduced` / `reproduced_within_tolerance`; exits 1 on `diverged` / `data_changed`.
 See [Reproduction](../scenarios/reproduction.md).
 
+## License (Professional)
+
+Available once the `surroforge_professional` plugin is installed.
+
+| Command | Purpose |
+|---|---|
+| `surroforge license status` | Show holder, tier, and expiry of the installed license; exit 0 only when valid. |
+| `surroforge license install <token-or-file>` | Validate a license token and write it to `~/.surroforge/professional.lic`. |
+
+`SURROFORGE_PRO_LICENSE` takes precedence over the installed file. Expired or
+tampered licenses are rejected with the concrete reason.
+
 ## Misc
 
 ### `surroforge version`
