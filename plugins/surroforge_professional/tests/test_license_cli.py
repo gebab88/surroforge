@@ -123,3 +123,12 @@ def test_install_accepts_token_longer_than_path_limit(no_license, trusted_test_k
     result = runner.invoke(license_app, ["install", token])
     assert result.exit_code == 0
     assert lic.license_file().read_text().strip() == token
+
+
+def test_install_rejects_unreadable_license_file(no_license, trusted_test_key, tmp_path):
+    # A real file that is not valid UTF-8 must fail cleanly, not with a traceback.
+    src = tmp_path / "binary.lic"
+    src.write_bytes(b"\xff\xfe\x00\x01 not utf-8")
+    result = runner.invoke(license_app, ["install", str(src)])
+    assert result.exit_code == 1
+    assert not lic.license_file().exists()

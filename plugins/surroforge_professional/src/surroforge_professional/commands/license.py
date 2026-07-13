@@ -69,7 +69,14 @@ def install(
         is_file = candidate.is_file()
     except OSError:  # e.g. ENAMETOOLONG: a long token passed directly, not a path
         is_file = False
-    token = candidate.read_text().strip() if is_file else source.strip()
+    if is_file:
+        try:
+            token = candidate.read_text().strip()
+        except (OSError, UnicodeDecodeError) as exc:
+            typer.echo(f"Error: license not installed — cannot read {candidate}: {exc}.")
+            raise typer.Exit(1) from exc
+    else:
+        token = source.strip()
     st = validate_token(token)
     if st.error is not None:
         typer.echo(f"Error: license not installed — {st.error}.")

@@ -194,6 +194,16 @@ def test_foreign_key_is_rejected(no_license, trusted_test_key, monkeypatch):
     assert lic.license_status().error == "signature check failed"
 
 
+def test_wrong_length_signature_is_rejected(no_license, trusted_test_key, monkeypatch):
+    # cryptography raises InvalidSignature for wrong-length signatures too; lock
+    # that a structurally valid token with a short signature segment denies cleanly.
+    prefix, payload_b64, _ = mint(payload()).split(".")
+    short_sig = base64.urlsafe_b64encode(b"short").decode()
+    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", f"{prefix}.{payload_b64}.{short_sig}")
+    assert lic.granted_tier() is None
+    assert lic.license_status().error == "signature check failed"
+
+
 def test_unsupported_schema_version(no_license, trusted_test_key, monkeypatch):
     monkeypatch.setenv("SURROFORGE_PRO_LICENSE", mint(payload(v=2)))
     assert lic.license_status().error == "unsupported schema version"

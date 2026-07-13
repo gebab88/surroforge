@@ -27,7 +27,10 @@ export SURROFORGE_PRO_LICENSE='SFL1.…'
 ```
 
 For development, issue yourself a license: `python tools/licensing/issue.py issue
---holder "dev"` (one-time `keygen` first — see `tools/licensing/README.md`).
+--holder "dev"` (one-time `keygen` first — see `tools/licensing/README.md`). This
+requires the vendor signing key: tokens from a fresh `keygen` are rejected unless
+the matching public key is added to `_TRUSTED_KEYS` (the test suites monkeypatch
+it exactly this way).
 
 ## CLI Usage
 
