@@ -12,7 +12,7 @@ python examples/01_quickstart.py
 
 | Script | Shows | Needs |
 | --- | --- | --- |
-| [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → report → reproduce | Core only |
+| [`01_quickstart.py`](https://github.com/gebab88/surroforge/blob/main/examples/01_quickstart.py) | Greenfield end to end: init → register → train → predict → report → reproduce | Core (the final reproduce step needs Professional and is skipped gracefully without it) |
 | [`02_method_comparison.py`](https://github.com/gebab88/surroforge/blob/main/examples/02_method_comparison.py) | Train several methods, tabulate metrics, pick the best with `compare_runs` | Core (Kriging/RBF added if `smt` present) |
 | [`03_reproduction.py`](https://github.com/gebab88/surroforge/blob/main/examples/03_reproduction.py) | Re-run from recorded lineage and verify with `reproduce` / `assert_reproducible` | Professional license (`reproduce`) |
 | [`04_field_rom.py`](https://github.com/gebab88/surroforge/blob/main/examples/04_field_rom.py) | Reduce a high-dimensional field with POD and surrogate the coefficients (`reduced-field`) | Core only |

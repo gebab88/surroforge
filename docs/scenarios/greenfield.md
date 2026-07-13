@@ -14,8 +14,8 @@ surroforge validate run-001
 ```
 
 You finish with a saved model, train/test/CV metrics, and a complete lineage
-record — ready to predict, report, and reproduce (and to export, with a
-Professional license).
+record — ready to predict and report, and, with a Professional license, to
+reproduce and export.
 
 !!! tip "What 'validated' means here"
     SurroForge always reports **out-of-sample** quality: a held-out test split and

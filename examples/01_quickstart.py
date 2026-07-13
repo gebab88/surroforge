@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from surroforge import Project, Trainer
+from surroforge.errors import PluginError
 from surroforge.services import (
     assert_reproducible,
     generate_report,
@@ -92,10 +93,16 @@ def main(workdir: Path) -> None:
 
     # 9. Reproduce: because the run recorded its config, data hash, seed, and
     #    versions, re-running it must land within the method's declared tolerance.
-    result = reproduce(project, run.run_id)
-    assert_reproducible(result)  # raises if it diverges beyond tolerance
-    kind = "bit-identical" if result.bit_identical else f"within {result.max_abs_diff:.1e}"
-    print(f"\nReproduction verdict: {result.verdict} ({kind})")
+    #    Verifying is a Professional feature (the recording happens on every run),
+    #    so this last step degrades to a note when no licence is installed.
+    try:
+        result = reproduce(project, run.run_id)
+    except PluginError as exc:
+        print(f"\nReproduction skipped: {exc}")
+    else:
+        assert_reproducible(result)  # raises if it diverges beyond tolerance
+        kind = "bit-identical" if result.bit_identical else f"within {result.max_abs_diff:.1e}"
+        print(f"\nReproduction verdict: {result.verdict} ({kind})")
 
 
 if __name__ == "__main__":
