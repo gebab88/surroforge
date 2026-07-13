@@ -41,6 +41,7 @@ html = "surroforge_professional.reports.html:HtmlReporter"
 
 [project.entry-points."surroforge.commands"]
 doe = "surroforge_professional.commands.doe:doe_app"
+license = "surroforge_professional.commands.license:license_app"
 
 [project.entry-points."surroforge.comparison_reporters"]
 html = "surroforge_professional.reports.comparison:HtmlComparisonReporter"
