@@ -8,10 +8,53 @@ from surroforge.core.config import parse_config
 from surroforge.core.project import Project
 from surroforge.engine import run_training
 
+import importlib.util
+from pathlib import Path
+from types import SimpleNamespace
+
+_SFLICENSE = Path(__file__).resolve().parents[3] / "tools" / "licensing" / "sflicense.py"
+
+
+def _load_sflicense():
+    spec = importlib.util.spec_from_file_location("sflicense", _SFLICENSE)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="session")
+def license_kit():
+    """A throwaway signing keypair + mint helper for real-validation tests (M3).
+
+    The public key is NOT trusted by the shipped package; grant fixtures
+    monkeypatch it into ``license._TRUSTED_KEYS``.
+    """
+    pytest.importorskip("cryptography")
+    sfl = _load_sflicense()
+    seed_hex, pub_hex = sfl.generate_keypair()
+
+    def mint(tier: str = "professional", **overrides) -> str:
+        payload = {
+            "v": 1,
+            "id": "SF-TEST-LOCAL",
+            "holder": "test-suite",
+            "tier": tier,
+            "issued": "2026-07-13",
+            **overrides,
+        }
+        return sfl.mint(payload, seed_hex)
+
+    return SimpleNamespace(mint=mint, pub_hex=pub_hex, seed_hex=seed_hex)
+
 
 @pytest.fixture
-def licensed(monkeypatch, tmp_path):
-    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", "local-dev-license")
+def licensed(monkeypatch, tmp_path, license_kit):
+    from surroforge_professional import license as _license
+
+    # raising=False bridges the stub era (no _TRUSTED_KEYS yet) and M3.
+    monkeypatch.setattr(_license, "_TRUSTED_KEYS", (license_kit.pub_hex,), raising=False)
+    monkeypatch.setenv("SURROFORGE_PRO_LICENSE", license_kit.mint())
     monkeypatch.setenv("HOME", str(tmp_path))
 
 
