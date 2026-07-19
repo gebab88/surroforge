@@ -40,12 +40,21 @@ outputs/
 /.worktrees/
 /.superpowers/
 
-# Machine-specific local OpenFOAM setup note for the real NACA 0012 run (personal install path)
-/examples/09_naca0012_openfoam/LOCAL_SETUP.md
+# Machine-specific local setup notes for the real CFD runs (personal install paths)
+/examples/09_aerofoil_openfoam/LOCAL_SETUP.md
+/examples/10_aerofoil_su2/LOCAL_SETUP.md
 
 # Real OpenFOAM sweep output + saved SurroForge runs (large, machine-generated; not committed)
-/examples/09_naca0012_openfoam/run/
-/examples/09_naca0012_openfoam/ex09_real/
+/examples/09_aerofoil_openfoam/run/
+/examples/09_aerofoil_openfoam/run_*/
+/examples/09_aerofoil_openfoam/ex09_*/
+/examples/09_aerofoil_openfoam/naca6412_c1_nu1e-04_base/
+
+# Real SU2 sweep output + saved SurroForge runs (large, machine-generated; not committed)
+/examples/10_aerofoil_su2/run/
+/examples/10_aerofoil_su2/run_*/
+/examples/10_aerofoil_su2/ex10_*/
+/examples/10_aerofoil_su2/*.su2
 
 # MkDocs build output (Story 6.5)
 /site/
