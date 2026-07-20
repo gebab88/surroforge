@@ -58,3 +58,8 @@ outputs/
 
 # MkDocs build output (Story 6.5)
 /site/
+
+# Generated SBOMs (syft; regenerate on demand, not committed)
+/cdx.json
+/spdx.json
+/*.bak
