@@ -12,6 +12,11 @@
 > ausgewiesen. Alle URLs wurden bei der Recherche tatsächlich geöffnet; die zentralen
 > AWS-Nutzungsbelege wurden zusätzlich unabhängig gegen Primärquellen (GitHub-API, AWS-Blog)
 > geprüft.
+>
+> *Nachtrag (Juli 2026): Auf Nutzerhinweis wurde die peer-reviewte AWS-Grundlagenpublikation
+> SAE 2024-01-2529 ergänzt (Abschnitt 5, Kategorie b) — Metadaten und Abstract direkt über
+> SAE Mobilus verifiziert. Ein zweiter Nachtrag kartiert die weitere Publikationslinie derselben
+> Gruppe (Abschnitt 4.2), recherchiert über die Publikationsseiten von N. Ashton und D. Maddix.*
 
 ---
 
@@ -196,7 +201,44 @@ Ersteller** (die *Referenzgeometrien* DrivAer/Windsor/Ahmed sind langjährige Be
 MLSimKit bildet jede seiner drei Aufgaben auf einen Tutorial-Datensatz ab (KPI/Slice → WindsorML,
 Surface → AhmedML, DrivAerML als großes „real-world"-Multi-GPU-Beispiel). Der maßgebliche öffentliche
 Benchmark auf diesen Daten ist **NVIDIAs PhysicsNeMo-CFD** (arXiv:2507.10747; DoMINO, FIGConvNet,
-X-MeshGraphNet) — ein *separates* Framework, nicht MLSimKit.
+X-MeshGraphNet) — ein *separates* Framework, nicht MLSimKit (Neil Ashton ist dort allerdings
+Co-Autor — siehe 4.2).
+
+### 4.2 Die weitere Publikationslinie derselben Gruppe
+
+Das SAE-Paper und die drei Datensätze sind Teil eines zusammenhängenden Werks desselben Kreises
+(AWS-Automotive-Aero-ML-Team um **Neil Ashton** und **Danielle Maddix**). Für die Leitfrage
+„wo/wie eingesetzt" ist entscheidend: Dieser gesamte Korpus ist *Grundlagen- und Werkzeugarbeit
+der Erzeuger selbst*, keine unabhängige Anwendung. Er lässt sich in vier Stränge gliedern:
+
+1. **Benchmark-Datensätze (2024).** WindsorML erschien peer-reviewt bei **NeurIPS 2024 (Datasets &
+   Benchmarks Track)**; AhmedML (arXiv:2407.20801) und DrivAerML (arXiv:2408.11969) als technische
+   Reports (→ Tabelle in 4.1).
+2. **Angewandte Demonstrationen (2024).** SAE-Paper 2024-01-2529 und HPC-Blog (Abschnitt 5b/5c) —
+   die MLSimKit unmittelbar vorausgehende Arbeit.
+3. **AWS-AI-Labs-SciML-Methodenbasis (Maddix et al., 2023–2024).** Die ML-Seite dieser Linie ruht
+   auf einer breiteren SciML-Forschung derselben AWS-Gruppe: *Guiding Continuous Operator Learning
+   through Physics-based Boundary Constraints* (ICLR 2023), *Learning Physical Models that Can
+   Respect Conservation Laws* (ICML 2023 / Physica D 2024) und *Using Uncertainty Quantification to
+   Characterize and Improve Out-of-Domain Learning for PDEs* (ICML 2024). Sie adressieren
+   Physik-Treue, Erhaltungssätze und Out-of-Domain-Robustheit — genau die Schwachstellen
+   datengetriebener Surrogate (vgl. Abschnitt 3).
+4. **Trajektorie zu Foundation-Modellen (2025–2026).** Nach Ashtons Wechsel **AWS → NVIDIA** setzt
+   sich die Linie fort in *A Benchmarking Framework for AI Models in Automotive Aerodynamics*
+   (arXiv:2507.10747; DoMINO/X-MeshGraphNet/FIGConvNet auf DrivAerML — die in 4.1 genannte
+   PhysicsNeMo-CFD-Arbeit, Ashton als Co-Autor), der Datensatz-Erweiterung auf Hochauftriebs-
+   **Flugzeug**-Aerodynamik *HiLiftAeroML* (arXiv:2605.19565, 2026) und dem Positionspapier
+   *Fluid Intelligence: A Forward Look on AI Foundation Models in CFD* (Ashton, Brandstetter,
+   Mishra, arXiv:2511.20455, 2025), das ein erstes „Scaling Law" für KI-Foundation-Modelle in
+   der CFD vorschlägt.
+
+**Einordnung:** Auch dieser erweiterte Korpus enthält **keine** externe Produktiv- oder
+Kundennutzung von MLSimKit — er dokumentiert die *Herkunft* (Daten → Methoden → Werkzeug →
+Ausblick) aus einer Hand und stützt damit die Kernaussage von Abschnitt 5. Downstream-Nutzung der
+*Datensätze* (nicht des Tools) durch Dritte existiert dagegen zunehmend — etwa NVIDIAs
+MoE-Gating-Arbeit (Nabian & Choudhry, arXiv:2508.21249) oder Transfer-Learning auf neue
+Fahrzeugfamilien (Keum & Warey, arXiv:2605.27968) —, beide nutzen die Benchmark-Körper, **nicht**
+MLSimKit.
 
 ---
 
@@ -207,25 +249,41 @@ führt auf AWS selbst zurück. Es gibt — Stand Juli 2026 — KEINEN Nachweis e
 Dritt-, Kunden- oder akademischen Produktivnutzung.** Die demonstrierte Anwendungsdomäne ist durchweg
 **Fahrzeug-Außenaerodynamik** (Cd/Cl-Kennwerte, Oberflächendruck/Wandschub, Strömungs-Schnittfelder).
 
-Die dokumentierten Nutzungen zerfallen in drei Kategorien:
+Die dokumentierten Nutzungen zerfallen in vier Kategorien:
 
 **(a) AWS-eigene Referenzbeispiele (Quickstarts).** Das Tool selbst liefert drei Quickstarts
 (KPI/Slice/Surface), ausgeführt auf den öffentlichen Benchmark-Datensätzen WindsorML/AhmedML/
 DrivAerML — von AWS verfasste Demonstrationen, keine Drittanbieter-Deployments.
 Quelle: <https://awslabs.github.io/ai-surrogate-models-in-engineering-on-aws/>
 
-**(b) Der Vorläufer — AWS-HPC-Blog (13. Mai 2024).** „Using machine learning to drive faster
+**(b) Die peer-reviewte Grundlagenpublikation — SAE Technical Paper 2024-01-2529 (WCX SAE World
+Congress, Detroit, 9./16. April 2024).** „Machine Learning for Road Vehicle Aerodynamics",
+verfasst von **zwölf AWS-Mitarbeitern** (Ananthan, Ashton, Chadwick, Lizarraga, Maddix,
+Maheswaran, Hermoso Moreno, Shabestari, Sovani, Subramanian, Tadepalli, Yu) — die formale,
+zitierbare AWS-Publikation dieser Arbeitslinie und der rund einen Monat **frühere Zwilling** des
+HPC-Blogs (Autoren-Überschneidung: Ananthan, Chadwick, Shabestari, Yu). Rahmung: ML **ergänzt**
+CFD, ersetzt es nicht; benötigt „high quality training data" und Validierung gegen
+hochauflösende Simulation. Kernaussage: Vorhersage neuer Designs „in near real-time" (**< 5 s**)
+nach **typischerweise < 1 h Training auf einer einzelnen GPU**; präsentiert mehrere Fallstudien
+mit verschiedenen datengetriebenen ML-Methoden (der frei zugängliche Abstract nennt keine
+konkreten Architekturen — der Volltext liegt hinter der SAE-Paywall). **Kein Automobilkunde als
+Anwender genannt; „MLSimKit" existiert hier noch nicht** (Repo erst April 2025) — das Paper ist
+der wissenschaftliche *Vorläufer*, nicht ein Dritt-Einsatz von MLSimKit. 16 Seiten,
+DOI 10.4271/2024-01-2529. *(Metadaten und Abstract von mir direkt über SAE Mobilus verifiziert.)*
+Quelle: <https://doi.org/10.4271/2024-01-2529>
+
+**(c) Der begleitende AWS-HPC-Blog (13. Mai 2024).** „Using machine learning to drive faster
 automotive design cycles", verfasst von **sechs AWS-Mitarbeitern** (Miller, Panchalam Govindarajan,
 Chadwick, Shabestari, Yu, Ananthan). Nutzt den offenen DrivAer-Datensatz (400 RBF-morphte Varianten,
 Coupé+SUV), trainiert **MeshGraphNets** für den Widerstand (2,5 % MAPE, 0,028 s/Sample) und ein
 **U-Net** für Felder (~3 % Druck-, ~5 % Geschwindigkeits-RMSE), plus eine „minimal viable web
 application". **Kein Automobilkunde genannt; der Begriff „MLSimKit" kommt nicht vor** — MLSimKit ist
-faktisch die spätere Produktisierung dieser Arbeit. *(Von mir direkt gegen die Blog-Quelle
+faktisch die spätere Produktisierung dieser Arbeitslinie (Paper (b) + Blog). *(Von mir direkt gegen die Blog-Quelle
 verifiziert.)* Infrastruktur: SageMaker (Training), AWS Batch (OpenFOAM-RANS-Ground-Truth), EC2 +
 NICE DCV (App), S3 (Artefakte).
 Quelle: <https://aws.amazon.com/blogs/hpc/using-machine-learning-to-drive-faster-automotive-design-cycles/>
 
-**(c) AWS-Mitarbeiter-Tutorials (Evangelism), keine Kundenprojekte.** Der viel zitierte Wert
+**(d) AWS-Mitarbeiter-Tutorials (Evangelism), keine Kundenprojekte.** Der viel zitierte Wert
 **„14 min Training / 18 s Vorhersage / 1,87 % MAPE (Cl)"** stammt aus einem **AWS-Japan-Artikel
 (Zenn) von Koji Yamada, Solutions Architect bei AWS Japan** (mit persönlicher-Meinung-Disclaimer),
 der das *offizielle* KPI-Tutorial auf WindsorML (350 Fälle: 210 train / 70 val / 70 test)
@@ -238,8 +296,10 @@ Quelle: <https://zenn.dev/aws_japan/articles/646c2d6fe97ee1>
 also reine Kopien ohne erkennbaren Downstream-Einsatz** (`xupeiwust`; `AdnaneKhan`, ein
 GitHub-Actions-Sicherheitsforscher; `thatgeeman`, laut Profil bei AVL List GmbH). Alle vier Contributor
 sind AWS-nah. Eine unabhängige Web-Suche nach Kunden-Fallstudien liefert ausschließlich das Repo,
-die AWS-Doku und die AWS-Japan-Artikel — **keine** Kunden-Story, kein Partner-Deployment, keine
-peer-reviewte Arbeit, die MLSimKit nutzt.
+die AWS-Doku und die AWS-Japan-Artikel — **keine** Kunden-Story, kein Partner-Deployment und keine
+peer-reviewte Arbeit eines *Dritten*, die MLSimKit nutzt. Die einzige peer-reviewte Publikation
+dieser Linie ist AWS' eigener Vorläufer (Kategorie (b)) — sie belegt die AWS-interne Herkunft,
+nicht eine externe Adoption.
 
 ### 5.1 Häufige Fehlzuordnungen — NICHT MLSimKit
 
@@ -316,8 +376,17 @@ positiver Fund, hier aber durch mehrere unabhängige Suchstränge konsistent).
 **AWS MLSimKit & Datensätze**
 - MLSimKit Repo — <https://github.com/awslabs/ai-surrogate-models-in-engineering-on-aws>
 - MLSimKit Doku (v0.1.1) — <https://awslabs.github.io/ai-surrogate-models-in-engineering-on-aws/>
+- Ananthan, Ashton, Chadwick, Lizarraga, Maddix, Maheswaran, Hermoso Moreno, Shabestari, Sovani, Subramanian, Tadepalli & Yu (AWS, 2024), *Machine Learning for Road Vehicle Aerodynamics*, SAE Technical Paper 2024-01-2529, WCX SAE World Congress — <https://doi.org/10.4271/2024-01-2529>
 - AWS HPC Blog (Mai 2024), *Using machine learning to drive faster automotive design cycles* — <https://aws.amazon.com/blogs/hpc/using-machine-learning-to-drive-faster-automotive-design-cycles/>
 - AWS Japan / Zenn (Yamada), MLSimKit-Tutorial-Walkthrough — <https://zenn.dev/aws_japan/articles/646c2d6fe97ee1>
-- CAE ML Datasets — <https://caemldatasets.org/> · AhmedML arXiv:2407.20801 · WindsorML arXiv:2407.19320 · DrivAerML arXiv:2408.11969 (<https://huggingface.co/datasets/neashton/drivaerml>)
-- NVIDIA PhysicsNeMo-CFD Benchmark — arXiv:2507.10747
+- CAE ML Datasets — <https://caemldatasets.org/> · AhmedML arXiv:2407.20801 · WindsorML (NeurIPS 2024, Datasets & Benchmarks Track) arXiv:2407.19320 · DrivAerML arXiv:2408.11969 (<https://huggingface.co/datasets/neashton/drivaerml>)
+- Tangsali, Ranade, Nabian, Kamenev, Sharpe, **Ashton**, Cherukuri & Choudhry (2025), *A Benchmarking Framework for AI Models in Automotive Aerodynamics* (NVIDIA PhysicsNeMo-CFD; DoMINO/X-MeshGraphNet/FIGConvNet) — arXiv:2507.10747
 - Fehlzuordnung VW/FAU (≥600×) — arXiv:2504.06699
+
+**Weitere Arbeiten derselben Gruppe (Ashton / Maddix — Abschnitt 4.2)**
+- Ashton, Brandstetter & Mishra (2025), *Fluid Intelligence: A Forward Look on AI Foundation Models in CFD* — arXiv:2511.20455
+- Ashton et al. (2026), *HiLiftAeroML: High-Fidelity CFD Dataset for High-Lift Aircraft Aerodynamics* — arXiv:2605.19565
+- Saad, Gupta, Alizadeh & Maddix (2023), *Guiding Continuous Operator Learning through Physics-based Boundary Constraints*, ICLR — <https://www.amazon.science/publications/guiding-continuous-operator-learning-through-physics-based-boundary-constraints>
+- Hansen, Maddix, Alizadeh, Gupta & Mahoney (2023/2024), *Learning Physical Models that Can Respect Conservation Laws*, ICML 2023 / Physica D — <https://doi.org/10.1016/j.physd.2023.133952>
+- Mouli, Maddix, Alizadeh, Gupta, Wang, Stuart & Mahoney (2024), *Using Uncertainty Quantification to Characterize and Improve Out-of-Domain Learning for PDEs*, ICML — <https://proceedings.mlr.press/v235/mouli24a.html>
+- Downstream-Nutzung der *Datensätze* durch Dritte (nicht MLSimKit): Nabian & Choudhry (NVIDIA, 2025), *A Mixture of Experts Gating Network…* — arXiv:2508.21249 · Keum & Warey (2026), *Adapting Automotive Aerodynamics Surrogates to New Vehicle Families via Transfer Learning* — arXiv:2605.27968
