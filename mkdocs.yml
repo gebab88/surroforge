@@ -63,3 +63,4 @@ nav:
       - CLI: reference/cli.md
       - Configuration: reference/configuration.md
       - Python API: reference/python-api.md
+      - SBOM & licenses: sbom.md

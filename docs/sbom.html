@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="generator" content="syft 1.48.0 / SurroForge SBOM overview">
+<title>SurroForge SBOM — Übersicht</title>
+<style>
+  :root {
+    --ground: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fbfcfd;
+    --ink: #141b26;
+    --muted: #5b6675;
+    --faint: #8b95a4;
+    --hair: #e3e7ee;
+    --hair-strong: #cfd6e0;
+    --accent: #0f766e;
+    --accent-soft: #0f766e18;
+    --ok: #2f7d55;      --ok-bg: #2f7d5518;
+    --review: #9a6a12;  --review-bg: #9a6a1218;
+    --flag: #b53a2f;    --flag-bg: #b53a2f18;
+    --shadow: 0 1px 2px rgba(20,27,38,.04), 0 4px 16px rgba(20,27,38,.05);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Cascadia Code", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0c121b; --surface: #131c28; --surface-2: #16202e;
+      --ink: #e7edf4; --muted: #97a3b4; --faint: #6b7787;
+      --hair: #24303f; --hair-strong: #33445a;
+      --accent: #35c2b3; --accent-soft: #35c2b322;
+      --ok: #4bbd82; --ok-bg: #4bbd8220;
+      --review: #d9a441; --review-bg: #d9a44120;
+      --flag: #e2685a; --flag-bg: #e2685a20;
+      --shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 22px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #f5f6f8; --surface: #ffffff; --surface-2: #fbfcfd;
+    --ink: #141b26; --muted: #5b6675; --faint: #8b95a4;
+    --hair: #e3e7ee; --hair-strong: #cfd6e0;
+    --accent: #0f766e; --accent-soft: #0f766e18;
+    --ok: #2f7d55; --ok-bg: #2f7d5518;
+    --review: #9a6a12; --review-bg: #9a6a1218;
+    --flag: #b53a2f; --flag-bg: #b53a2f18;
+    --shadow: 0 1px 2px rgba(20,27,38,.04), 0 4px 16px rgba(20,27,38,.05);
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c121b; --surface: #131c28; --surface-2: #16202e;
+    --ink: #e7edf4; --muted: #97a3b4; --faint: #6b7787;
+    --hair: #24303f; --hair-strong: #33445a;
+    --accent: #35c2b3; --accent-soft: #35c2b322;
+    --ok: #4bbd82; --ok-bg: #4bbd8220;
+    --review: #d9a441; --review-bg: #d9a44120;
+    --flag: #e2685a; --flag-bg: #e2685a20;
+    --shadow: 0 1px 2px rgba(0,0,0,.25), 0 6px 22px rgba(0,0,0,.28);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 1;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 72px; }
+  .mono { font-family: var(--mono); }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---- Masthead ---- */
+  .masthead {
+    border: 1px solid var(--hair-strong); border-radius: 12px;
+    background: var(--surface); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .masthead-top {
+    padding: 26px 28px 22px;
+    border-bottom: 1px dashed var(--hair-strong);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+    margin: 0 0 8px;
+  }
+  h1 { font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+  h1 .v { color: var(--muted); font-weight: 500; font-size: 20px; font-family: var(--mono); }
+  .tagline { color: var(--muted); margin: 10px 0 0; font-size: 14px; max-width: 52ch; }
+  .doc-stamp {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    text-align: right; line-height: 1.7; white-space: nowrap;
+  }
+  .doc-stamp b { color: var(--muted); font-weight: 600; }
+  .meta-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--surface-2);
+  }
+  .meta-strip div {
+    padding: 12px 28px; border-right: 1px solid var(--hair);
+    border-top: 0;
+  }
+  .meta-strip div:last-child { border-right: 0; }
+  .meta-strip .k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  .meta-strip .val { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-top: 2px; }
+
+  /* ---- Section ---- */
+  section { margin-top: 40px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; }
+  .sec-head h2 { font-size: 13px; font-family: var(--mono); letter-spacing: .1em; text-transform: uppercase; margin: 0; color: var(--muted); font-weight: 600; }
+  .sec-head .rule { flex: 1; height: 1px; background: var(--hair); }
+
+  /* ---- KPI tiles ---- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 10px;
+    padding: 18px 18px 16px; box-shadow: var(--shadow); position: relative;
+  }
+  .kpi .num { font-family: var(--mono); font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .kpi .lbl { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .kpi .sub { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 3px; }
+  .kpi.ok .num { color: var(--ok); }
+  .kpi.review .num { color: var(--review); }
+  .kpi.flag .num { color: var(--flag); }
+
+  /* ---- Composition bar ---- */
+  .compo { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 20px; box-shadow: var(--shadow); }
+  .bar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; border: 1px solid var(--hair); }
+  .bar span { display: block; transition: opacity .15s; }
+  .bar span:hover { opacity: .82; }
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+  .legend .item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .legend .c { font-family: var(--mono); color: var(--muted); font-size: 12px; }
+
+  /* ---- Attention cards ---- */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 10px;
+    padding: 0; box-shadow: var(--shadow); overflow: hidden;
+    border-left: 3px solid var(--hair-strong);
+  }
+  .card.flag { border-left-color: var(--flag); }
+  .card.review { border-left-color: var(--review); }
+  .card-h { padding: 15px 18px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .card-h .t { font-weight: 650; font-size: 14.5px; }
+  .card-h .n { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+  .card p { margin: 0; padding: 0 18px 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .pkgline { padding: 0 18px 15px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    font-family: var(--mono); font-size: 11.5px; padding: 2px 8px; border-radius: 5px;
+    background: var(--surface-2); border: 1px solid var(--hair); color: var(--ink);
+    white-space: nowrap;
+  }
+  .pill em { color: var(--faint); font-style: normal; }
+  .badge-mini { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-family: var(--mono); font-weight: 600; }
+  .badge-mini.flag { color: var(--flag); background: var(--flag-bg); }
+  .badge-mini.review { color: var(--review); background: var(--review-bg); }
+
+  /* ---- Table / ledger ---- */
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .search {
+    flex: 1; min-width: 200px; font-family: var(--mono); font-size: 13px;
+    padding: 9px 12px; border: 1px solid var(--hair-strong); border-radius: 8px;
+    background: var(--surface); color: var(--ink);
+  }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 12px; padding: 7px 12px; border-radius: 7px;
+    border: 1px solid var(--hair-strong); background: var(--surface); color: var(--muted);
+    cursor: pointer; user-select: none; transition: all .12s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--ink); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .chip[aria-pressed="true"] { color: #06201d; } }
+  :root[data-theme="dark"] .chip[aria-pressed="true"] { color: #06201d; }
+  :root[data-theme="light"] .chip[aria-pressed="true"] { color: #fff; }
+
+  .table-shell { border: 1px solid var(--hair-strong); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); background: var(--surface); }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--faint); font-weight: 600; text-align: left; padding: 11px 14px;
+    border-bottom: 1px solid var(--hair-strong); white-space: nowrap;
+  }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: var(--accent-soft); }
+  .name { font-family: var(--mono); font-weight: 600; }
+  .ver { font-family: var(--mono); color: var(--muted); }
+  .lic { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .lic.empty::before { content: "∅ nicht erkannt"; color: var(--faint); font-style: italic; }
+  .lic.hash { color: var(--faint); }
+  .lic.corr { color: var(--review); }
+  .corr-tag { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--review); background: var(--review-bg); padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+  .fam { font-family: var(--mono); font-size: 12px; }
+  .role { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
+  .role.core { color: var(--accent); }
+  .role.extra { color: var(--muted); }
+  .role.dev, .role.docs { color: var(--faint); }
+  .role.self { color: var(--ink); font-weight: 700; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+  .dot.ok { background: var(--ok); }
+  .dot.review { background: var(--review); }
+  .dot.flag { background: var(--flag); }
+  .st { font-family: var(--mono); font-size: 11px; }
+  .st.ok { color: var(--ok); }
+  .st.review { color: var(--review); }
+  .st.flag { color: var(--flag); }
+  .dup { font-family: var(--mono); font-size: 9.5px; color: var(--review); background: var(--review-bg); padding: 1px 5px; border-radius: 4px; margin-left: 7px; font-weight: 600; }
+  .count-note { font-family: var(--mono); font-size: 12px; color: var(--faint); padding: 10px 14px; border-top: 1px solid var(--hair); }
+
+  /* ---- Footnotes ---- */
+  .notes { margin-top: 20px; display: grid; gap: 10px; }
+  .note {
+    display: flex; gap: 12px; font-size: 13px; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 9px; padding: 13px 16px;
+  }
+  .note .marker { font-family: var(--mono); color: var(--accent); font-weight: 700; flex: none; }
+  .note code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--ink); border: 1px solid var(--hair); }
+  footer { margin-top: 40px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+
+  @media (max-width: 720px) {
+    .meta-strip { grid-template-columns: repeat(2, 1fr); }
+    .meta-strip div:nth-child(2) { border-right: 0; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .cards { grid-template-columns: 1fr; }
+    .doc-stamp { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="masthead-top">
+      <div>
+        <p class="eyebrow">Software Bill of Materials</p>
+        <h1>SurroForge <span class="v">v0.2.0</span></h1>
+        <p class="tagline">Vollständiges Inventar des Scans über das Projekt inkl. <code style="font-family:var(--mono);font-size:12px">.venv</code> — 130 Python-Pakete mit Lizenz-Einordnung. Windows-Launcher-Stubs wurden gefiltert.</p>
+      </div>
+      <div class="doc-stamp">
+        <div><b>CycloneDX</b> 1.7 · <b>SPDX</b> 2.3</div>
+        <div>syft 1.48.0</div>
+        <div>2026-07-20 10:25</div>
+        <div style="margin-top:6px;color:var(--faint)">urn:uuid:ac22aab8…d08f</div>
+      </div>
+    </div>
+    <div class="meta-strip">
+      <div><div class="k">Komponenten</div><div class="val tnum">453</div></div>
+      <div><div class="k">Bibliotheken</div><div class="val tnum">130</div></div>
+      <div><div class="k">Dateien</div><div class="val tnum">323</div></div>
+      <div><div class="k">Ökosystem</div><div class="val">PyPI · 100%</div></div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <section>
+    <div class="sec-head"><h2>Lizenz-Ampel</h2><div class="rule"></div></div>
+    <div class="kpis">
+      <div class="kpi ok"><div class="num tnum" id="k-ok">–</div><div class="lbl">Permissiv & unkritisch</div><div class="sub">MIT · BSD · Apache · ISC · PSF</div></div>
+      <div class="kpi review"><div class="num tnum" id="k-review">–</div><div class="lbl">Zu prüfen</div><div class="sub">Copyleft · unklar · nicht erkannt</div></div>
+      <div class="kpi flag"><div class="num tnum" id="k-flag">–</div><div class="lbl">Zu klären</div><div class="sub">proprietär · unbekannt</div></div>
+      <div class="kpi"><div class="num tnum">24</div><div class="lbl">Direkt deklariert</div><div class="sub">pyproject.toml</div></div>
+    </div>
+  </section>
+
+  <!-- Composition -->
+  <section>
+    <div class="sec-head"><h2>Lizenz-Zusammensetzung</h2><div class="rule"></div></div>
+    <div class="compo">
+      <div class="bar" id="compo-bar"></div>
+      <div class="legend" id="compo-legend"></div>
+    </div>
+  </section>
+
+  <!-- Attention -->
+  <section>
+    <div class="sec-head"><h2>Braucht Aufmerksamkeit</h2><div class="rule"></div></div>
+    <div class="cards">
+
+      <div class="card flag">
+        <div class="card-h"><span class="t">Proprietär <span class="badge-mini flag">FLAG</span></span><span class="n">2 Pakete</span></div>
+        <p>Deine eigenen kommerziellen Tiers, im venv installiert. Für eine öffentliche Distributions-SBOM entweder entfernen oder klar als First-Party kennzeichnen — sonst liest es sich wie eine fremde proprietäre Abhängigkeit.</p>
+        <div class="pkgline">
+          <span class="pill">surroforge-enterprise <em>0.1.0</em></span>
+          <span class="pill">surroforge-professional <em>0.2.0</em></span>
+        </div>
+      </div>
+
+      <div class="card flag">
+        <div class="card-h"><span class="t">Unbekannt / Test <span class="badge-mini flag">FLAG</span></span><span class="n">2 Pakete</span></div>
+        <p><span class="mono">my-test-package</span> ist ein lokales Test-Artefakt und gehört nicht in eine Release-SBOM. <span class="mono">mergedeep</span> ist real MIT — Syft hat die Lizenz nur nicht aufgelöst.</p>
+        <div class="pkgline">
+          <span class="pill">my-test-package <em>1.0</em></span>
+          <span class="pill">mergedeep <em>1.3.4</em></span>
+        </div>
+      </div>
+
+      <div class="card review">
+        <div class="card-h"><span class="t">Copyleft (verifiziert) <span class="badge-mini review">PRÜFEN</span></span><span class="n">5 Pakete</span></div>
+        <p>Alles schwaches / datei-basiertes Copyleft — <b>kein reines GPL/AGPL</b>. Als unveränderte Abhängigkeit unkritisch, und <b>keines steckt in den Laufzeit-Deps</b> (nur Build-/Publish-/Docs-Tooling). <span class="mono">pathspec</span> &amp; <span class="mono">docutils</span> hatte Syft übersehen (✎ an den venv-METADATA verifiziert).</p>
+        <div class="pkgline">
+          <span class="pill">certifi <em>MPL-2.0</em></span><span class="pill">orjson <em>MPL-2.0</em></span><span class="pill">pathspec <em>MPL-2.0 ✎</em></span><span class="pill">autocommand <em>LGPL-3.0</em></span><span class="pill">docutils <em>tw. GPL ✎</em></span>
+        </div>
+      </div>
+
+      <div class="card review">
+        <div class="card-h"><span class="t">Erkennung fehlgeschlagen <span class="badge-mini review">PRÜFEN</span></span><span class="n">3 Pakete</span></div>
+        <p>Syft gab den SHA-256 der <span class="mono">LICENSE</span>-Datei aus statt einer ID. Real: matplotlib = PSF/BSD-artig, pandas &amp; kiwisolver = BSD-3-Clause. Kosmetisch, aber verzerrt Compliance-Tools.</p>
+        <div class="pkgline">
+          <span class="pill">matplotlib <em>3.11.0</em></span><span class="pill">pandas <em>3.0.3</em></span><span class="pill">kiwisolver <em>1.5.0</em></span>
+        </div>
+      </div>
+
+      <div class="card review">
+        <div class="card-h"><span class="t">Keine Lizenz erkannt <span class="badge-mini review">PRÜFEN</span></span><span class="n">5 Pakete</span></div>
+        <p>Syft fand keine SPDX-ID; alle fünf sind faktisch permissiv (jinja2 = BSD, colorama = BSD, annotated-types &amp; markdown-it-py = MIT, id = Apache). Zwei weitere „leere" Pakete entpuppten sich als Copyleft → siehe Karte oben.</p>
+        <div class="pkgline">
+          <span class="pill">annotated-types</span><span class="pill">colorama</span><span class="pill">id</span><span class="pill">jinja2</span><span class="pill">markdown-it-py</span>
+        </div>
+      </div>
+
+      <div class="card review">
+        <div class="card-h"><span class="t">Uneinheitlich benannt <span class="badge-mini review">PRÜFEN</span></span><span class="n">7 Pakete</span></div>
+        <p>Gleiche Lizenz, verschiedene Schreibweisen — z.B. „Apache 2.0" / „Apache Software License" / „Apache License v2.0". <span class="mono">python-dateutil</span> = „Dual License" ist real Apache-2.0 OR BSD-3. Normalisieren für saubere Reports.</p>
+        <div class="pkgline">
+          <span class="pill">python-dateutil</span><span class="pill">flatbuffers</span><span class="pill">ghp-import</span><span class="pill">requests-toolbelt</span><span class="pill">rfc3986</span><span class="pill">skl2onnx</span><span class="pill">protobuf</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Inventory -->
+  <section>
+    <div class="sec-head"><h2>Vollständiges Inventar</h2><div class="rule"></div></div>
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="Paket oder Lizenz suchen…" aria-label="Paket suchen" />
+      <div class="chips" id="filters">
+        <button class="chip" data-f="all" aria-pressed="true">Alle</button>
+        <button class="chip" data-f="ok" aria-pressed="false">● Permissiv</button>
+        <button class="chip" data-f="review" aria-pressed="false">● Zu prüfen</button>
+        <button class="chip" data-f="flag" aria-pressed="false">● Zu klären</button>
+        <button class="chip" data-f="copyleft" aria-pressed="false">Copyleft</button>
+        <button class="chip" data-f="direct" aria-pressed="false">Direkt deklariert</button>
+        <button class="chip" data-f="dup" aria-pressed="false">Doppelt</button>
+      </div>
+    </div>
+    <div class="table-shell">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Paket</th><th>Version</th><th>Lizenz (roh)</th><th>Familie</th><th>Rolle</th><th>Status</th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="count-note" id="count-note"></div>
+    </div>
+  </section>
+
+  <div class="notes">
+    <div class="note"><span class="marker">i</span><span>Der Scan umfasst die komplette <code>.venv</code> — deshalb erscheinen auch Build-/Test-/Docs-Werkzeuge (pytest, ruff, mypy, twine, mkdocs-material) sowie <code>pip</code>/<code>setuptools</code>/<code>wheel</code>. Es ist ein <b>Umgebungs-Inventar</b>, keine reine Laufzeit-Abhängigkeitsliste.</span></div>
+    <div class="note"><span class="marker">⧉</span><span>5 Pakete liegen doppelt vor (zwei Versionen): jaraco-context, jaraco-functools, more-itertools, packaging, platformdirs — stammen aus den vendored Kopien in setuptools/pip.</span></div>
+    <div class="note"><span class="marker">↺</span><span>Für eine schlanke Release-SBOM aus dem Abhängigkeitsgraph statt dem venv erzeugen: Lockfile via <code>uv pip compile pyproject.toml</code>, dann <code>syft file:requirements.txt</code>.</span></div>
+  </div>
+
+  <footer>SurroForge · CycloneDX 1.7 + SPDX 2.3 · generiert mit syft 1.48.0 · 2026-07-20</footer>
+</div>
+
+<script>
+  const ROWS = [["annotated-doc","0.0.4","MIT"],["annotated-types","0.7.0",""],["ast-serialize","0.5.0","MIT"],["attrs","26.1.0","MIT"],["autocommand","2.2.2","LGPLv3"],["babel","2.18.0","BSD-3-Clause"],["backports-tarfile","1.2.0","MIT"],["backrefs","7.0","MIT"],["build","1.5.0","MIT"],["certifi","2026.5.20","MPL-2.0"],["cffi","2.1.0","MIT-0"],["charset-normalizer","3.4.7","MIT"],["click","8.4.1","BSD-3-Clause"],["colorama","0.4.6",""],["contourpy","1.3.3","BSD-3-Clause"],["cryptography","49.0.0","Apache-2.0 OR BSD-3-Clause"],["cycler","0.12.1","BSD-3-Clause"],["docutils","0.23",""],["filelock","3.29.4","MIT"],["flatbuffers","25.12.19","Apache 2.0"],["fonttools","4.63.0","MIT"],["fsspec","2026.4.0","BSD-3-Clause"],["ghp-import","2.1.0","Apache Software License"],["grimp","3.14","BSD 2-Clause License"],["h5py","3.16.0","BSD-3-Clause"],["id","1.6.1",""],["idna","3.18","BSD-3-Clause"],["import-linter","2.11","BSD 2-Clause License"],["importlib-metadata","8.7.1","Apache-2.0"],["iniconfig","2.3.0","MIT"],["jaraco-classes","3.4.0","MIT"],["jaraco-context","6.1.0","MIT"],["jaraco-context","6.1.2","MIT"],["jaraco-functools","4.4.0","MIT"],["jaraco-functools","4.5.0","MIT"],["jaraco-text","4.0.0","MIT"],["jenn","2.0.0","MIT"],["jinja2","3.1.6",""],["joblib","1.5.3","BSD-3-Clause"],["jsonpointer","3.1.1","Modified BSD License"],["jsonschema","4.26.0","MIT"],["jsonschema-specifications","2025.9.1","MIT"],["keyring","25.7.0","MIT"],["kiwisolver","1.5.0","sha256:4e89b2eeb82ea10ec61119c814f2ca0bbccdc22b72d0eb4f5542ef08f6a73ed2"],["librt","0.11.0","MIT"],["markdown","3.10.2","BSD-3-Clause"],["markdown-it-py","4.2.0",""],["markupsafe","3.0.3","BSD-3-Clause"],["matplotlib","3.11.0","sha256:3596f4f7d52f77bb4ae3b2b11fe14abbae564b43b566f64ea452c46a248b1157"],["mdurl","0.1.2","MIT"],["mergedeep","1.3.4","UNKNOWN"],["meshio","5.3.5","MIT"],["mkdocs","1.6.1","BSD-2-Clause"],["mkdocs-get-deps","0.2.2","MIT"],["mkdocs-material","9.7.6","MIT"],["mkdocs-material-extensions","1.3.1","MIT"],["ml-dtypes","0.5.4","Apache-2.0"],["more-itertools","10.8.0","MIT"],["more-itertools","11.1.0","MIT"],["mpmath","1.3.0","BSD"],["my-test-package","1.0","UNKNOWN"],["mypy","2.1.0","MIT"],["mypy-extensions","1.1.0","MIT"],["narwhals","2.22.1","MIT"],["networkx","3.6.1","BSD-3-Clause"],["nh3","0.3.5","MIT"],["nodeenv","1.10.0","BSD"],["numpy","2.4.6","BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"],["onnx","1.21.0","Apache-2.0"],["onnxruntime","1.26.0","MIT License"],["orjson","3.11.9","MPL-2.0 AND (Apache-2.0 OR MIT)"],["packaging","26.0","Apache-2.0 OR BSD-2-Clause"],["packaging","26.2","Apache-2.0 OR BSD-2-Clause"],["paginate","0.5.7","MIT"],["pandas","3.0.3","sha256:6dc1ad62d707e8dda646a5461c66fff8e6497c8656e04ccee9a64d411b017d65"],["pathspec","1.1.1",""],["pillow","12.2.0","MIT-CMU"],["pip","26.0.1","MIT"],["pip-licenses","5.5.5","MIT"],["platformdirs","4.10.0","MIT"],["platformdirs","4.4.0","MIT"],["pluggy","1.6.0","MIT"],["prettytable","3.17.0","BSD-3-Clause"],["protobuf","7.35.1","3-Clause BSD License"],["pyarrow","24.0.0","Apache-2.0"],["pycparser","3.0","BSD-3-Clause"],["pydantic","2.13.4","MIT"],["pydantic-core","2.46.4","MIT"],["pydoe","1.3.0","BSD-3-Clause"],["pygments","2.20.0","BSD-2-Clause"],["pymdown-extensions","11.0.1","MIT"],["pyparsing","3.3.2","MIT"],["pyproject-hooks","1.2.0","MIT"],["pyright","1.1.410","MIT"],["pytest","9.0.3","MIT"],["python-dateutil","2.9.0.post0","Dual License"],["pyyaml","6.0.3","MIT"],["pyyaml-env-tag","1.1","MIT"],["readme-renderer","45.0","Apache-2.0"],["referencing","0.37.0","MIT"],["requests","2.34.2","Apache-2.0"],["requests-toolbelt","1.0.0","Apache 2.0"],["rfc3986","2.0.0","Apache 2.0"],["rich","15.0.0","MIT"],["rpds-py","2026.5.1","MIT"],["ruff","0.15.17","MIT"],["scikit-learn","1.9.0","BSD-3-Clause"],["scipy","1.17.1","BSD-3-Clause"],["seaborn","0.13.2","BSD-3-Clause"],["setuptools","81.0.0","MIT"],["shellingham","1.5.4","ISC License"],["six","1.17.0","MIT"],["skl2onnx","1.20.0","Apache License v2.0"],["smt","2.14.0","BSD-3-Clause"],["surroforge","0.2.0","Apache-2.0"],["surroforge-enterprise","0.1.0","Proprietary"],["surroforge-professional","0.2.0","Proprietary"],["sympy","1.14.0","BSD"],["threadpoolctl","3.6.0","BSD-3-Clause"],["tomli","2.4.0","MIT"],["torch","2.12.0","BSD-3-Clause"],["twine","6.2.0","Apache-2.0"],["typer","0.26.7","MIT"],["typing-extensions","4.15.0","PSF-2.0"],["typing-inspection","0.4.2","MIT"],["urllib3","2.7.0","MIT"],["watchdog","6.0.0","Apache-2.0"],["wcwidth","0.8.1","MIT"],["wheel","0.46.3","MIT"],["zipp","3.23.0","MIT"]];
+
+  const DIRECT = {
+    numpy:"core", scipy:"core", pandas:"core", "scikit-learn":"core", pyyaml:"core", pydantic:"core", typer:"core", jinja2:"core",
+    smt:"extra", skl2onnx:"extra", onnx:"extra", onnxruntime:"extra", pyarrow:"extra", h5py:"extra", meshio:"extra",
+    pytest:"dev", ruff:"dev", mypy:"dev", pyright:"dev", "import-linter":"dev", "pip-licenses":"dev", build:"dev", twine:"dev",
+    "mkdocs-material":"docs", surroforge:"self"
+  };
+
+  function classify(lic) {
+    const s = (lic || "").trim();
+    if (s === "") return { fam: "nicht erkannt", risk: "review" };
+    if (/^sha256:/i.test(s)) return { fam: "Hash (fehlgeschlagen)", risk: "review" };
+    if (/proprietary/i.test(s)) return { fam: "Proprietär", risk: "flag" };
+    if (/unknown/i.test(s)) return { fam: "Unbekannt", risk: "flag" };
+    if (/lgpl/i.test(s)) return { fam: "LGPL", risk: "review" };
+    if (/mpl/i.test(s)) return { fam: "MPL-2.0", risk: "review" };
+    if (/dual license/i.test(s)) return { fam: "Dual (unklar)", risk: "review" };
+    // permissive families
+    if (/psf/i.test(s)) return { fam: "PSF", risk: "ok" };
+    if (/isc/i.test(s)) return { fam: "ISC", risk: "ok" };
+    if (/apache/i.test(s) && !/bsd|mit/i.test(s)) return { fam: "Apache-2.0", risk: "ok" };
+    if (/bsd/i.test(s)) return { fam: "BSD", risk: "ok" };
+    if (/mit/i.test(s)) return { fam: "MIT", risk: "ok" };
+    if (/apache/i.test(s)) return { fam: "Apache-2.0", risk: "ok" };
+    return { fam: s, risk: "review" };
+  }
+
+  const RISK_COLOR = { ok: "var(--ok)", review: "var(--review)", flag: "var(--flag)" };
+  const RISK_LABEL = { ok: "permissiv", review: "prüfen", flag: "klären" };
+
+  // count duplicates
+  const nameCounts = {};
+  ROWS.forEach(r => { nameCounts[r[0]] = (nameCounts[r[0]] || 0) + 1; });
+
+  // Syft verpasste die Lizenz — an den venv-METADATA verifiziert korrigiert.
+  const CORRECT = {
+    pathspec: { fam: "MPL-2.0", risk: "review" },
+    docutils: { fam: "Gemischt (inkl. GPL)", risk: "review" }
+  };
+
+  const DATA = ROWS.map(([name, version, lic]) => {
+    let c = classify(lic);
+    const corrected = !!CORRECT[name];
+    if (corrected) c = CORRECT[name];
+    const copyleft = /mpl|lgpl|gpl/i.test(c.fam);
+    return { name, version, lic, fam: c.fam, risk: c.risk, role: DIRECT[name] || "", dup: nameCounts[name] > 1, corrected, copyleft };
+  });
+
+  // KPI counts
+  const counts = { ok: 0, review: 0, flag: 0 };
+  DATA.forEach(d => counts[d.risk]++);
+  document.getElementById("k-ok").textContent = counts.ok;
+  document.getElementById("k-review").textContent = counts.review;
+  document.getElementById("k-flag").textContent = counts.flag;
+
+  // Composition — group by license family (ranked), colored by risk
+  const famAgg = {};
+  DATA.forEach(d => {
+    if (!famAgg[d.fam]) famAgg[d.fam] = { n: 0, risk: d.risk };
+    famAgg[d.fam].n++;
+  });
+  const famList = Object.entries(famAgg).sort((a, b) => b[1].n - a[1].n);
+  const total = DATA.length;
+  const riskShade = { ok: [1, .72, .5, .38], review: [1, .7, .5], flag: [1, .7] };
+  const bar = document.getElementById("compo-bar");
+  const legend = document.getElementById("compo-legend");
+  const shadeIdx = { ok: 0, review: 0, flag: 0 };
+  famList.forEach(([fam, info]) => {
+    const shades = riskShade[info.risk];
+    const op = shades[Math.min(shadeIdx[info.risk]++, shades.length - 1)];
+    const seg = document.createElement("span");
+    seg.style.width = (info.n / total * 100) + "%";
+    seg.style.background = RISK_COLOR[info.risk];
+    seg.style.opacity = op;
+    seg.title = fam + " — " + info.n;
+    bar.appendChild(seg);
+  });
+  // Legend: top families
+  famList.slice(0, 8).forEach(([fam, info]) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    item.innerHTML = '<span class="swatch" style="background:' + RISK_COLOR[info.risk] + '"></span>' +
+      '<span>' + fam + '</span><span class="c tnum">' + info.n + '</span>';
+    legend.appendChild(item);
+  });
+
+  // Table render
+  const tbody = document.getElementById("tbody");
+  const countNote = document.getElementById("count-note");
+  let activeFilter = "all";
+  let query = "";
+
+  function render() {
+    const q = query.toLowerCase();
+    const rows = DATA.filter(d => {
+      if (activeFilter === "ok" || activeFilter === "review" || activeFilter === "flag") {
+        if (d.risk !== activeFilter) return false;
+      } else if (activeFilter === "copyleft") {
+        if (!d.copyleft) return false;
+      } else if (activeFilter === "direct") {
+        if (!d.role) return false;
+      } else if (activeFilter === "dup") {
+        if (!d.dup) return false;
+      }
+      if (q && !(d.name.toLowerCase().includes(q) || d.lic.toLowerCase().includes(q) || d.fam.toLowerCase().includes(q))) return false;
+      return true;
+    });
+    tbody.innerHTML = rows.map(d => {
+      let licCls, licText;
+      if (d.corrected) {
+        licCls = "lic corr";
+        licText = escapeHtml(d.fam) + '<span class="corr-tag">✎ korr.</span>';
+      } else if (d.lic === "") {
+        licCls = "lic empty"; licText = "";
+      } else if (/^sha256:/i.test(d.lic)) {
+        licCls = "lic hash"; licText = "sha256:…";
+      } else {
+        licCls = "lic"; licText = escapeHtml(d.lic);
+      }
+      const roleTxt = d.role ? '<span class="role ' + d.role + '">' + d.role + '</span>' : '<span style="color:var(--faint)">·</span>';
+      const dup = d.dup ? '<span class="dup">×2</span>' : '';
+      return '<tr>' +
+        '<td><span class="name">' + escapeHtml(d.name) + '</span>' + dup + '</td>' +
+        '<td class="ver tnum">' + escapeHtml(d.version) + '</td>' +
+        '<td class="' + licCls + '">' + licText + '</td>' +
+        '<td class="fam">' + escapeHtml(d.fam) + '</td>' +
+        '<td>' + roleTxt + '</td>' +
+        '<td><span class="st ' + d.risk + '"><span class="dot ' + d.risk + '"></span>' + RISK_LABEL[d.risk] + '</span></td>' +
+        '</tr>';
+    }).join("");
+    countNote.textContent = rows.length + " von " + DATA.length + " Paketen";
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  document.getElementById("filters").addEventListener("click", e => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    document.querySelectorAll("#filters .chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+    btn.setAttribute("aria-pressed", "true");
+    activeFilter = btn.dataset.f;
+    render();
+  });
+  document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
+
+  render();
+</script>
+</body>
+</html>
