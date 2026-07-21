@@ -18,7 +18,7 @@ Surrogate-Modelle werden zum selbstverständlichen Werkzeug jedes Berechnungsing
 
 ### 1.3 Mission
 
-Wir bauen ein Open-Core-Werkzeug, mit dem Ingenieure aus Simulationsdaten Surrogate-Modelle trainieren, vergleichen und teilen können — skriptbar, offen und ohne Vendor-Lock-in. Die kommerziellen Editionen ergänzen die für Engineering-Nachweise entscheidenden Ebenen: Reproduzierbarkeit und Lineage, Modell-Deployment und erweiterte Methoden.
+Wir bauen ein Open-Core-Werkzeug, mit dem Ingenieure aus Simulationsdaten Surrogate-Modelle trainieren, vergleichen und teilen können — skriptbar, offen und ohne Vendor-Lock-in. Die kommerziellen Editionen ergänzen die für Engineering-Nachweise entscheidenden Ebenen: Reproduzierbarkeit und Lineage, Modell-Deployment, KI-Agenten-Steuerung und erweiterte Methoden.
 
 ### 1.4 Kernversprechen
 
@@ -38,7 +38,7 @@ Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde. Die ko
 - Markdown-Reports als Ausgabe; portabler Modell-Export (ONNX/Pickle) gehört zu Professional
 - Plugin-Schnittstellen, damit der spätere Ausbau (Pro/Enterprise) additiv erfolgt und den Kern nicht umbaut
 
-**Was das MVP bewusst weglässt:** erweiterte Methoden (skalierbare GP, RF, Boosting, NN), Modell-Export, Reproduzierbarkeit/Lineage und `reproduce`, interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
+**Was das MVP bewusst weglässt:** erweiterte Methoden (skalierbare GP, RF, Boosting, NN), Modell-Export, Reproduzierbarkeit/Lineage und `reproduce`, interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung, KI-Agenten-Steuerung (MCP-Server + maschinenlesbare JSON-Ausgabe) sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
 
 **Warum dieser Zuschnitt:** Das MVP soll die teuerste Unsicherheit zuerst beantworten — ob der freie Open-Source-Kern messbare Adoption in der CAE-Community erzeugt (Annahme 2) und als Funnel taugt. Erst wenn das belegt ist, rechtfertigt sich die Investition in die kommerziellen Ebenen (Reproduzierbarkeit, Deployment, Methoden-Breite), auf denen die Konversion beruht. Die Definition of Done für Phase 1 (drei externe Testnutzer durchlaufen die drei Standard-Szenarien erfolgreich) ist genau dieser Lerntest.
 
@@ -48,7 +48,7 @@ Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde. Die ko
 
 ### 2.1 Primäre Persona
 
-**Methoden-Engineer** in einem CAE-Team mittelständischer Maschinenbau-Unternehmen. Python-affin, arbeitet in der Kommandozeile, kennt SMT und scikit-learn, will Workflows standardisieren.
+**Methoden-Engineer** in einem CAE-Team mittelständischer Maschinenbau-Unternehmen. Python-affin, arbeitet in der Kommandozeile, kennt SMT und scikit-learn, will Workflows standardisieren. Delegiert wiederkehrende Workflow-Schritte zunehmend an KI-Coding-Agenten und erwartet, dass sich seine Werkzeuge von diesen steuern lassen.
 
 ### 2.2 Sekundäre Persona
 
@@ -84,6 +84,7 @@ Open Core. Der Produktkern ist Open Source unter Apache 2.0, kommerzielle Erweit
 | Reproduzierbarkeit & Lineage (`reproduce`, Herkunfts-Hashes, Lineage-Ansicht/-Export) | — | ✓ | ✓ |
 | Modell-Export (ONNX, Pickle) | — | ✓ | ✓ |
 | HTML-Reports (interaktiv), DoE/Sampling, erweiterte Vergleiche | — | ✓ | ✓ |
+| KI-Agenten-Steuerung (MCP-Server, maschinenlesbare JSON-Ausgabe) | — | ✓ | ✓ |
 | Lizenz-Aktivierung (Datei/Online) | — | ✓ | ✓ |
 | Autoencoder-Feld-Surrogate (nichtlineare Reduktion) | — | — | ✓ |
 | Active Learning, Multi-Fidelity | — | — | ✓ |
@@ -91,7 +92,7 @@ Open Core. Der Produktkern ist Open Source unter Apache 2.0, kommerzielle Erweit
 | Floating-Lizenzen, Site-License | — | — | ✓ |
 | SLA-Support, Customer Success | — | — | ✓ |
 
-**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment* (Modell-Export) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus — stufen-bewusst: das Autoencoder-Feld-Surrogat verlangt die Enterprise-Stufe.
+**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment/Integration* (Modell-Export, KI-Agenten-Steuerung) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus — stufen-bewusst: das Autoencoder-Feld-Surrogat verlangt die Enterprise-Stufe.
 
 ### 3.3 Lizenzaktivierung
 
@@ -130,7 +131,7 @@ Ein typischer Nutzerablauf umfasst:
 | `surroforge reproduce <run-id>` | Run identisch nachvollziehen |
 | `surroforge info <run-id>` | Detailinfos zu einem Run |
 
-Globale Optionen: `--verbose / -v`, `--quiet / -q`, `--config-dir`, `--help`.
+Globale Optionen: `--verbose / -v`, `--quiet / -q`, `--config-dir`, `--json` (maschinenlesbare Ausgabe, Professional — siehe 4.12), `--help`.
 
 ### 4.3 Konfigurationsformat
 
@@ -160,6 +161,7 @@ Optionale Felder mit Defaults:
 **Ausgabe:**
 - Modell-Export als Pickle und ONNX (Professional)
 - Metadaten als JSON
+- Maschinenlesbare CLI-Ausgabe als JSON auf stdout (`--json`, Professional — siehe 4.12)
 - Reports als Markdown (Core), HTML (Pro), PDF-Audit (Enterprise)
 - Konfigurations-Snapshot als YAML
 
@@ -243,6 +245,20 @@ Plugin-Punkte (MVP):
 
 Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne Plugins mit Lizenz-Check implementiert. Drittanbieter dürfen eigene Plugins entwickeln; Stabilitätsgarantie ab Version 1.0.
 
+### 4.12 KI-Agenten-Steuerung (Professional)
+
+SurroForge ist durch KI-Agenten steuerbar: ein Agent (z. B. Claude oder Claude Code) fährt den vollständigen Kern-Workflow selbst — Datensatz registrieren, trainieren, validieren, vergleichen, vorhersagen, berichten. Dafür stehen zwei Oberflächen bereit, beide lizenzpflichtig (Professional; in Enterprise enthalten):
+
+**1. MCP-Server.** Stellt die SurroForge-Verben als Tools des Model Context Protocol (MCP) über stdio bereit, sodass MCP-fähige Agenten sie nativ aufrufen. Ausgeliefert im `surroforge_professional`-Plugin und über die bestehende Plugin-Mechanik registriert (`surroforge mcp serve`); die `mcp`-SDK ist ein optionales Extra (`pip install 'surroforge_professional[agent]'`).
+
+**2. Maschinenlesbarer Ausgabemodus.** Ein globales `--json`-Flag lässt jeden Befehl statt Terminal-Text ein stabiles JSON-Objekt auf stdout ausgeben, kombiniert mit deterministischen Exit-Codes. Für skript- oder shell-basierte Agenten, die die CLI direkt aufrufen.
+
+**Architektur.** Beide Oberflächen setzen ausschließlich auf der bestehenden Services-/Engine-/Python-API-Schicht auf (4.10, 4.11) und bauen keine eigene Domänenlogik. Damit erben sie das Lizenz-Gate automatisch: gegatete Verben (`reproduce`, `export`, HTML-`compare`, Provenance in `info`) verlangen weiterhin eine Lizenz und liefern eine strukturierte „requires license"-Antwort (`error_type` + `message`, abgeleitet aus der bestehenden `PluginError`-Hierarchie). Freie Core-Verben (`train`, `predict`, `validate`, Terminal-`compare`, `list`, `data …`, `rom inspect`, Markdown-`report`) bleiben inhaltlich unverändert — die Agent-Schicht kapselt sie nur maschinenlesbar.
+
+**Abgedeckte Verben:** `init`, `data add`/`add-openfoam`/`list`, `train`, `validate`, `compare`, `predict`, `export`, `report`, `list`, `reproduce`, `info`, `rom inspect`.
+
+Stabilität und Sicherheit des Agent-Vertrags: siehe 5.5 (lokal, ohne ausgehende Netzwerkverbindung) und 5.7 (versioniertes, rückwärtskompatibles Ausgabeschema).
+
 ---
 
 ## 5. Nicht-funktionale Anforderungen
@@ -275,6 +291,7 @@ Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne P
 ### 5.5 Sicherheit
 
 - Keine ausgehende Netzwerkverbindung in der Core-Edition (außer expliziter Update-Check, opt-in)
+- Der MCP-Server (Professional, 4.12) läuft lokal über stdio und baut selbst keine ausgehende Netzwerkverbindung auf
 - Lizenzprüfung in Pro/Enterprise erfolgt lokal oder über vom Nutzer konfigurierte Endpunkte
 - Keine Telemetrie ohne Opt-In; falls aktiviert, transparent und abschaltbar
 
@@ -283,6 +300,11 @@ Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne P
 - CLI- und API-Ausgaben primär Englisch
 - Deutsche Lokalisierung optional konfigurierbar (Phase 2)
 - Dokumentation primär Englisch, deutsche Kurzversion gepflegt
+
+### 5.7 Stabilität des Agent-Ausgabevertrags
+
+- Das maschinenlesbare Ausgabeschema (`--json`) und die MCP-Tool-Signaturen (4.12) sind versioniert und ab Version 1.0 innerhalb einer Major-Version rückwärtskompatibel — analog zum CLI-/API-Vertrag (5.4) —, damit Agenten und Skripte sich verlässlich darauf abstützen können
+- Schema-Änderungen folgen demselben Deprecation-Pfad wie CLI/API (mindestens eine Minor-Version Vorlauf) und werden in CI gegen frühere Releases geprüft
 
 ---
 
@@ -429,6 +451,7 @@ Inhalte:
 - Lizenz-Aktivierungs-Mechanik
 - E-Mail-Support-Infrastruktur
 - DoE-Modul als ergänzendes Submodul
+- KI-Agenten-Steuerung: MCP-Server + maschinenlesbarer JSON-Modus (setzt auf die Services-/API-Schicht auf, erbt das Lizenz-Gate)
 
 **Definition of Done:** Drei zahlende Pilotkunden, dokumentierte Konversion vom Core; das Reproduktions-Szenario (bit-identischer Nachvollzug) läuft in Professional durch.
 
@@ -494,6 +517,7 @@ Diese Annahmen werden vor und während der Entwicklung durch Interviews und frü
 - **Plugin-Trennlinie:** Saubere Trennung zwischen Core- und kommerziellen Modulen ist architektonisch anspruchsvoll. Mitigationsstrategie: Plugin-Schnittstellen früh definieren, alle erweiterten Methoden konsistent als Plugins implementieren.
 - **Reproduzierbarkeit über Python-/Bibliotheksversionen:** Numerische Unterschiede zwischen NumPy- oder SciPy-Versionen können Bit-Identität verhindern. Mitigationsstrategie: Versionspinning im Run-Snapshot, tolerante Reproduzierbarkeits-Tests (z. B. relative Toleranz).
 - **Performance bei großen Datensätzen:** Gaussian Processes skalieren schlecht über 10.000 Punkten. Mitigationsstrategie: Skalierbare GP-Varianten in Pro-Edition (Sparse GP, GPyTorch), klare Dokumentation der Grenzen.
+- **Stabilität des Agent-Vertrags:** Ein maschinenlesbares JSON-/MCP-Schema (4.12) wird von Agenten und Skripten als Vertrag konsumiert; nachträgliche Änderungen brechen Integrationen. Mitigationsstrategie: versioniertes, in CI getestetes Ausgabeschema mit Deprecation-Pfad (5.7).
 
 ### 11.3 Geschäftliche Risiken
 
