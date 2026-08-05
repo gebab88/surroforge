@@ -38,7 +38,7 @@ Vom Solver-Output zum validierten Surrogate-Modell in unter einer Stunde. Die ko
 - Markdown-Reports als Ausgabe; portabler Modell-Export (ONNX/Pickle) gehört zu Professional
 - Plugin-Schnittstellen, damit der spätere Ausbau (Pro/Enterprise) additiv erfolgt und den Kern nicht umbaut
 
-**Was das MVP bewusst weglässt:** erweiterte Methoden (skalierbare GP, RF, Boosting, NN), Modell-Export, Reproduzierbarkeit/Lineage und `reproduce`, interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung, KI-Agenten-Steuerung (MCP-Server + maschinenlesbare JSON-Ausgabe) sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
+**Was das MVP bewusst weglässt:** erweiterte Methoden (skalierbare GP, RF, Boosting, NN), Modell-Export, Reproduzierbarkeit/Lineage und `reproduce`, interaktive HTML-/PDF-Reports, Active Learning, Multi-Fidelity, DoE-Generierung, KI-Agenten-Steuerung (maschinenlesbare JSON-Ausgabe in Phase 2, MCP-Server in Phase 3) sowie die gesamte Lizenz- und Monetarisierungs-Mechanik. Diese gehören in Phase 2 und 3 (Abschnitte 9.2, 9.3) und werden erst gebaut, wenn das MVP seine kritischen Annahmen (Abschnitt 11.1) bestätigt hat.
 
 **Warum dieser Zuschnitt:** Das MVP soll die teuerste Unsicherheit zuerst beantworten — ob der freie Open-Source-Kern messbare Adoption in der CAE-Community erzeugt (Annahme 2) und als Funnel taugt. Erst wenn das belegt ist, rechtfertigt sich die Investition in die kommerziellen Ebenen (Reproduzierbarkeit, Deployment, Methoden-Breite), auf denen die Konversion beruht. Die Definition of Done für Phase 1 (drei externe Testnutzer durchlaufen die drei Standard-Szenarien erfolgreich) ist genau dieser Lerntest.
 
@@ -84,15 +84,16 @@ Open Core. Der Produktkern ist Open Source unter Apache 2.0, kommerzielle Erweit
 | Reproduzierbarkeit & Lineage (`reproduce`, Herkunfts-Hashes, Lineage-Ansicht/-Export) | — | ✓ | ✓ |
 | Modell-Export (ONNX, Pickle) | — | ✓ | ✓ |
 | HTML-Reports (interaktiv), DoE/Sampling, erweiterte Vergleiche | — | ✓ | ✓ |
-| KI-Agenten-Steuerung (MCP-Server, maschinenlesbare JSON-Ausgabe) | — | ✓ | ✓ |
+| Maschinenlesbare CLI-Ausgabe (`--json`) für skriptbare Agenten | — | ✓ | ✓ |
 | Lizenz-Aktivierung (Datei/Online) | — | ✓ | ✓ |
+| KI-Agenten-Steuerung über MCP-Server (4.13) | — | — | ✓ |
 | Autoencoder-Feld-Surrogate (nichtlineare Reduktion) | — | — | ✓ |
 | Active Learning, Multi-Fidelity | — | — | ✓ |
 | PDF-Audit-Reports mit Lineage/Compliance-Anhang | — | — | ✓ |
 | Floating-Lizenzen, Site-License | — | — | ✓ |
 | SLA-Support, Customer Success | — | — | ✓ |
 
-**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment/Integration* (Modell-Export, KI-Agenten-Steuerung) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus — stufen-bewusst: das Autoencoder-Feld-Surrogat verlangt die Enterprise-Stufe.
+**Trennprinzip:** Das freie Core ist ein vollständig nutzbarer Einstieg (drei etablierte Methoden, Training, Vorhersage, Vergleich, Markdown-Report) und dient als Adoptions-Funnel. Der kommerzielle Wert liegt in vier Ebenen: *Methoden-Breite* (RF/Boosting/NN/skalierbare GP), *Vertrauen* (Reproduzierbarkeit + Lineage), *Deployment/Integration* (Modell-Export, maschinenlesbare Ausgabe; die native Agenten-Anbindung über MCP ist Enterprise) und *Präsentation/Workflow* (HTML-Reports, DoE). Neuronale Netze werden automatisch über die Plugin-Registry gegatet: jeder Aufruf eines NN-Trainers — auch als Inner-Surrogat eines Feld-ROM — löst den Lizenz-Check aus — stufen-bewusst: das Autoencoder-Feld-Surrogat verlangt die Enterprise-Stufe.
 
 ### 3.3 Lizenzaktivierung
 
@@ -132,6 +133,11 @@ Ein typischer Nutzerablauf umfasst:
 | `surroforge info <run-id>` | Detailinfos zu einem Run |
 
 Globale Optionen: `--verbose / -v`, `--quiet / -q`, `--config-dir`, `--json` (maschinenlesbare Ausgabe, Professional — siehe 4.12), `--help`.
+
+Mit den kommerziellen Editionen kommen weitere Befehlsgruppen über die
+Plugin-Mechanik hinzu: `surroforge license …` und `surroforge doe …`
+(Professional) sowie `surroforge mcp serve` (Agenten-Server, Enterprise —
+siehe 4.13).
 
 ### 4.3 Konfigurationsformat
 
@@ -245,19 +251,162 @@ Plugin-Punkte (MVP):
 
 Kommerzielle Editionen (Professional, Enterprise) werden technisch als interne Plugins mit Lizenz-Check implementiert. Drittanbieter dürfen eigene Plugins entwickeln; Stabilitätsgarantie ab Version 1.0.
 
-### 4.12 KI-Agenten-Steuerung (Professional)
+### 4.12 KI-Agenten-Steuerung (Professional / Enterprise)
 
-SurroForge ist durch KI-Agenten steuerbar: ein Agent (z. B. Claude oder Claude Code) fährt den vollständigen Kern-Workflow selbst — Datensatz registrieren, trainieren, validieren, vergleichen, vorhersagen, berichten. Dafür stehen zwei Oberflächen bereit, beide lizenzpflichtig (Professional; in Enterprise enthalten):
+SurroForge ist durch KI-Agenten steuerbar: ein Agent (z. B. Claude oder Claude Code) fährt den vollständigen Kern-Workflow selbst — Datensatz registrieren, trainieren, validieren, vergleichen, vorhersagen, berichten. Dafür stehen zwei Oberflächen auf zwei Editionsstufen bereit:
 
-**1. MCP-Server.** Stellt die SurroForge-Verben als Tools des Model Context Protocol (MCP) über stdio bereit, sodass MCP-fähige Agenten sie nativ aufrufen. Ausgeliefert im `surroforge_professional`-Plugin und über die bestehende Plugin-Mechanik registriert (`surroforge mcp serve`); die `mcp`-SDK ist ein optionales Extra (`pip install 'surroforge_professional[agent]'`).
+**1. Maschinenlesbarer Ausgabemodus (Professional).** Ein globales `--json`-Flag lässt jeden Befehl statt Terminal-Text ein stabiles JSON-Objekt auf stdout ausgeben, kombiniert mit deterministischen Exit-Codes. Für skript- oder shell-basierte Agenten, die die CLI direkt aufrufen. Das ist die Einstiegsstufe der Agenten-Steuerung: sie setzt voraus, dass der Agent eine Shell hat und Aufrufe selbst orchestriert.
 
-**2. Maschinenlesbarer Ausgabemodus.** Ein globales `--json`-Flag lässt jeden Befehl statt Terminal-Text ein stabiles JSON-Objekt auf stdout ausgeben, kombiniert mit deterministischen Exit-Codes. Für skript- oder shell-basierte Agenten, die die CLI direkt aufrufen.
+**2. MCP-Server (Enterprise).** Stellt die SurroForge-Verben als Tools des Model Context Protocol (MCP) über stdio bereit, sodass MCP-fähige Agenten sie nativ aufrufen — mit entdeckbarem Tool-Katalog, Schema pro Parameter und Freigaben pro Tool statt pauschalem Shell-Zugriff. Ausgeliefert im `surroforge_enterprise`-Plugin und über die bestehende Plugin-Mechanik registriert (`surroforge mcp serve`); die `mcp`-SDK ist ein optionales Extra (`pip install 'surroforge_enterprise[agent]'`). Vollständig spezifiziert in **4.13**.
+
+**Warum der MCP-Server Enterprise ist:** Die native Agenten-Anbindung ist genau die Ebene, auf der ein CAE-Team seine Workflows automatisiert und damit organisatorisch abhängig wird — dieselbe Käufer-Logik wie bei Audit-Reports und Floating-Lizenzen. Der `--json`-Modus bleibt in Professional, damit auch dort ein automatisierbarer Pfad existiert.
 
 **Architektur.** Beide Oberflächen setzen ausschließlich auf der bestehenden Services-/Engine-/Python-API-Schicht auf (4.10, 4.11) und bauen keine eigene Domänenlogik. Damit erben sie das Lizenz-Gate automatisch: gegatete Verben (`reproduce`, `export`, HTML-`compare`, Provenance in `info`) verlangen weiterhin eine Lizenz und liefern eine strukturierte „requires license"-Antwort (`error_type` + `message`, abgeleitet aus der bestehenden `PluginError`-Hierarchie). Freie Core-Verben (`train`, `predict`, `validate`, Terminal-`compare`, `list`, `data …`, `rom inspect`, Markdown-`report`) bleiben inhaltlich unverändert — die Agent-Schicht kapselt sie nur maschinenlesbar.
 
 **Abgedeckte Verben:** `init`, `data add`/`add-openfoam`/`list`, `train`, `validate`, `compare`, `predict`, `export`, `report`, `list`, `reproduce`, `info`, `rom inspect`.
 
 Stabilität und Sicherheit des Agent-Vertrags: siehe 5.5 (lokal, ohne ausgehende Netzwerkverbindung) und 5.7 (versioniertes, rückwärtskompatibles Ausgabeschema).
+
+### 4.13 MCP-Server (Enterprise)
+
+Der MCP-Server ist die native Agenten-Oberfläche von SurroForge: er macht die
+Kern-Verben als Tools des **Model Context Protocol** verfügbar, sodass ein Agent
+(Claude Code, Claude Desktop, jeder MCP-fähige Client) den vollständigen Workflow
+ausführt, ohne die CLI über eine Shell zu bedienen und ohne Terminal-Ausgaben zu
+parsen.
+
+**Warum nicht nur `--json`?** Das JSON-Flag bedient Agenten, die ohnehin eine Shell
+haben. MCP liefert darüber hinaus das, was ein Shell-Aufruf nicht kann: eine
+typisierte, vom Client **entdeckbare** Tool-Liste mit JSON-Schema pro Parameter,
+Freigabe-Dialoge pro Tool statt pauschalem Shell-Zugriff, Fortschritts-Meldungen
+für lange Trainings und Run-Artefakte als adressierbare Resources. Beide
+Oberflächen bleiben nebeneinander bestehen; sie teilen sich Services-Schicht,
+Ausgabeschema und Lizenz-Gate.
+
+#### 4.13.1 Start, Registrierung, Installation
+
+- Registriert über den bestehenden `surroforge.commands`-Entry-Point — hier im
+  `surroforge_enterprise`-Plugin, das damit erstmals nicht nur Trainer, sondern auch
+  eine Befehlsgruppe beisteuert. Auffindbar auf demselben Weg wie `surroforge doe`
+  und `surroforge license` aus dem Professional-Plugin.
+- Start: `surroforge mcp serve [--project <pfad>]`. Ohne `--project` gilt das über
+  `Project.discover()` gefundene Projekt des Arbeitsverzeichnisses.
+- Transport: **stdio**. Ein Server-Prozess bedient genau einen Client.
+- Lizenz: Der Start verlangt eine gültige **Enterprise**-Lizenz. Ohne sie bricht
+  `surroforge mcp serve` sofort mit einer klaren Meldung ab, statt einen Server mit
+  halbem Tool-Katalog anzubieten — der Gate-Punkt liegt am Prozessstart, nicht pro
+  Tool-Aufruf (siehe 4.13.5).
+- Abhängigkeit: das `mcp`-Python-SDK als optionales Extra
+  (`pip install 'surroforge_enterprise[agent]'`). Fehlt es, scheitert der Befehl
+  mit derselben klaren Meldung wie andere fehlende Backends (`PluginError`), nicht
+  mit einem `ImportError`-Traceback.
+- Client-Konfiguration erfolgt über den Standard-Mechanismus des jeweiligen Clients
+  (Kommando + Argumente + Arbeitsverzeichnis); SurroForge liefert dafür ein
+  dokumentiertes Snippet, keine eigene Registry.
+
+#### 4.13.2 Tool-Katalog
+
+Ein Tool pro CLI-Verb, Namensraum-präfixiert (`surroforge_…`), damit die Namen im
+globalen Tool-Katalog eines Agenten eindeutig bleiben. Jedes Tool ist eine dünne
+Hülle um die in 4.10/4.11 genannten Schichten — keine eigene Domänenlogik:
+
+| MCP-Tool | Wesentliche Parameter | Dahinterliegende Funktion | Edition des Verbs |
+|---|---|---|---|
+| `surroforge_init` | `path`, `name`, `description` | `Project.init` | Core |
+| `surroforge_data_add` | `file`, `name` | `Project.add_dataset` | Core |
+| `surroforge_data_add_openfoam` | `samples_dir`, `field`, `name` | OpenFOAM-Ingestion | Core |
+| `surroforge_data_list` | — | `Project.datasets` | Core |
+| `surroforge_train` | `config` (Pfad **oder** Inline-Mapping) | `engine.run_training` | Core |
+| `surroforge_validate` | `run_id` | `Run.metrics` | Core |
+| `surroforge_list_runs` | — | `Project.runs` | Core |
+| `surroforge_info` | `run_id` | `Run`-Metadaten | Core (Herkunftsfelder: Pro) |
+| `surroforge_compare` | `run_ids`, `metric` | `services.compare_runs` | Core |
+| `surroforge_predict` | `run_id`, `input_file` **oder** `rows`, `field` | `services.predict_from_file` / `predict_with_run` | Core |
+| `surroforge_report` | `run_id`, `format`, `output` | `services.generate_report` | Core (`markdown`), Pro (`html`) |
+| `surroforge_comparison_report` | `run_ids`, `metric`, `format` | `services.generate_comparison_report` | Professional |
+| `surroforge_export` | `run_id`, `format`, `output` | `services.export_model` | Professional |
+| `surroforge_reproduce` | `run_id`, `tolerance` | `services.reproduce` + `assert_reproducible` | Professional |
+| `surroforge_rom_inspect` | `run_id` | `services.inspect_rom_run` | Core |
+
+Die letzte Spalte nennt die Edition des **darunterliegenden Verbs**, nicht die
+Zugangshürde zum Tool: Wer den Server startet, hat eine Enterprise-Lizenz, und weil
+die Stufen geordnet sind (Enterprise schließt Professional ein), ist der gesamte
+Katalog nach dem Start nutzbar. Die Spalte bleibt trotzdem relevant — sie dokumentiert,
+welche Verben ein Agent auf einer reinen Core- oder Professional-Installation über
+CLI/API erreichen kann, und ist die Grundlage, falls später ein eingeschränkter
+Server für niedrigere Stufen angeboten wird (offene Frage 8).
+
+Der Katalog ist **geschlossen**: es gibt kein generisches „führe Kommando aus"-,
+„lies beliebige Datei"- oder „evaluiere Python"-Tool. Was ein Agent über MCP tun
+kann, steht vollständig in dieser Tabelle.
+
+Jedes Tool trägt die MCP-Annotationen `readOnlyHint` bzw. `destructiveHint`, damit
+Clients lesende Aufrufe (`list`, `info`, `validate`, `compare`, `rom inspect`)
+automatisch freigeben und schreibende (`init`, `data add`, `train`, `export`,
+`report`) einzeln bestätigen lassen können.
+
+#### 4.13.3 Resources
+
+Run-Artefakte werden zusätzlich als MCP-Resources exponiert, damit ein Agent sie
+lesen kann, ohne ein Tool aufzurufen oder Dateipfade zu raten:
+
+- `surroforge://runs/<run-id>/config` — Konfigurations-Snapshot (YAML)
+- `surroforge://runs/<run-id>/metrics` — Metriken (JSON)
+- `surroforge://runs/<run-id>/lineage` — Herkunft (JSON)
+- `surroforge://runs/<run-id>/report` — zuletzt erzeugter Report
+- `surroforge://project` — Projekt-Metadaten inkl. registrierter Datensätze
+
+#### 4.13.4 Lange Läufe
+
+Ein Training kann Minuten dauern und damit das Timeout eines Clients überschreiten.
+Anforderungen: `surroforge_train` sendet MCP-**Progress-Notifications** (Phase:
+Datenauflösung → Split → Cross-Validation-Fold *k* → finales Modell → Persistenz)
+und gibt die Run-ID zurück. Bricht der Client ab, wird der Lauf abgebrochen und
+hinterlässt dank atomarer Run-Persistenz **kein** halbfertiges Run-Verzeichnis —
+der Agent sieht in `surroforge_list_runs` entweder einen vollständigen Run oder
+gar keinen.
+
+#### 4.13.5 Fehler- und Lizenz-Vertrag
+
+Domänenfehler werden als strukturierte Tool-Fehler zurückgegeben, nie als
+Traceback: `error_type` (der Klassenname aus der bestehenden
+`SurroForgeError`-Hierarchie — `ConfigError`, `DataError`, `TrainerError`,
+`PluginError`, `RunNotFoundError`, `ReproducibilityError`, …) plus `message`. Damit
+kann ein Agent zwischen „Konfiguration reparieren", „Lizenz fehlt" und „Run
+existiert nicht" unterscheiden, statt Text zu interpretieren.
+
+**Lizenzgatung liegt am Prozessstart, nicht am einzelnen Tool.** Der Server ist
+selbst ein Enterprise-Feature: ohne gültige Enterprise-Lizenz startet er nicht und
+meldet das mit `error_type: "PluginError"` plus Hinweis auf
+`surroforge license install`. Läuft er, ist der volle Katalog freigeschaltet, denn
+die Enterprise-Stufe schließt die Professional-Stufe ein — ein Agent stößt also
+mitten im Workflow nicht mehr auf eine Lizenzwand, was gerade für autonom
+arbeitende Agenten der entscheidende Unterschied ist. Die Gatung der Services-Schicht
+bleibt darunter unverändert bestehen und greift weiterhin, wenn dieselben Verben
+über CLI oder Python-API ohne passende Lizenz aufgerufen werden. Ein Downgrade auf
+stille Teilergebnisse findet in keinem Fall statt.
+
+#### 4.13.6 Sicherheit
+
+- stdio-only, lokal, keine ausgehende Netzwerkverbindung (siehe 5.5).
+- Alle Pfad-Parameter werden gegen die Projektwurzel aufgelöst; Zugriffe außerhalb
+  werden abgelehnt, sofern nicht explizit über `--allow-path` freigegeben. Damit ist
+  der Wirkungsradius eines fehlgeleiteten Agenten auf ein Projektverzeichnis
+  begrenzt.
+- Kein Tool löscht Runs, Datensätze oder Projekte.
+
+#### 4.13.7 Versionierung und Abnahme
+
+Die Tool-Signaturen sind Teil des Agent-Ausgabevertrags aus 5.7: versioniert, ab
+1.0 innerhalb einer Major-Version rückwärtskompatibel, Änderungen mit
+Deprecation-Vorlauf und CI-Prüfung gegen frühere Releases. Der Server meldet seine
+Schema-Version in der MCP-Initialisierung.
+
+**Definition of Done:** Ein MCP-Client fährt mit gültiger Enterprise-Lizenz das
+Greenfield-Szenario (Projekt anlegen → Datensatz registrieren → trainieren →
+validieren → Report) sowie den Methodenvergleich ausschließlich über MCP-Tools
+durch, ohne Shell-Zugriff; ohne Lizenz verweigert `surroforge mcp serve` den Start
+mit strukturierter `PluginError`-Meldung.
 
 ---
 
@@ -291,7 +440,7 @@ Stabilität und Sicherheit des Agent-Vertrags: siehe 5.5 (lokal, ohne ausgehende
 ### 5.5 Sicherheit
 
 - Keine ausgehende Netzwerkverbindung in der Core-Edition (außer expliziter Update-Check, opt-in)
-- Der MCP-Server (Professional, 4.12) läuft lokal über stdio und baut selbst keine ausgehende Netzwerkverbindung auf
+- Der MCP-Server (Enterprise, 4.13) läuft lokal über stdio und baut selbst keine ausgehende Netzwerkverbindung auf; sein Tool-Katalog ist geschlossen (kein generisches Shell-, Datei- oder Eval-Tool) und alle Pfade sind auf die Projektwurzel begrenzt
 - Lizenzprüfung in Pro/Enterprise erfolgt lokal oder über vom Nutzer konfigurierte Endpunkte
 - Keine Telemetrie ohne Opt-In; falls aktiviert, transparent und abschaltbar
 
@@ -303,7 +452,7 @@ Stabilität und Sicherheit des Agent-Vertrags: siehe 5.5 (lokal, ohne ausgehende
 
 ### 5.7 Stabilität des Agent-Ausgabevertrags
 
-- Das maschinenlesbare Ausgabeschema (`--json`) und die MCP-Tool-Signaturen (4.12) sind versioniert und ab Version 1.0 innerhalb einer Major-Version rückwärtskompatibel — analog zum CLI-/API-Vertrag (5.4) —, damit Agenten und Skripte sich verlässlich darauf abstützen können
+- Das maschinenlesbare Ausgabeschema (`--json`, 4.12) und die MCP-Tool-Signaturen (4.13) sind versioniert und ab Version 1.0 innerhalb einer Major-Version rückwärtskompatibel — analog zum CLI-/API-Vertrag (5.4) —, damit Agenten und Skripte sich verlässlich darauf abstützen können
 - Schema-Änderungen folgen demselben Deprecation-Pfad wie CLI/API (mindestens eine Minor-Version Vorlauf) und werden in CI gegen frühere Releases geprüft
 
 ---
@@ -322,6 +471,7 @@ Stabilität und Sicherheit des Agent-Vertrags: siehe 5.5 (lokal, ohne ausgehende
 | Hashing/Persistenz | SHA-256, JSON, Pickle |
 | ONNX-Export | skl2onnx, onnxruntime |
 | Reports | Markdown direkt; HTML via Jinja2 + Plotly; PDF via WeasyPrint |
+| Agenten-Anbindung | MCP-Python-SDK über stdio (Enterprise, optionales Extra `agent`) |
 | Testing | pytest, hypothesis |
 | Linting/Formatting | ruff, mypy |
 | Dokumentation | MkDocs Material |
@@ -345,7 +495,8 @@ surroforge/
 Kommerzielle Module liegen in separaten Paketen:
 ```
 surroforge_professional/  # Erw. Methoden (RF/Boosting/NN), Export, Repro/Lineage, HTML-Reports, DoE
-surroforge_enterprise/    # Autoencoder-Feld-Surrogat, Active Learning, Multi-Fidelity, Audit-PDF
+surroforge_enterprise/    # Autoencoder-Feld-Surrogat, Active Learning, Multi-Fidelity, Audit-PDF,
+                          # mcp/ (Agenten-Server, 4.13)
 ```
 
 ### 6.3 Abhängigkeiten und Lizenzen
@@ -451,7 +602,7 @@ Inhalte:
 - Lizenz-Aktivierungs-Mechanik
 - E-Mail-Support-Infrastruktur
 - DoE-Modul als ergänzendes Submodul
-- KI-Agenten-Steuerung: MCP-Server + maschinenlesbarer JSON-Modus (setzt auf die Services-/API-Schicht auf, erbt das Lizenz-Gate)
+- KI-Agenten-Steuerung, Stufe 1: maschinenlesbarer JSON-Modus (`--json`, setzt auf die Services-/API-Schicht auf, erbt das Lizenz-Gate); der MCP-Server folgt in Phase 3
 
 **Definition of Done:** Drei zahlende Pilotkunden, dokumentierte Konversion vom Core; das Reproduktions-Szenario (bit-identischer Nachvollzug) läuft in Professional durch.
 
@@ -461,6 +612,7 @@ Inhalte:
 
 Inhalte:
 - Autoencoder-Feld-Surrogat
+- MCP-Server für KI-Agenten-Steuerung (4.13): Tool-Katalog, Resources, Progress-Notifications, Enterprise-Gate am Prozessstart
 - Active Learning mit Acquisition-Funktionen
 - Multi-Fidelity-Modelle
 - PDF-Audit-Reports mit Lineage-Tracking
@@ -468,7 +620,7 @@ Inhalte:
 - Compliance-Datenblatt und IT-Freigabe-Material
 - Customer-Success- und Schulungsangebot
 
-**Definition of Done:** Erste Enterprise-Kunde mit Site-License oder mehreren Floating-Lizenzen.
+**Definition of Done:** Erste Enterprise-Kunde mit Site-License oder mehreren Floating-Lizenzen; ein MCP-Client fährt Greenfield- und Vergleichs-Szenario ohne Shell-Zugriff durch (4.13.7).
 
 ---
 
@@ -517,7 +669,7 @@ Diese Annahmen werden vor und während der Entwicklung durch Interviews und frü
 - **Plugin-Trennlinie:** Saubere Trennung zwischen Core- und kommerziellen Modulen ist architektonisch anspruchsvoll. Mitigationsstrategie: Plugin-Schnittstellen früh definieren, alle erweiterten Methoden konsistent als Plugins implementieren.
 - **Reproduzierbarkeit über Python-/Bibliotheksversionen:** Numerische Unterschiede zwischen NumPy- oder SciPy-Versionen können Bit-Identität verhindern. Mitigationsstrategie: Versionspinning im Run-Snapshot, tolerante Reproduzierbarkeits-Tests (z. B. relative Toleranz).
 - **Performance bei großen Datensätzen:** Gaussian Processes skalieren schlecht über 10.000 Punkten. Mitigationsstrategie: Skalierbare GP-Varianten in Pro-Edition (Sparse GP, GPyTorch), klare Dokumentation der Grenzen.
-- **Stabilität des Agent-Vertrags:** Ein maschinenlesbares JSON-/MCP-Schema (4.12) wird von Agenten und Skripten als Vertrag konsumiert; nachträgliche Änderungen brechen Integrationen. Mitigationsstrategie: versioniertes, in CI getestetes Ausgabeschema mit Deprecation-Pfad (5.7).
+- **Stabilität des Agent-Vertrags:** Ein maschinenlesbares JSON-/MCP-Schema (4.12, 4.13) wird von Agenten und Skripten als Vertrag konsumiert; nachträgliche Änderungen brechen Integrationen. Mitigationsstrategie: versioniertes, in CI getestetes Ausgabeschema mit Deprecation-Pfad (5.7).
 
 ### 11.3 Geschäftliche Risiken
 
@@ -536,6 +688,8 @@ Diese werden vor MVP-Release entschieden:
 4. **Run-ID-Format:** Sequenziell (`run-001`) oder UUID? Implikation für Sortierung und Lesbarkeit.
 5. **Konfiguration: nur YAML oder auch TOML?** YAML ist im Engineering verbreiteter, TOML bei modernen Python-Tools üblicher.
 6. **Daten-Versionierung:** Wie integriert sich SurroForge mit DVC oder ähnlichen Werkzeugen?
+7. **MCP-Tool-Granularität:** Ein Tool pro CLI-Verb (4.13.2, aktuelle Festlegung) oder zusätzlich gröbere Workflow-Tools („trainiere und vergleiche drei Methoden")? Feine Tools sind vorhersagbar und leichter zu gaten, kosten den Agenten aber mehr Runden.
+8. **Eingeschränkter MCP-Server unterhalb von Enterprise?** Der volle Server ist Enterprise (3.2, 4.13). Offen bleibt, ob ein reduzierter Server mit ausschließlich Core-Verben als Adoptions-Funnel sinnvoll ist — er senkt die Einstiegshürde für Agenten-Nutzer, entwertet aber das Enterprise-Argument und verdoppelt die Vertragsfläche (5.7).
 
 ---
 

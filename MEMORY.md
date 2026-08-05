@@ -109,6 +109,11 @@ Fixtures: `sample_csv`, `project` (mit Datensatz „beam“), `trained_run`, sow
   `surroforge_enterprise` mit autoencoder-field, OpenFOAM/Field-ROM, DoE, erweiterte
   Run-Vergleiche), aber nicht vollständig: offen sind u. a. skalierbare GP und
   Support-Infrastruktur.
+- **MCP-Server** ist spezifiziert (PRD 4.13), aber **nicht implementiert**: Enterprise-Feature,
+  lebt künftig in `plugins/surroforge_enterprise/` als `mcp/`-Modul plus `surroforge.commands`-
+  Entry-Point (`surroforge mcp serve`), `mcp`-SDK als Extra `[agent]`, Lizenz-Gate am
+  Prozessstart statt pro Tool. Der `--json`-Modus (PRD 4.12, Professional) fehlt ebenfalls noch —
+  die CLI kennt bisher nur `--verbose/--quiet/--config-dir`.
 - Release-Kandidat für die aktuellen `[Unreleased]`-Features prüfen: Version/Changelog
   schneiden, Release-Gates aus `RELEASING.md` laufen lassen, dann taggen/publishen.
 - Produktvalidierung/Interviews/Pilotkunden sind für die aktuelle Engineering-Queue

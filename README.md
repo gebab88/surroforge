@@ -203,8 +203,8 @@ rather than a silent fallback.
 ## Editions
 
 Core is a complete, genuinely usable tool on its own. The commercial value sits in
-four layers: method breadth, trust (reproducibility and lineage), deployment
-(model export), and presentation (HTML reports, DoE).
+four layers: method breadth, trust (reproducibility and lineage), deployment and
+integration (model export, agent control), and presentation (HTML reports, DoE).
 
 | Capability | Core | Professional | Enterprise |
 |---|:--:|:--:|:--:|
@@ -218,11 +218,26 @@ four layers: method breadth, trust (reproducibility and lineage), deployment
 | `reproduce`, lineage display and export | — | ✓ | ✓ |
 | Model export (ONNX, pickle, PyTorch) | — | ✓ | ✓ |
 | Interactive HTML reports, DoE, extended comparisons | — | ✓ | ✓ |
+| Machine-readable `--json` output for scriptable agents | — | ○ | ○ |
 | Autoencoder field surrogate | — | — | ✓ |
-| Active learning, multi-fidelity, PDF audit reports | — | — | ✓ |
+| MCP server — drive SurroForge from an AI agent | — | — | ○ |
+| Active learning, multi-fidelity, PDF audit reports | — | — | ○ |
+
+✓ = shipping today · ○ = specified in [PRD.md](PRD.md), not yet implemented
 
 Licensed features fail with a clear message rather than a traceback when no license
 is present, and `train --onnx` degrades gracefully instead of failing the run.
+
+### AI-agent control (planned)
+
+The [PRD](PRD.md) specifies two ways to drive SurroForge from an AI agent. A global
+`--json` flag turns every command's output into a stable JSON object for agents that
+already have a shell (Professional). An **MCP server** — `surroforge mcp serve` —
+exposes the verbs as Model Context Protocol tools over stdio, so an MCP-capable
+client discovers them with typed schemas, approves them individually rather than
+being handed blanket shell access, and receives run artefacts as addressable
+resources (Enterprise). Both sit on the `services` layer described above and add no
+domain logic of their own. See PRD sections 4.12 and 4.13.
 
 ### License activation
 
